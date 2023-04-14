@@ -49,7 +49,6 @@ in
     pasystray
     teams
     light
-    keychain
   ];
 
   services.xserver = {

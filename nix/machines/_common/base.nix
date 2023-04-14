@@ -37,7 +37,11 @@ in
     cmake
     mosh
     cargo
+    speedtest-cli
+    fzf
     fish
+    keychain
+    tig
   ];
 }
 
