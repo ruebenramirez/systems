@@ -41,6 +41,7 @@ in
     xournal # pdf annotations
     #imagemagick # dup might be a problem?
     alacritty
+    kitty
     _1password-gui
     slack
     flameshot
@@ -49,6 +50,9 @@ in
     pasystray
     teams
     light
+    pciutils
+    signal-desktop
+    gnome.nautilus
   ];
 
   services.xserver = {
@@ -79,5 +83,13 @@ in
     xkbOptions = "caps:escape";
 
   };
+
+  services.xrdp.enable = true;
+  services.xrdp.defaultWindowManager = "${pkgs.i3-gaps}/bin/i3";
+  #networking.firewall.allowedTCPPorts = [ 3389 ];
+
+  fonts.fonts = with pkgs; [
+    source-code-pro
+  ];
 
 }

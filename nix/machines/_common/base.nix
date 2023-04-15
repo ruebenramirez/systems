@@ -42,6 +42,7 @@ in
     fish
     keychain
     tig
+    parted
   ];
 }
 
