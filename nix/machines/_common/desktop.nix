@@ -53,6 +53,7 @@ in
     pciutils
     signal-desktop
     gnome.nautilus
+    authy
   ];
 
   services.xserver = {
@@ -84,8 +85,9 @@ in
 
   };
 
-  services.xrdp.enable = true;
-  services.xrdp.defaultWindowManager = "${pkgs.i3-gaps}/bin/i3";
+  # troubleshooting machine not booting
+  # services.xrdp.enable = true;
+  # services.xrdp.defaultWindowManager = "${pkgs.i3-gaps}/bin/i3";
   #networking.firewall.allowedTCPPorts = [ 3389 ];
 
   fonts.fonts = with pkgs; [

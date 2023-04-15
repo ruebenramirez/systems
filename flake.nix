@@ -3,6 +3,10 @@
 
   outputs = { self, nixpkgs }: {
     nixosConfigurations = {
+      xps17 = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [ ./nix/machines/xps17/configuration.nix ];
+      };
       driver = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [ ./nix/machines/driver/configuration.nix ];
