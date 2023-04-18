@@ -43,6 +43,8 @@ in
     keychain
     tig
     parted
+    yt-dlp
+    python3
   ];
 }
 

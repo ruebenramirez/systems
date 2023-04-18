@@ -39,7 +39,7 @@ in
     viewnior
     mpv
     xournal # pdf annotations
-    #imagemagick # dup might be a problem?
+    imagemagick # dup might be a problem?
     alacritty
     kitty
     _1password-gui
@@ -54,6 +54,17 @@ in
     signal-desktop
     gnome.nautilus
     authy
+    blueman
+    # keyboard shortcuts
+    xbindkeys
+    # date print keyboard shortcut dependency
+    xdotool
+    # deps for ocr screenshot
+    tesseract5
+    scrot
+    xsel
+    calibre # manage ebooks
+    usbutils
   ];
 
   services.xserver = {
@@ -65,8 +76,13 @@ in
 
     displayManager = {
       defaultSession = "none+i3";
-    };
 
+      # make mouse cursor size larger
+      #  - https://github.com/NixOS/nixpkgs/issues/22652#issuecomment-288846599
+      #  - ties to https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/x11/display-managers/lightdm-greeters/gtk.nix
+      #lightdm.greeters.gtk.iconTheme
+
+    };
     # This is the way
     windowManager.i3 = {
       enable = true;
@@ -81,7 +97,8 @@ in
     libinput.enable = true;
 
     layout = "us";
-    xkbOptions = "caps:escape";
+    xkbOptions = "caps:escape, altwin:swap_alt_win";
+
 
   };
 
@@ -93,5 +110,6 @@ in
   fonts.fonts = with pkgs; [
     source-code-pro
   ];
+
 
 }

@@ -69,7 +69,13 @@ in
   # Audio
   sound.enable = true;
   hardware.pulseaudio.enable = true;
+  hardware.pulseaudio.support32Bit = true;
 
+  # Bluetooth
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
+
+  # use Fish shell
   users.defaultUserShell = pkgs.fish;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
