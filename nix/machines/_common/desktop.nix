@@ -65,6 +65,9 @@ in
     xsel
     calibre # manage ebooks
     usbutils
+    mupdf
+    vlc
+    gnome.cheese
   ];
 
   services.xserver = {
