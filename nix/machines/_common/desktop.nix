@@ -29,45 +29,43 @@ in
     autorandr # cli xrandr tool for saving/load profiles
     arandr # ui xrandr tool for interacting the multimonitors
     chromium
-    scrot # screenshots
     feh # set wallpaper
     gomuks # matrix
     zoom-us
     zathura # simple pdf viewer
-    obsidian
-    xsel
+    obsidian # notes
     viewnior
     mpv
     xournal # pdf annotations
     imagemagick # dup might be a problem?
-    alacritty
-    kitty
-    _1password-gui
-    slack
-    flameshot
-    powertop
-    pavucontrol
-    pasystray
-    teams
-    light
-    pciutils
-    signal-desktop
-    gnome.nautilus
-    authy
-    blueman
-    # keyboard shortcuts
-    xbindkeys
-    # date print keyboard shortcut dependency
-    xdotool
-    # deps for ocr screenshot
-    tesseract5
-    scrot
-    xsel
+    alacritty # terminal emulator of choice
+    _1password-gui # password manager
+    slack # work chat app
+    discord # projects/gaming chat app
+    flameshot # screenshot tool
+    powertop # power management profiling tool
+    pavucontrol # sound management
+    pasystray # task bar applet for sound management
+    teams # microsoft teams chat app
+    light # screen brightness management
+    pciutils # contains the lspci tool
+    signal-desktop # signal chat app
+    gnome.nautilus # file browser
+    authy # OTP app
+    blueman # bluetooth device management
+    xbindkeys # keyboard shortcuts
+    tesseract5 # deps for ocr screenshot
+    scrot # deps for ocr screenshot
+    xsel # deps for ocr screenshot
     calibre # manage ebooks
-    usbutils
-    mupdf
-    vlc
-    gnome.cheese
+    usbutils # contains lsusb tool
+    mupdf # pdf viewer with vim keybindings
+    vlc # video player with lots format compatibility
+    gnome.cheese # webcam camera tool
+    tor-browser-bundle-bin
+    dmidecode # reads info from connected hardware
+    razergenie
+    openrazer-daemon
   ];
 
   services.xserver = {
@@ -100,19 +98,11 @@ in
     libinput.enable = true;
 
     layout = "us";
+    # swap caps and escape keys + swap alt and win keys
     xkbOptions = "caps:escape, altwin:swap_alt_win";
-
-
   };
-
-  # troubleshooting machine not booting
-  # services.xrdp.enable = true;
-  # services.xrdp.defaultWindowManager = "${pkgs.i3-gaps}/bin/i3";
-  #networking.firewall.allowedTCPPorts = [ 3389 ];
 
   fonts.fonts = with pkgs; [
     source-code-pro
   ];
-
-
 }

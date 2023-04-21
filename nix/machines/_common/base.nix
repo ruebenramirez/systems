@@ -28,23 +28,21 @@ in
     tree
     manix # useful search for nix docs
     unzip
-    iotop
-    htop
-    nethogs
-    vim
-    black
+    iotop # disk io performance monitor tool
+    htop # system resource monitoring tool
+    nethogs # network traffic monitoring tool
+    black # python linter
     ctags
     cmake
-    mosh
-    cargo
+    mosh # lightweight ssh for remoting over slow or unstable networks
+    cargo # rust app dev lifecycling
     speedtest-cli
-    fzf
-    fish
-    keychain
-    tig
-    parted
-    yt-dlp
-    python3
+    fish # Fish shell
+    fzf # fuzzy finder - supports ctrl-r for fish shell
+    keychain # remember my ssh key passphrases
+    tig # ncurses git repo viewer
+    parted # manage disk partitions
+    yt-dlp # download youtube video/audio
   ];
 }
 
