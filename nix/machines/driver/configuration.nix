@@ -30,8 +30,9 @@ in
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.supportedFilesystems = [ "ntfs" ];
 
-  networking.hostName = "driver"; # Define your hostname.
+  networking.hostName = "t490s"; # Define your hostname.
   # Need to be set for ZFS or else leads to:
   # Failed assertions:
   # - ZFS requires networking.hostId to be set
@@ -68,7 +69,13 @@ in
   # Audio
   sound.enable = true;
   hardware.pulseaudio.enable = true;
+  hardware.pulseaudio.support32Bit = true;
 
+  # Bluetooth
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
+
+  # use Fish shell
   users.defaultUserShell = pkgs.fish;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
@@ -108,6 +115,8 @@ in
       pcsclite
       pinentry
       tailscale
+      openvpn
+      libimobiledevice # internet via iPhone usb tethering
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -115,6 +124,12 @@ in
       mode = "symlink";
     };
   };
+
+  # enable iPhone usb tethering for internet access
+  services.usbmuxd.enable = true;
+
+
+
   # Enable the OpenSSH daemon.
   services.openssh = {
     enable = true;
@@ -140,16 +155,16 @@ in
       "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
     ];
   };
+
+  # firmware update
   services.fwupd.enable = true;
 
   # Dont start tailscale by default
-  services.tailscale.enable = false;
-  # didnt work for me
-  #systemd.services.tailscaled.after = [ "network-online.target" "systemd-resolved.service" ];
+  #services.tailscale.enable = false;
   # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
   networking.firewall.checkReversePath = "loose";
 
-  services.logind.extraConfig = "HandleLidSwitch=ignore";
+  #services.logind.extraConfig = "HandleLidSwitch=ignore";
 
   # part of gnupg reqs
   services.pcscd.enable = true;
@@ -197,7 +212,7 @@ in
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
   # dont hiberate/sleep by default
-  powerManagement.enable = false;
+  powerManagement.enable = true;
   # Enable tlp for stricter governance of power management
   # Validate status: `sudo tlp-stat -b`
   services.tlp.enable = true;
@@ -208,5 +223,4 @@ in
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "21.11"; # Did you read the comment?
-
 }
