@@ -62,10 +62,16 @@ in
     mupdf # pdf viewer with vim keybindings
     vlc # video player with lots format compatibility
     gnome.cheese # webcam camera tool
-    tor-browser-bundle-bin
     dmidecode # reads info from connected hardware
-    razergenie
-    openrazer-daemon
+    remmina
+
+    # TODO: configure Razer Huntsman V2 TKL
+    # razergenie
+    # openrazer-daemon
+
+    acpi # battery life monitoring
+
+    tor-browser-bundle-bin
   ];
 
   services.xserver = {

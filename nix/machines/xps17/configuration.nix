@@ -117,6 +117,9 @@ in
       tailscale
       openvpn
       libimobiledevice # internet via iPhone usb tethering
+      gimp-with-plugins
+      inkscape-with-extensions
+      fprintd # fingerprint reader
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -195,6 +198,17 @@ in
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
 
+# TODO: implement local firewall configuration
+#   - more deets https://nixos.wiki/wiki/Firewall
+# networking.firewall = {
+#   enable = true;
+#   allowedTCPPorts = [ 80 443 ];
+#   allowedUDPPortRanges = [
+#     { from = 4000; to = 4007; }
+#     { from = 8000; to = 8010; }
+#   ];
+# };
+
   # ZFS
   services.zfs = {
     autoScrub = {
@@ -224,6 +238,9 @@ in
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "21.11"; # Did you read the comment?
 
+  # fingerprint reader configuration
 
-
+  services.fprintd.enable = true;
+  services.fprintd.tod.enable = true;
+  services.fprintd.tod.driver = pkgs.libfprint-2-tod1-goodix;
 }
