@@ -38,12 +38,16 @@ in
   # - ZFS requires networking.hostId to be set
   networking.hostId = "6f602d2b";
 
-  # Enables wireless support via wpa_supplicant
-  networking.wireless.enable = true;
-  # Option is misleading but we dont want it
-  networking.wireless.userControlled.enable = false;
-  # Allow configuring networks "imperatively"
-  networking.wireless.allowAuxiliaryImperativeNetworks = true;
+  # Disable manual configuration of wireless networking
+  # # Enables wireless support via wpa_supplicant
+  # networking.wireless.enable = true;
+  # # Option is misleading but we dont want it
+  # networking.wireless.userControlled.enable = false;
+  # # Allow configuring networks "imperatively"
+  # networking.wireless.allowAuxiliaryImperativeNetworks = true;
+
+  # use network manager to configure wireless
+  networking.networkmanager.enable = true;
 
   # Set your time zone.
   time.timeZone = "America/Chicago";
@@ -114,12 +118,16 @@ in
       gnupg
       pcsclite
       pinentry
-      tailscale
-      openvpn
+      tailscale # VPN
+      openvpn # VPN
       libimobiledevice # internet via iPhone usb tethering
+      fprintd # fingerprint reader
+      barrier # share mouse and keyboard across multiple machines
+      networkmanagerapplet # network manager system tray applet
+      # media editing
       gimp-with-plugins
       inkscape-with-extensions
-      fprintd # fingerprint reader
+      davinci-resolve
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -163,11 +171,11 @@ in
   services.fwupd.enable = true;
 
   # Dont start tailscale by default
-  #services.tailscale.enable = false;
+  services.tailscale.enable = true;
   # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
   networking.firewall.checkReversePath = "loose";
 
-  #services.logind.extraConfig = "HandleLidSwitch=ignore";
+  services.logind.extraConfig = "HandleLidSwitch=ignore";
 
   # part of gnupg reqs
   services.pcscd.enable = true;
@@ -193,10 +201,10 @@ in
   # List services that you want to enable:
 
   # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
+  networking.firewall.allowedTCPPorts = [ 24800 ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
+  networking.firewall.enable = false;
 
 # TODO: implement local firewall configuration
 #   - more deets https://nixos.wiki/wiki/Firewall

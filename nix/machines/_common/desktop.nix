@@ -64,6 +64,7 @@ in
     gnome.cheese # webcam camera tool
     dmidecode # reads info from connected hardware
     remmina
+    vscode
 
     # TODO: configure Razer Huntsman V2 TKL
     # razergenie

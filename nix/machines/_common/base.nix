@@ -43,6 +43,7 @@ in
     tig # ncurses git repo viewer
     parted # manage disk partitions
     yt-dlp # download youtube video/audio
+    grc
   ];
 }
 
