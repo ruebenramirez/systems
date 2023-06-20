@@ -13,7 +13,7 @@ in
       ../_common/desktop.nix
       ../_common/base.nix
       # Import nix-garage
-      ./nix-garage-overlay.nix
+      #./nix-garage-overlay.nix
       ./home.nix
     ];
 
@@ -81,7 +81,7 @@ in
 
   # use Fish shell
   users.defaultUserShell = pkgs.fish;
-
+  programs.fish.enable = true;
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.rramirez = {
     isNormalUser = true;
@@ -127,7 +127,7 @@ in
       # media editing
       gimp-with-plugins
       inkscape-with-extensions
-      davinci-resolve
+      # davinci-resolve # disabling because problem with python2.7 being insecure
     ];
 
     etc."wpa_supplicant.conf" = {
