@@ -38,11 +38,11 @@
       fsType = "zfs";
     };
 
-  # fileSystems."/mnt/D" =
-  #   { device = "/dev/nvme1n1";
-  #     fsType = "ntfs";
-  #     options = [ "rw" "uid=1000" ];
-  #   };
+  fileSystems."/mnt/D" =
+    { device = "/dev/nvme1n1p1";
+      fsType = "ntfs";
+      options = [ "rw" "uid=1000" ];
+    };
 
   swapDevices = [ ];
 
@@ -58,7 +58,27 @@
   powerManagement.cpuFreqGovernor = lib.mkDefault "powersave";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
 
-  # high-resolution display
-  #hardware.video.hidpi.enable = lib.mkDefault true;
+  # HiDPI - high-resolution display
   services.xserver.dpi = 190; # set the DPI to enlarge the mouse cursor size
+  # hardware.video.hidpi.enable = lib.mkDefault true;
+
+  # bigger tty fonts
+  # console.font =
+  #   "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
+  environment.variables = {
+    GDK_SCALE = "2";
+    GDK_DPI_SCALE = "0.5";
+    _JAVA_OPTIONS = "-Dsun.java2d.uiScale=2";
+    XCURSOR_SIZE = "32";
+  };
+
+  # fix nixos-rebuild flake breakage due to NetworkManager-wait-online
+  # source: https://github.com/NixOS/nixpkgs/issues/180175#issuecomment-1658731959
+  systemd.services.NetworkManager-wait-online = {
+    serviceConfig = {
+      ExecStart = [ "" "${pkgs.networkmanager}/bin/nm-online -q" ];
+    };
+  };
+
+  services.logind.lidSwitch = "ignore";
 }

@@ -28,7 +28,9 @@ in
     myFirefox # robs custom firefox
     autorandr # cli xrandr tool for saving/load profiles
     arandr # ui xrandr tool for interacting the multimonitors
+    brave
     chromium
+    google-chrome
     ungoogled-chromium
     feh # set wallpaper
     gomuks # matrix
@@ -47,7 +49,6 @@ in
     powertop # power management profiling tool
     pavucontrol # sound management
     pasystray # task bar applet for sound management
-    teams # microsoft teams chat app
     light # screen brightness management
     pciutils # contains the lspci tool
     signal-desktop # signal chat app
@@ -66,6 +67,7 @@ in
     dmidecode # reads info from connected hardware
     remmina
     vscode
+    element-desktop #matrix chat desktop client
 
     # TODO: configure Razer Huntsman V2 TKL
     # razergenie
@@ -74,6 +76,9 @@ in
     acpi # battery life monitoring
 
     tor-browser-bundle-bin
+
+    # 1password system authentication security requirement
+    polkit
   ];
 
   services.xserver = {

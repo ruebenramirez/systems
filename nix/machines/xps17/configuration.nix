@@ -20,6 +20,9 @@ in
   # Necessary in most configurations
   nixpkgs.config.allowUnfree = true;
 
+  # temporary for obsidian support
+  nixpkgs.config.permittedInsecurePackages = [ "electron-24.8.6" ];
+
   nix.settings.trusted-users = [ "rramirez" ];
 
   # remove the annoying experimental warnings
@@ -79,6 +82,9 @@ in
   hardware.bluetooth.enable = true;
   services.blueman.enable = true;
 
+  # 1password system authentication
+  programs._1password-gui.polkitPolicyOwners = "rramirez";
+
   # use Fish shell
   users.defaultUserShell = pkgs.fish;
   programs.fish.enable = true;
@@ -128,6 +134,11 @@ in
       gimp-with-plugins
       inkscape-with-extensions
       # davinci-resolve # disabling because problem with python2.7 being insecure
+      wine
+      wine64
+      winetricks
+      winePackages.fonts
+      toybox # strings cli to view strings in a binary file
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -174,8 +185,6 @@ in
   services.tailscale.enable = true;
   # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
   networking.firewall.checkReversePath = "loose";
-
-  services.logind.extraConfig = "HandleLidSwitch=ignore";
 
   # part of gnupg reqs
   services.pcscd.enable = true;
@@ -251,4 +260,6 @@ in
   services.fprintd.enable = true;
   services.fprintd.tod.enable = true;
   services.fprintd.tod.driver = pkgs.libfprint-2-tod1-goodix;
+
+
 }
