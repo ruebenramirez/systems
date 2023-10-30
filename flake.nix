@@ -11,6 +11,10 @@
         system = "x86_64-linux";
         modules = [ ./nix/machines/driver/configuration.nix ];
       };
+      vmdev-mac = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [ ./nix/machines/vmdev-mac/configuration.nix ];
+      };
       sign = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [ ./nix/machines/sign/configuration.nix ];
