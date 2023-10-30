@@ -43,6 +43,7 @@ in
     imagemagick # dup might be a problem?
     alacritty # terminal emulator of choice
     _1password-gui # password manager
+    _1password
     slack # work chat app
     discord # projects/gaming chat app
     flameshot # screenshot tool
@@ -79,6 +80,7 @@ in
 
     # 1password system authentication security requirement
     polkit
+    polkit_gnome
   ];
 
   services.xserver = {
