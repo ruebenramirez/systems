@@ -35,7 +35,7 @@ in
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" ];
 
-  networking.hostName = "t490s"; # Define your hostname.
+  networking.hostName = "x220"; # Define your hostname.
   # Need to be set for ZFS or else leads to:
   # Failed assertions:
   # - ZFS requires networking.hostId to be set
@@ -61,7 +61,7 @@ in
   #networking.dhcpcd.wait = "if-carrier-up";
   #networking.interfaces.enp2s0f0.useDHCP = true;
   #networking.interfaces.enp5s0.useDHCP = true;
-  #networking.interfaces.wlp3s0.useDHCP = true;
+  networking.interfaces.wlp3s0.useDHCP = true;
 
   # Leave commented until tether is needed
   #networking.interfaces.enp7s0f4u2.useDHCP = true;
@@ -75,8 +75,10 @@ in
   hardware.pulseaudio.support32Bit = true;
 
   # Bluetooth
-  hardware.bluetooth.enable = true;
-  services.blueman.enable = true;
+  #hardware.bluetooth.enable = true;
+  hardware.bluetooth.enable = false;
+  #services.blueman.enable = true;
+  services.blueman.enable = false;
 
   # use Fish shell
   users.defaultUserShell = pkgs.fish;
@@ -118,9 +120,21 @@ in
       gnupg
       pcsclite
       pinentry
-      tailscale
-      openvpn
+      tailscale # VPN
+      openvpn # VPN
       libimobiledevice # internet via iPhone usb tethering
+      fprintd # fingerprint reader
+      barrier # share mouse and keyboard across multiple machines
+      networkmanagerapplet # network manager system tray applet
+      # media editing
+      gimp-with-plugins
+      inkscape-with-extensions
+      # davinci-resolve # disabling because problem with python2.7 being insecure
+      wine
+      wine64
+      winetricks
+      winePackages.fonts
+      toybox # strings cli to view strings in a binary file
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -164,7 +178,7 @@ in
   services.fwupd.enable = true;
 
   # Dont start tailscale by default
-  #services.tailscale.enable = false;
+  services.tailscale.enable = true;
   # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
   networking.firewall.checkReversePath = "loose";
 
@@ -227,4 +241,27 @@ in
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
   system.stateVersion = "23.05"; # Did you read the comment?
+
+
+  # fingerprint reader configuration
+
+  services.fprintd.enable = true;
+  services.fprintd.tod.enable = true;
+  services.fprintd.tod.driver = pkgs.libfprint-2-tod1-goodix;
+
+  systemd = {
+    user.services.polkit-gnome-authentication-agent-1 = {
+      description = "polkit-gnome-authentication-agent-1";
+      wantedBy = [ "graphical-session.target" ];
+      wants = [ "graphical-session.target" ];
+      after = [ "graphical-session.target" ];
+      serviceConfig = {
+          Type = "simple";
+          ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
+          Restart = "on-failure";
+          RestartSec = 1;
+          TimeoutStopSec = 10;
+        };
+    };
+  };
 }

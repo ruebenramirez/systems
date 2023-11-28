@@ -54,7 +54,6 @@ in
     pavucontrol # sound management
     pciutils # contains the lspci tool
     powertop # power management profiling tool
-    redshift
     remmina
     scrot # deps for ocr screenshot
     signal-desktop # signal chat app
@@ -71,6 +70,11 @@ in
     xsel # deps for ocr screenshot
     zathura # simple pdf viewer
     zoom-us
+    libnotify
+
+
+    geoclue2
+    redshift
 
     # TODO: configure Razer Huntsman V2 TKL
     # razergenie
@@ -101,6 +105,7 @@ in
       #lightdm.greeters.gtk.iconTheme
 
     };
+
     # This is the way
     windowManager.i3 = {
       enable = true;
@@ -108,6 +113,7 @@ in
         dmenu # simple launcher
         i3status # default i3 status bar
         i3lock # default + simple lock that matches my config
+        dunst
       ];
     };
 
@@ -122,4 +128,6 @@ in
   fonts.fonts = with pkgs; [
     source-code-pro
   ];
+
+  programs.light.enable = true;
 }
