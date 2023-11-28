@@ -13,12 +13,15 @@ in
       ../_common/desktop.nix
       ../_common/base.nix
       # Import nix-garage
-      ./nix-garage-overlay.nix
+      #./nix-garage-overlay.nix
       ./home.nix
     ];
 
   # Necessary in most configurations
   nixpkgs.config.allowUnfree = true;
+
+  # temporary for obsidian support
+  nixpkgs.config.permittedInsecurePackages = [ "electron-24.8.6" ];
 
   nix.settings.trusted-users = [ "rramirez" ];
 
@@ -77,6 +80,7 @@ in
 
   # use Fish shell
   users.defaultUserShell = pkgs.fish;
+  programs.fish.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.rramirez = {
@@ -222,5 +226,5 @@ in
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "21.11"; # Did you read the comment?
+  system.stateVersion = "23.05"; # Did you read the comment?
 }
