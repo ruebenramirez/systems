@@ -25,50 +25,52 @@ in
 {
   # install Desktop packages
   environment.systemPackages = with pkgs; [
-    myFirefox # robs custom firefox
-    autorandr # cli xrandr tool for saving/load profiles
-    arandr # ui xrandr tool for interacting the multimonitors
-    brave
-    chromium
-    google-chrome
-    ungoogled-chromium
-    feh # set wallpaper
-    gomuks # matrix
-    zoom-us
-    zathura # simple pdf viewer
-    obsidian # notes
-    viewnior
-    mpv
-    xournal # pdf annotations
-    imagemagick # dup might be a problem?
-    alacritty # terminal emulator of choice
-    _1password-gui # password manager
     _1password
-    slack # work chat app
-    discord # projects/gaming chat app
-    flameshot # screenshot tool
-    powertop # power management profiling tool
-    pavucontrol # sound management
-    pasystray # task bar applet for sound management
-    light # screen brightness management
-    pciutils # contains the lspci tool
-    signal-desktop # signal chat app
-    gnome.nautilus # file browser
+    _1password-gui # password manager
+    alacritty # terminal emulator of choice
+    arandr # ui xrandr tool for interacting the multimonitors
     authy # OTP app
+    autorandr # cli xrandr tool for saving/load profiles
     blueman # bluetooth device management
-    xbindkeys # keyboard shortcuts
-    tesseract5 # deps for ocr screenshot
-    scrot # deps for ocr screenshot
-    xsel # deps for ocr screenshot
+    brave
     calibre # manage ebooks
-    usbutils # contains lsusb tool
-    mupdf # pdf viewer with vim keybindings
-    vlc # video player with lots format compatibility
-    gnome.cheese # webcam camera tool
+    chromium
+    discord # projects/gaming chat app
     dmidecode # reads info from connected hardware
-    remmina
-    vscode
     element-desktop #matrix chat desktop client
+    feh # set wallpaper
+    flameshot # screenshot tool
+    gnome.cheese # webcam camera tool
+    gnome.nautilus # file browser
+    gomuks # matrix
+    google-chrome
+    imagemagick # dup might be a problem?
+    light # screen brightness management
+    mpv
+    mupdf # pdf viewer with vim keybindings
+    myFirefox # robs custom firefox
+    obsidian # notes
+    pasystray # task bar applet for sound management
+    pavucontrol # sound management
+    pciutils # contains the lspci tool
+    powertop # power management profiling tool
+    redshift
+    remmina
+    scrot # deps for ocr screenshot
+    signal-desktop # signal chat app
+    slack # work chat app
+    tesseract5 # deps for ocr screenshot
+    udiskie # automount attached usb disks
+    ungoogled-chromium
+    usbutils # contains lsusb tool
+    viewnior
+    vlc # video player with lots format compatibility
+    vscode
+    xbindkeys # keyboard shortcuts
+    xournal # pdf annotations
+    xsel # deps for ocr screenshot
+    zathura # simple pdf viewer
+    zoom-us
 
     # TODO: configure Razer Huntsman V2 TKL
     # razergenie
