@@ -13,6 +13,10 @@
         # Example how to pass an arg to configuration.nix:
         #specialArgs = { hostname = "staging"; };
       };
+      x220 = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [ ./nix/machines/x220/configuration.nix ];
+      };
       xps17 = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [ ./nix/machines/xps17/configuration.nix ];
