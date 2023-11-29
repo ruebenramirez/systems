@@ -22,7 +22,11 @@ let
         url = "https://addons.mozilla.org/firefox/downloads/file/4191523/vimium_ff-2.0.6.xpi";
         sha256 = "sha256-lKLX6IWWtliRdH1Ig33rVEB4DVfbeuMw0dfUPV/mSSI=";
       })
-      # TODO: add 1password
+      (pkgs.fetchFirefoxAddon {
+        name = "1password-x-password-manager";
+        url = "https://addons.mozilla.org/firefox/downloads/file/4168788/1password_x_password_manager-2.15.1.xpi";
+        sha256 = "sha256-IhCnp5RWv1nkRee3Ud5nain2EN4Uxuo7BMssd2OlSyo=";
+      })
     ];
   };
 in
