@@ -17,7 +17,11 @@ let
         url = "https://addons.mozilla.org/firefox/downloads/file/4048126/zoom_new_scheduler-2.1.37.xpi";
         sha256 = "sha256-Tj8DU5fxLIp3UgHZfD4hMhO/yKiQNlzCa1U6dOVjVAY=";
       })
-      # TODO: add vimium
+      (pkgs.fetchFirefoxAddon {
+        name = "vimium-ff";
+        url = "https://addons.mozilla.org/firefox/downloads/file/4191523/vimium_ff-2.0.6.xpi";
+        sha256 = "sha256-lKLX6IWWtliRdH1Ig33rVEB4DVfbeuMw0dfUPV/mSSI=";
+      })
       # TODO: add 1password
     ];
   };
