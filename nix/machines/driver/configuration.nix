@@ -177,7 +177,7 @@ in
   # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
   networking.firewall.checkReversePath = "loose";
 
-  services.logind.extraConfig = "HandleLidSwitch=ignore";
+  #services.logind.extraConfig = "HandleLidSwitch=ignore";
 
   # part of gnupg reqs
   services.pcscd.enable = true;
