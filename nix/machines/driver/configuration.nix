@@ -12,8 +12,6 @@ in
       ./hardware-configuration.nix
       ../_common/desktop.nix
       ../_common/base.nix
-      # Import nix-garage
-      #./nix-garage-overlay.nix
       ./home.nix
     ];
 
@@ -35,7 +33,7 @@ in
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" ];
 
-  networking.hostName = "x220"; # Define your hostname.
+  networking.hostName = "P14s"; # Define your hostname.
   # Need to be set for ZFS or else leads to:
   # Failed assertions:
   # - ZFS requires networking.hostId to be set
@@ -54,14 +52,14 @@ in
   # The global useDHCP flag is deprecated, therefore explicitly set to false here.
   # Per-interface useDHCP will be mandatory in the future, so this generated config
   # replicates the default behaviour.
-  #networking.useDHCP = false;
+  networking.useDHCP = false;
 
   # Make sure that dhcpcd doesnt timeout when interfaces are down
   # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
   #networking.dhcpcd.wait = "if-carrier-up";
   #networking.interfaces.enp2s0f0.useDHCP = true;
   #networking.interfaces.enp5s0.useDHCP = true;
-  networking.interfaces.wlp3s0.useDHCP = true;
+  networking.interfaces.wlp2s0.useDHCP = true;
 
   # Leave commented until tether is needed
   #networking.interfaces.enp7s0f4u2.useDHCP = true;
@@ -75,10 +73,16 @@ in
   hardware.pulseaudio.support32Bit = true;
 
   # Bluetooth
-  #hardware.bluetooth.enable = true;
-  hardware.bluetooth.enable = false;
-  #services.blueman.enable = true;
-  services.blueman.enable = false;
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
+
+  # 1password system authentication
+  security.polkit.enable = true;
+  programs._1password.enable = true;
+  programs._1password-gui = {
+    enable = true;
+    polkitPolicyOwners = [ "rramirez" ];
+  };
 
   # use Fish shell
   users.defaultUserShell = pkgs.fish;
@@ -89,7 +93,7 @@ in
     isNormalUser = true;
     uid = 1000;
     extraGroups = [ "wheel" "audio" "sound" "docker" ]; # Enable ‘sudo’ for the user.
-    openssh.authorizedKeys.keys = [ "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDFeq0/IpNsLCUDVhxRx/wEj4BViCSH/8n4nhD7+PFkzuXpwKft1s5PVFJrlixv7cEJyJTi4FgeeP4N6tPglsIamplfzBjXgRTs0+ssH8ZrHM6l+0jbMqVc39hDRYl78qoxslrz3b0oU4H8bKylyOoEBO9qlJEh4bsIYkUD8ZIbaJa6g3wnPzp/WPjAG76tdoMnuxDQ1uVWph4diQxI85iwnU32anC85w6KthXQABbyV8SAYZvc7vKcN8Mf1JJSGct4nVB/XzZ3mTk3C3L0DA63f6UTtgtCZAXIsqhjeGahp+QUBIgrFG5fG1o5hmHgyHZuOIrbU1BbH/mWpaXbGUut rramirez@le-laptop" ];
+    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea rramirez@xps17" ];
   };
   security.sudo.extraRules = [
     {
@@ -146,8 +150,6 @@ in
   # enable iPhone usb tethering for internet access
   services.usbmuxd.enable = true;
 
-
-
   # Enable the OpenSSH daemon.
   services.openssh = {
     enable = true;
@@ -182,7 +184,7 @@ in
   # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
   networking.firewall.checkReversePath = "loose";
 
-  #services.logind.extraConfig = "HandleLidSwitch=ignore";
+  services.logind.extraConfig = "HandleLidSwitch=ignore";
 
   # part of gnupg reqs
   services.pcscd.enable = true;

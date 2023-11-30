@@ -71,6 +71,7 @@ in
     zathura # simple pdf viewer
     zoom-us
     libnotify
+    betterbird
 
 
     geoclue2
