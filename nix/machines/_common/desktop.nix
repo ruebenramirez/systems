@@ -72,20 +72,9 @@ in
     zoom-us
     libnotify
     betterbird
-
-
-    geoclue2
     redshift
-
-    # TODO: configure Razer Huntsman V2 TKL
-    # razergenie
-    # openrazer-daemon
-
     acpi # battery life monitoring
-
     tor-browser-bundle-bin
-
-    # 1password system authentication security requirement
     polkit
     polkit_gnome
   ];
