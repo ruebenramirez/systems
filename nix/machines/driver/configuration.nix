@@ -76,13 +76,6 @@ in
   hardware.bluetooth.enable = true;
   services.blueman.enable = true;
 
-  # 1password system authentication
-  security.polkit.enable = true;
-  programs._1password.enable = true;
-  programs._1password-gui = {
-    enable = true;
-    polkitPolicyOwners = [ "rramirez" ];
-  };
 
   # use Fish shell
   users.defaultUserShell = pkgs.fish;
@@ -246,11 +239,9 @@ in
 
 
   # fingerprint reader configuration
-
   services.fprintd.enable = true;
   services.fprintd.tod.enable = true;
   services.fprintd.tod.driver = pkgs.libfprint-2-tod1-goodix;
-
   systemd = {
     user.services.polkit-gnome-authentication-agent-1 = {
       description = "polkit-gnome-authentication-agent-1";
@@ -266,4 +257,12 @@ in
         };
     };
   };
+  # 1password system (fingerprint) auth
+  security.polkit.enable = true;
+  programs._1password.enable = true;
+  programs._1password-gui = {
+    enable = true;
+    polkitPolicyOwners = [ "rramirez" ];
+  };
+
 }
