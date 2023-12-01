@@ -4,27 +4,29 @@
 let
   # Nix firefox addons only work with the firefox-esr package.
   # https://github.com/NixOS/nixpkgs/blob/master/doc/builders/packages/firefox.section.md
-  myFirefox = pkgs.wrapFirefox pkgs.firefox-esr-unwrapped {
-    cfg = { smartcardSupport = true; };
-    nixExtensions = [
-      (pkgs.fetchFirefoxAddon {
-        name = "ublock"; # Has to be unique!
-        url = "https://addons.mozilla.org/firefox/downloads/file/4047353/ublock_origin-1.46.0.xpi"; # Get this from about:addons
-        sha256 = "sha256-a/ivUmY1P6teq9x0dt4CbgHt+3kBsEMMXlOfZ5Hx7cg=";
-      })
-      (pkgs.fetchFirefoxAddon {
-        name = "zoomScheduler";
-        url = "https://addons.mozilla.org/firefox/downloads/file/4048126/zoom_new_scheduler-2.1.37.xpi";
-        sha256 = "sha256-Tj8DU5fxLIp3UgHZfD4hMhO/yKiQNlzCa1U6dOVjVAY=";
-      })
-      # TODO: add vimium
-      # TODO: add 1password
-    ];
-  };
+  # myFirefox = pkgs.wrapFirefox pkgs.firefox-esr-unwrapped {
+  #   cfg = { smartcardSupport = true; };
+  #   nixExtensions = [
+  #     (pkgs.fetchFirefoxAddon {
+  #       name = "ublock"; # Has to be unique!
+  #       url = "https://addons.mozilla.org/firefox/downloads/file/4047353/ublock_origin-1.46.0.xpi"; # Get this from about:addons
+  #       sha256 = "sha256-a/ivUmY1P6teq9x0dt4CbgHt+3kBsEMMXlOfZ5Hx7cg=";
+  #     })
+  #     (pkgs.fetchFirefoxAddon {
+  #       name = "zoomScheduler";
+  #       url = "https://addons.mozilla.org/firefox/downloads/file/4048126/zoom_new_scheduler-2.1.37.xpi";
+  #       sha256 = "sha256-Tj8DU5fxLIp3UgHZfD4hMhO/yKiQNlzCa1U6dOVjVAY=";
+  #     })
+  #     # TODO: add vimium
+  #     # TODO: add 1password
+  #   ];
+  # };
 in
 {
   # install Desktop packages
   environment.systemPackages = with pkgs; [
+    rclone
+    beeper
     _1password
     _1password-gui # password manager
     alacritty # terminal emulator of choice
@@ -48,7 +50,8 @@ in
     light # screen brightness management
     mpv
     mupdf # pdf viewer with vim keybindings
-    myFirefox # robs custom firefox
+    #myFirefox # robs custom firefox
+    obs-studio # screen recording
     obsidian # notes
     pasystray # task bar applet for sound management
     pavucontrol # sound management
@@ -115,7 +118,7 @@ in
     xkbOptions = "caps:escape, altwin:swap_alt_win";
   };
 
-  fonts.fonts = with pkgs; [
+  fonts.packages = with pkgs; [
     source-code-pro
   ];
 
