@@ -46,6 +46,17 @@ in
   # Allow configuring networks "imperatively"
   networking.wireless.allowAuxiliaryImperativeNetworks = true;
 
+  networking.nameservers = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" ];
+  services.resolved = {
+    enable = true;
+    dnssec = "true";
+    domains = [ "~." ];
+    fallbackDns = [ "1.1.1.1" "8.8.8.8" ];
+    extraConfig = ''
+      DNSOverTLS=yes
+    '';
+  };
+
   # Set your time zone.
   time.timeZone = "America/Chicago";
 
