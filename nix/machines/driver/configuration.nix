@@ -151,9 +151,6 @@ in
     };
   };
 
-  # enable iPhone usb tethering for internet access
-  services.usbmuxd.enable = true;
-
   # Enable the OpenSSH daemon.
   services.openssh = {
     enable = true;
