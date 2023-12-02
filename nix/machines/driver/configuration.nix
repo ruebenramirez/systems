@@ -32,6 +32,7 @@ in
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" ];
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
   networking.hostName = "P14s"; # Define your hostname.
   # Need to be set for ZFS or else leads to:
