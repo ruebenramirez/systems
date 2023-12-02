@@ -40,12 +40,15 @@ in
   # - ZFS requires networking.hostId to be set
   networking.hostId = "6f602d2b";
 
-  # Enables wireless support via wpa_supplicant
-  networking.wireless.enable = true;
-  # Option is misleading but we dont want it
-  networking.wireless.userControlled.enable = false;
-  # Allow configuring networks "imperatively"
-  networking.wireless.allowAuxiliaryImperativeNetworks = true;
+  # # Enables wireless support via wpa_supplicant
+  # networking.wireless.enable = true;
+  # # Option is misleading but we dont want it
+  # networking.wireless.userControlled.enable = false;
+  # # Allow configuring networks "imperatively"
+  # networking.wireless.allowAuxiliaryImperativeNetworks = true;
+  networking.networkmanager.enable = true;
+
+  programs.nm-applet.enable = true;
 
   networking.nameservers = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" ];
   services.resolved = {
@@ -97,7 +100,7 @@ in
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "wheel" "audio" "sound" "docker" ]; # Enable ‘sudo’ for the user.
+    extraGroups = [ "wheel" "audio" "sound" "docker" "networkmanager" ];
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea rramirez@xps17" ];
   };
   security.sudo.extraRules = [
