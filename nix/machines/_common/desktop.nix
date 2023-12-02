@@ -90,19 +90,12 @@ in
 
   services.xserver = {
     enable = true;
-
     desktopManager = {
       xterm.enable = false;
     };
 
     displayManager = {
       defaultSession = "none+i3";
-
-      # make mouse cursor size larger
-      #  - https://github.com/NixOS/nixpkgs/issues/22652#issuecomment-288846599
-      #  - ties to https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/services/x11/display-managers/lightdm-greeters/gtk.nix
-      #lightdm.greeters.gtk.iconTheme
-
     };
 
     # This is the way
