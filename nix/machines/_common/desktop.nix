@@ -80,6 +80,12 @@ in
     tor-browser-bundle-bin
     polkit
     polkit_gnome
+
+    # ocr screenshot text
+    tesseract
+    scrot
+    xsel
+    imagemagick
   ];
 
   services.xserver = {
