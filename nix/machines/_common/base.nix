@@ -37,7 +37,6 @@ in
     cmake
     mosh # lightweight ssh for remoting over slow or unstable networks
     cargo # rust app dev lifecycling
-    speedtest-cli
     fish # Fish shell
     fzf # fuzzy finder - supports ctrl-r for fish shell
     keychain # remember my ssh key passphrases
