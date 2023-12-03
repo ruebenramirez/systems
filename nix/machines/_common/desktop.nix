@@ -50,6 +50,7 @@ in
     light # screen brightness management
     mpv
     mupdf # pdf viewer with vim keybindings
+    firefox
     #myFirefox # robs custom firefox
     obs-studio # screen recording
     obsidian # notes
@@ -75,7 +76,6 @@ in
     zoom-us
     libnotify
     betterbird
-    redshift
     acpi # battery life monitoring
     tor-browser-bundle-bin
     polkit
