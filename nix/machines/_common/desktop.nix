@@ -26,7 +26,6 @@ in
   # install Desktop packages
   environment.systemPackages = with pkgs; [
     rclone
-    beeper
     _1password
     _1password-gui # password manager
     alacritty # terminal emulator of choice
