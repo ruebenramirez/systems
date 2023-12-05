@@ -78,6 +78,7 @@ in
     tor-browser-bundle-bin
     polkit
     polkit_gnome
+    xdotool
 
     # ocr screenshot text
     tesseract
