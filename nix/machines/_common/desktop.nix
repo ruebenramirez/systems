@@ -74,7 +74,6 @@ in
     zathura # simple pdf viewer
     zoom-us
     libnotify
-    betterbird
     acpi # battery life monitoring
     tor-browser-bundle-bin
     polkit
