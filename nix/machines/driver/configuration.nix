@@ -15,6 +15,9 @@ in
       ./home.nix
     ];
 
+  # Set your time zone.
+  time.timeZone = "America/Chicago";
+
   # Necessary in most configurations
   nixpkgs.config.allowUnfree = true;
 
@@ -34,23 +37,36 @@ in
   boot.supportedFilesystems = [ "ntfs" ];
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  networking.hostName = "P14s"; # Define your hostname.
-  # Need to be set for ZFS or else leads to:
-  # Failed assertions:
-  # - ZFS requires networking.hostId to be set
-  networking.hostId = "6f602d2b";
+  networking = {
+    hostName = "P14s";
+    hostId = "6f602d2b";
+    nameservers = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" ];
 
-  # # Enables wireless support via wpa_supplicant
-  # networking.wireless.enable = true;
-  # # Option is misleading but we dont want it
-  # networking.wireless.userControlled.enable = false;
-  # # Allow configuring networks "imperatively"
-  # networking.wireless.allowAuxiliaryImperativeNetworks = true;
-  networking.networkmanager.enable = true;
+    # The global useDHCP flag is deprecated, therefore explicitly set to false here.
+    # Per-interface useDHCP will be mandatory in the future, so this generated config
+    # replicates the default behaviour.
+    useDHCP = false;
 
-  programs.nm-applet.enable = true;
+    # Make sure that dhcpcd doesnt timeout when interfaces are down
+    # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
+    dhcpcd.wait = "if-carrier-up";
+    interfaces.enp1s0f0.useDHCP = true;
+    interfaces.tailscale0.useDHCP = true;
+    interfaces.wlp2s0.useDHCP = true;
 
-  networking.nameservers = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" ];
+    # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
+    firewall.checkReversePath = "loose";
+
+    # use wpa_supplicant configuration file for wireless connection config
+    wireless = {
+      enable = true; # Enables wireless support via wpa_supplicant
+      userControlled.enable = false; # Option is misleading but we dont want it
+      allowAuxiliaryImperativeNetworks = true; # Allow configuring networks "imperatively"
+    };
+
+  };
+
+
   services.resolved = {
     enable = true;
     dnssec = "true";
@@ -60,27 +76,8 @@ in
       DNSOverTLS=yes
     '';
   };
-
-  # Set your time zone.
-  time.timeZone = "America/Chicago";
-
-  # The global useDHCP flag is deprecated, therefore explicitly set to false here.
-  # Per-interface useDHCP will be mandatory in the future, so this generated config
-  # replicates the default behaviour.
-  networking.useDHCP = false;
-
-  # Make sure that dhcpcd doesnt timeout when interfaces are down
-  # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
-  #networking.dhcpcd.wait = "if-carrier-up";
-  #networking.interfaces.enp2s0f0.useDHCP = true;
-  #networking.interfaces.enp5s0.useDHCP = true;
-  networking.interfaces.wlp2s0.useDHCP = true;
-
-  # Leave commented until tether is needed
-  #networking.interfaces.enp7s0f4u2.useDHCP = true;
-
-  # Enable CUPS to print documents.
-  # services.printing.enable = true;
+  #programs.nm-applet.enable = true;
+  services.tailscale.enable = true;
 
   # Audio
   sound.enable = true;
@@ -100,7 +97,7 @@ in
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "wheel" "audio" "sound" "docker" "networkmanager" ];
+    extraGroups = [ "wheel" "audio" "sound" "docker" ];
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea rramirez@xps17" ];
   };
   security.sudo.extraRules = [
@@ -184,10 +181,6 @@ in
   # firmware update
   services.fwupd.enable = true;
 
-  # Dont start tailscale by default
-  services.tailscale.enable = true;
-  # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
-  networking.firewall.checkReversePath = "loose";
 
   #services.logind.extraConfig = "HandleLidSwitch=ignore";
 
