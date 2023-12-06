@@ -3,6 +3,10 @@
 
   outputs = { self, nixpkgs }: {
     nixosConfigurations = {
+      vmdev = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [ ./nix/machines/vmdev/configuration.nix ];
+      };
       driver = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         modules = [ ./nix/machines/driver/configuration.nix ];
