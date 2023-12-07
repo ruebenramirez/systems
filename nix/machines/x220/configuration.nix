@@ -48,6 +48,8 @@ in
   # Allow configuring networks "imperatively"
   networking.wireless.allowAuxiliaryImperativeNetworks = true;
 
+  networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+
   # Set your time zone.
   time.timeZone = "America/Chicago";
 
@@ -229,18 +231,6 @@ in
 
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
-  # dont hiberate/sleep by default
-  powerManagement.enable = true;
-  # Enable tlp for stricter governance of power management
-  # Validate status: `sudo tlp-stat -b`
-  services.tlp.enable = true;
-  # This value determines the NixOS release from which the default
-  # settings for stateful data, like file locations and database versions
-  # on your system were taken. It‘s perfectly fine and recommended to leave
-  # this value at the release version of the first install of this system.
-  # Before changing this value read the documentation for this option
-  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "23.05"; # Did you read the comment?
 
 
   # fingerprint reader configuration
@@ -264,4 +254,34 @@ in
         };
     };
   };
+
+  # redshift configuration
+  location.provider = "geoclue2";
+  services.redshift = {
+    enable = true;
+    brightness = {
+      # Note the string values below.
+      day = "1";
+      night = "1";
+    };
+    temperature = {
+      day = 5500;
+      night = 3700;
+    };
+  };
+
+
+  # dont hiberate/sleep by default
+  powerManagement.enable = true;
+  # Enable tlp for stricter governance of power management
+  # Validate status: `sudo tlp-stat -b`
+  services.tlp.enable = true;
+  # This value determines the NixOS release from which the default
+  # settings for stateful data, like file locations and database versions
+  # on your system were taken. It‘s perfectly fine and recommended to leave
+  # this value at the release version of the first install of this system.
+  # Before changing this value read the documentation for this option
+  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
+  system.stateVersion = "23.11"; # Did you read the comment?
+
 }
