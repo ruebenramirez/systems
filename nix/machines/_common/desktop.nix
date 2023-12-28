@@ -36,6 +36,7 @@ in
     brave
     calibre # manage ebooks
     chromium
+    betterbird
     discord # projects/gaming chat app
     dmidecode # reads info from connected hardware
     element-desktop #matrix chat desktop client
