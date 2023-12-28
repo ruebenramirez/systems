@@ -22,7 +22,7 @@ in
   nixpkgs.config.allowUnfree = true;
 
   # temporary for obsidian support
-  nixpkgs.config.permittedInsecurePackages = [ "electron-24.8.6" ];
+  nixpkgs.config.permittedInsecurePackages = [ "electron-25.9.0" ];
 
   nix.settings.trusted-users = [ "rramirez" ];
 
