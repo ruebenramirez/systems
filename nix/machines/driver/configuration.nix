@@ -301,4 +301,8 @@ in
     EDITOR="vim";
   };
 
+
+  # if laptop lid closes, do nothing
+  services.logind.lidSwitch = "ignore";
+
 }
