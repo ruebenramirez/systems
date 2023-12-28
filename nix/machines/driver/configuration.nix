@@ -125,24 +125,31 @@ in
       imagemagick
       magic-wormhole
       nixpkgs-review
+
       # hardware key
       gnupg
       pcsclite
       pinentry
-      tailscale # VPN
-      openvpn # VPN
+
+      # VPN
+      tailscale
+      openvpn
+
       libimobiledevice # internet via iPhone usb tethering
       fprintd # fingerprint reader
       barrier # share mouse and keyboard across multiple machines
-      networkmanagerapplet # network manager system tray applet
+
       # media editing
       gimp-with-plugins
       inkscape-with-extensions
+
       # davinci-resolve # disabling because problem with python2.7 being insecure
+
       wine
       wine64
       winetricks
       winePackages.fonts
+
       toybox # strings cli to view strings in a binary file
     ];
 
@@ -176,6 +183,11 @@ in
     systemCronJobs = [
       "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
     ];
+  };
+
+  services.usbmuxd = {
+    enable = true;
+    package = pkgs.usbmuxd2;
   };
 
   # firmware update
