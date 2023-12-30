@@ -20,8 +20,6 @@ in
   # Necessary in most configurations
   nixpkgs.config.allowUnfree = true;
 
-  # temporary for obsidian support
-  nixpkgs.config.permittedInsecurePackages = [ "electron-24.8.6" ];
 
   nix.settings.trusted-users = [ "rramirez" ];
 
@@ -56,7 +54,7 @@ in
   # The global useDHCP flag is deprecated, therefore explicitly set to false here.
   # Per-interface useDHCP will be mandatory in the future, so this generated config
   # replicates the default behaviour.
-  #networking.useDHCP = false;
+  networking.useDHCP = false;
 
   # Make sure that dhcpcd doesnt timeout when interfaces are down
   # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
@@ -127,7 +125,6 @@ in
       libimobiledevice # internet via iPhone usb tethering
       fprintd # fingerprint reader
       barrier # share mouse and keyboard across multiple machines
-      networkmanagerapplet # network manager system tray applet
       # media editing
       gimp-with-plugins
       inkscape-with-extensions
@@ -231,10 +228,7 @@ in
 
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
-
-
   # fingerprint reader configuration
-
   services.fprintd.enable = true;
   services.fprintd.tod.enable = true;
   services.fprintd.tod.driver = pkgs.libfprint-2-tod1-goodix;
@@ -254,22 +248,6 @@ in
         };
     };
   };
-
-  # redshift configuration
-  location.provider = "geoclue2";
-  services.redshift = {
-    enable = true;
-    brightness = {
-      # Note the string values below.
-      day = "1";
-      night = "1";
-    };
-    temperature = {
-      day = 5500;
-      night = 3700;
-    };
-  };
-
 
   # dont hiberate/sleep by default
   powerManagement.enable = true;

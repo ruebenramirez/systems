@@ -23,6 +23,10 @@ let
   # };
 in
 {
+  # temporary for obsidian support
+  nixpkgs.config.permittedInsecurePackages = [ "electron-25.9.0" ];
+
+
   # install Desktop packages
   environment.systemPackages = with pkgs; [
     rclone
@@ -32,6 +36,7 @@ in
     arandr # ui xrandr tool for interacting the multimonitors
     authy # OTP app
     autorandr # cli xrandr tool for saving/load profiles
+    betterbird # email client (fork of thunderbird)
     blueman # bluetooth device management
     brave
     calibre # manage ebooks
@@ -70,6 +75,7 @@ in
     vlc # video player with lots format compatibility
     vscode
     xbindkeys # keyboard shortcuts
+    xclip
     xournal # pdf annotations
     xsel # deps for ocr screenshot
     zathura # simple pdf viewer
