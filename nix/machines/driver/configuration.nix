@@ -187,8 +187,10 @@ in
 
   services.usbmuxd = {
     enable = true;
-    package = pkgs.usbmuxd2;
+    #package = pkgs.usbmuxd2;
   };
+
+  services.avahi.enable = true;
 
   # firmware update
   services.fwupd.enable = true;
