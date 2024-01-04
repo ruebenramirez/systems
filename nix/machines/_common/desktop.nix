@@ -33,6 +33,7 @@ in
     gomuks # matrix
     google-chrome
     imagemagick # dup might be a problem?
+    kitty # terminal
     light # screen brightness management
     mpv
     mupdf # pdf viewer with vim keybindings
