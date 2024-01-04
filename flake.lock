@@ -16,9 +16,26 @@
         "type": "github"
       }
     },
+    "nixpkgs-betterbird-stable": {
+      "locked": {
+        "lastModified": 1704018918,
+        "narHash": "sha256-erjg/HrpC9liEfm7oLqb8GXCqsxaFwIIPqCsknW5aFY=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "2c9c58e98243930f8cb70387934daa4bc8b00373",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "2c9c58e98243930f8cb70387934daa4bc8b00373",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "nixpkgs-betterbird-stable": "nixpkgs-betterbird-stable"
       }
     }
   },

@@ -1,5 +1,5 @@
 # This config is only to contain x11 and gui pkgs
-{ config, pkgs, ... }:
+{ config, pkgs, betterbird-stable, ... }:
 
 let
 
@@ -18,7 +18,7 @@ in
     arandr # ui xrandr tool for interacting the multimonitors
     authy # OTP app
     autorandr # cli xrandr tool for saving/load profiles
-    betterbird # email client (fork of thunderbird)
+    betterbird-stable.betterbird # email client (fork of thunderbird)
     blueman # bluetooth device management
     brave
     calibre # manage ebooks
