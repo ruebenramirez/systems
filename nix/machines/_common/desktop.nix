@@ -57,6 +57,7 @@ in
     vlc # video player with lots format compatibility
     vscode
     xbindkeys # keyboard shortcuts
+    xcalib
     xclip
     xournal # pdf annotations
     xsel # deps for ocr screenshot
