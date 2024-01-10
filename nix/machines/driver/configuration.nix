@@ -299,6 +299,9 @@ in
   };
   # Validate status: `sudo tlp-stat -b`
 
+  # if laptop lid closes, do nothing
+  services.logind.lidSwitch = "ignore";
+
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave
