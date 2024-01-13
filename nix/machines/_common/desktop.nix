@@ -55,7 +55,7 @@ in
     usbutils # contains lsusb tool
     viewnior
     vlc # video player with lots format compatibility
-    vscode
+    vscode.fhs
     xbindkeys # keyboard shortcuts
     xcalib
     xclip
