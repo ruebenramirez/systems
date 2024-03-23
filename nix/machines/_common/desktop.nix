@@ -16,7 +16,6 @@ in
     _1password-gui # password manager
     alacritty # terminal emulator of choice
     arandr # ui xrandr tool for interacting the multimonitors
-    authy # OTP app
     autorandr # cli xrandr tool for saving/load profiles
     betterbird-stable.betterbird # email client (fork of thunderbird)
     blueman # bluetooth device management
