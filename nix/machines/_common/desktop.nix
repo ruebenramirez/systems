@@ -36,6 +36,7 @@ in
     light # screen brightness management
     mpv
     mupdf # pdf viewer with vim keybindings
+    nm-tray # NetworkManager tray applet
     firefox
     obs-studio # screen recording
     obsidian # notes

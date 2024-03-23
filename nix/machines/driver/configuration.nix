@@ -40,43 +40,22 @@ in
   networking = {
     hostName = "P14s";
     hostId = "6f602d2b";
-    nameservers = [ "1.1.1.1" "1.0.0.1" "8.8.8.8" ];
-
-    # The global useDHCP flag is deprecated, therefore explicitly set to false here.
-    # Per-interface useDHCP will be mandatory in the future, so this generated config
-    # replicates the default behaviour.
-    useDHCP = false;
-
-    # Make sure that dhcpcd doesnt timeout when interfaces are down
-    # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
-    dhcpcd.wait = "if-carrier-up";
-    interfaces.enp1s0f0.useDHCP = true;
-    interfaces.tailscale0.useDHCP = true;
-    interfaces.wlp2s0.useDHCP = true;
 
     # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
     firewall.checkReversePath = "loose";
-
-    # use wpa_supplicant configuration file for wireless connection config
-    wireless = {
-      enable = true; # Enables wireless support via wpa_supplicant
-      userControlled.enable = false; # Option is misleading but we dont want it
-      allowAuxiliaryImperativeNetworks = true; # Allow configuring networks "imperatively"
-    };
-
+    networkmanager.enable = true;
   };
-
+  programs.nm-applet.enable = true;
 
   services.resolved = {
     enable = true;
     dnssec = "true";
     domains = [ "~." ];
-    fallbackDns = [ "1.1.1.1" "8.8.8.8" ];
-    extraConfig = ''
-      DNSOverTLS=yes
-    '';
+    fallbackDns = [ "1.1.1.1" "1.0.0.1" ];
+#    extraConfig = ''
+#      DNSOverTLS=yes
+#    '';
   };
-  #programs.nm-applet.enable = true;
   services.tailscale.enable = true;
 
   # Audio
@@ -97,8 +76,8 @@ in
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "wheel" "audio" "sound" "docker" ];
-    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea rramirez@xps17" ];
+    extraGroups = [ "wheel" "audio" "sound" "docker" "networkmanager" ];
+    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
   };
   security.sudo.extraRules = [
     {
