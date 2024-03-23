@@ -48,6 +48,7 @@ in
     signal-desktop # signal chat app
     slack # work chat app
     speedtest-cli
+    telegram-desktop
     tesseract5 # deps for ocr screenshot
     udiskie # automount attached usb disks
     ungoogled-chromium
