@@ -299,8 +299,9 @@ in
   };
   # Validate status: `sudo tlp-stat -b`
 
-  # if laptop lid closes, do nothing
-  services.logind.lidSwitch = "ignore";
+  # if laptop lid closes
+  services.logind.lidSwitch = "suspend-then-hibernate";
+  services.logind.lidSwitchExternalPower = "suspend-then-hibernate";
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
