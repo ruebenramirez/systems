@@ -82,11 +82,13 @@ export ZFS_BLANK_SNAPSHOT="${ZFS_DS_ROOT}@blank"
 
 info "Running the UEFI (GPT) partitioning and formatting directions from the NixOS manual ..."
 parted "$DISK_PATH" -- mklabel gpt
-parted "$DISK_PATH" -- mkpart primary 512MiB 100%
+parted "$DISK_PATH" -- mkpart primary 512MiB -32GB
+parted "$DISK_PATH" -- mkpart swap linux-swap -32GB 100%
 parted "$DISK_PATH" -- mkpart ESP fat32 1MiB 512MiB
-parted "$DISK_PATH" -- set 2 boot on
+parted "$DISK_PATH" -- set 3 boot on
 export DISK_PART_ROOT="${DISK_PATH}p1"
-export DISK_PART_BOOT="${DISK_PATH}p2"
+export DISK_PART_SWAP="${DISK_PATH}p2"
+export DISK_PART_BOOT="${DISK_PATH}p3"
 
 info "Formatting boot partition ..."
 mkfs.fat -F 32 -n boot "$DISK_PART_BOOT"
@@ -146,6 +148,10 @@ zfs set com.sun:auto-snapshot=true "$ZFS_DS_PERSIST"
 
 info "Creating persistent directory for host SSH keys ..."
 mkdir -p /mnt/persist/etc/ssh
+
+info "Enabling swap partiion"
+mkswap -L swap $DISK_PART_SWAP
+swapon $DISK_PART_SWAP
 
 # Generate the hardware-configuration.nix
 # Copy this file out to nixosConfigurations if hardware is new
