@@ -44,6 +44,7 @@ in
     parted # manage disk partitions
     yt-dlp # download youtube video/audio
     grc
+    difftastic
   ];
 }
 
