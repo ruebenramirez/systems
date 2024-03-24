@@ -76,6 +76,9 @@ in
     scrot
     xsel
     imagemagick
+
+    # genAI
+    ollama
   ];
 
   services.xserver = {
