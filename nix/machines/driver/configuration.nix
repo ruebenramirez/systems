@@ -58,10 +58,12 @@ in
   };
   services.tailscale.enable = true;
 
-  # Audio
+  # Audio - Enable pipewire for sound.
   sound.enable = true;
-  hardware.pulseaudio.enable = true;
-  hardware.pulseaudio.support32Bit = true;
+  hardware.pulseaudio.enable = false;
+  services.pipewire.enable = true;
+  services.pipewire.alsa.enable = true;
+  services.pipewire.pulse.enable = true;
 
   # Bluetooth
   hardware.bluetooth.enable = true;
