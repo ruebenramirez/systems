@@ -149,7 +149,7 @@ zfs set com.sun:auto-snapshot=true "$ZFS_DS_PERSIST"
 info "Creating persistent directory for host SSH keys ..."
 mkdir -p /mnt/persist/etc/ssh
 
-info "Enabling swap partiion"
+info "Enabling swap partiion on '$DISK_PART_SWAP' ..."
 mkswap -L swap $DISK_PART_SWAP
 swapon $DISK_PART_SWAP
 
@@ -161,4 +161,4 @@ info "Generating NixOS configuration (/mnt/etc/nixos/*.nix) just in case"
 nixos-generate-config --root /mnt
 
 info "copy out the /mnt/etc/nixos/hardware-configuration.nix if new hardware"
-info "nixos-install --flake github:sarcasticadmin/systems#<host>"
+info "nixos-install --flake ~/code/systems#driver"
