@@ -132,6 +132,8 @@ in
       winePackages.fonts
 
       toybox # strings cli to view strings in a binary file
+
+      k3d
     ];
 
     etc."wpa_supplicant.conf" = {
