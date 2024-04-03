@@ -276,7 +276,7 @@ in
       CPU_MIN_PERF_ON_BAT = 0;
       CPU_MAX_PERF_ON_BAT = 20;
 
-      #helps save long term battery health
+      #manipulate laptop charge behavior to extend the life of the battery
       START_CHARGE_THRESH_BAT0 = 40; # 40 and bellow it starts to charge
       STOP_CHARGE_THRESH_BAT0 = 80; # 80 and above it stops charging
     };
