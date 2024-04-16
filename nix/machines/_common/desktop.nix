@@ -78,6 +78,9 @@ in
 
     # genAI
     ollama
+
+    # unmanaged vscode
+    vscode.fhs
   ];
 
   services.xserver = {
