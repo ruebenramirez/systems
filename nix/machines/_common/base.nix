@@ -46,6 +46,8 @@ in
     grc
     difftastic
   ];
+
+  programs.direnv.enable = true;
 }
 
 
