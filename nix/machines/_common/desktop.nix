@@ -67,6 +67,7 @@ in
     tor-browser-bundle-bin
     polkit
     polkit_gnome
+    qrtool
     xdotool
 
     # ocr screenshot text
