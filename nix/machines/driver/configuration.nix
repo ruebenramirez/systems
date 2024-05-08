@@ -133,7 +133,7 @@ in
 
       toybox # strings cli to view strings in a binary file
 
-      k3d
+      k3d # micro kubernetes distribution
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -210,6 +210,7 @@ in
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
+
 
   # ZFS
   services.zfs = {
