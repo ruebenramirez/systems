@@ -21,7 +21,6 @@ in
     blueman # bluetooth device management
     brave
     calibre # manage ebooks
-    chromium
     discord # projects/gaming chat app
     dmidecode # reads info from connected hardware
     element-desktop #matrix chat desktop client
