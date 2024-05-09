@@ -21,9 +21,6 @@ in
   # Necessary in most configurations
   nixpkgs.config.allowUnfree = true;
 
-  # temporary for obsidian support
-  nixpkgs.config.permittedInsecurePackages = [ "electron-25.9.0" ];
-
   nix.settings.trusted-users = [ "rramirez" ];
 
   # remove the annoying experimental warnings
