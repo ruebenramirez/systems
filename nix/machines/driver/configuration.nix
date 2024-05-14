@@ -131,6 +131,9 @@ in
       toybox # strings cli to view strings in a binary file
 
       k3d # micro kubernetes distribution
+
+      syncthing
+      syncthingtray
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -284,6 +287,26 @@ in
   # if laptop lid closes
   services.logind.lidSwitch = "suspend-then-hibernate";
   services.logind.lidSwitchExternalPower = "suspend-then-hibernate";
+
+  # docs: https://nixos.wiki/wiki/Syncthing
+  services.syncthing = {
+    enable = true;
+    user = "rramirez";
+    dataDir = "/home/rramirez/Sync";
+    configDir = "/home/rramirez/.config/syncthing";
+    settings = {
+      devices = {
+        "dev-ssdnodes" = { id = "NIYWJNO-AUDJBM4-2FSQTPJ-PJXOYLP-TXKTCLR-TKOXG7V-H5HG7TO-LKY3QAK"; };
+#        "pixel-6-grapheneos" = { id = "2KN6SQA-TCVSWE6-FLULPEA-4H2JIQG-EOMARWC-N5Z7S6I-6BG7DEW-TYYLEAX"; };
+      };
+#      folders = {
+#        "Default Folder" = {
+#          path = "/home/rramirez/Sync";
+#          devices = [ "dev-ssdnodes" ];
+#        };
+#      };
+    };
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
