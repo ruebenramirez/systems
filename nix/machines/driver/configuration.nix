@@ -296,7 +296,11 @@ in
     configDir = "/home/rramirez/.config/syncthing";
     settings = {
       devices = {
-        "dev-ssdnodes" = { id = "NIYWJNO-AUDJBM4-2FSQTPJ-PJXOYLP-TXKTCLR-TKOXG7V-H5HG7TO-LKY3QAK"; };
+        dev-ssdnodes = {
+          id = "NIYWJNO-AUDJBM4-2FSQTPJ-PJXOYLP-TXKTCLR-TKOXG7V-H5HG7TO-LKY3QAK";
+          addresses = "tcp://100.101.103.79:22000";
+          autoAcceptFolders = true;
+        };
 #        "pixel-6-grapheneos" = { id = "2KN6SQA-TCVSWE6-FLULPEA-4H2JIQG-EOMARWC-N5Z7S6I-6BG7DEW-TYYLEAX"; };
       };
 #      folders = {
@@ -306,6 +310,7 @@ in
 #        };
 #      };
     };
+    overrideFolders = false;
   };
 
   # This value determines the NixOS release from which the default
