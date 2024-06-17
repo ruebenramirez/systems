@@ -190,7 +190,6 @@ in
   # programs.mtr.enable = true;
   programs.gnupg.agent = {
     enable = true;
-    pinentryFlavor = "tty";
     # Make pinentry across multiple terminal windows, seamlessly
     enableSSHSupport = true;
   };

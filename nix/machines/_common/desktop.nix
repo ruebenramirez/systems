@@ -34,7 +34,6 @@ in
     _1password-gui # password manager
     alacritty # terminal emulator of choice
     arandr # ui xrandr tool for interacting the multimonitors
-    authy # OTP app
     autorandr # cli xrandr tool for saving/load profiles
     betterbird # email client (fork of thunderbird)
     blueman # bluetooth device management
@@ -100,9 +99,6 @@ in
       xterm.enable = false;
     };
 
-    displayManager = {
-      defaultSession = "none+i3";
-    };
 
     # This is the way
     windowManager.i3 = {
@@ -116,11 +112,18 @@ in
     };
 
     # Enable touchpad support (enabled default in most desktopManager).
-    libinput.enable = true;
 
-    layout = "us";
-    # swap caps and escape keys + swap alt and win keys
-    xkbOptions = "caps:escape, altwin:swap_alt_win";
+    xkb = {
+      layout = "us";
+      # swap caps and escape keys + swap alt and win keys
+      options = "caps:escape, altwin:swap_alt_win";
+    };
+
+  };
+  services.libinput.enable = true;
+
+  services.displayManager = {
+    defaultSession = "none+i3";
   };
 
   fonts.packages = with pkgs; [
