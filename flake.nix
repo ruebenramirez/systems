@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.05";
     nixpkgs-betterbird-stable.url = "github:nixos/nixpkgs/2c9c58e98243930f8cb70387934daa4bc8b00373";
   };
 

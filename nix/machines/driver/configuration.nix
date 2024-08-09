@@ -12,7 +12,6 @@ in
       ./hardware-configuration.nix
       ../_common/desktop.nix
       ../_common/base.nix
-      ./home.nix
     ];
 
   # Set your time zone.
@@ -189,7 +188,7 @@ in
   # programs.mtr.enable = true;
   programs.gnupg.agent = {
     enable = true;
-    pinentryFlavor = "tty";
+    # pinentryFlavor = "tty";
     # Make pinentry across multiple terminal windows, seamlessly
     enableSSHSupport = true;
   };
@@ -288,29 +287,9 @@ in
   services.logind.lidSwitch = "suspend-then-hibernate";
   services.logind.lidSwitchExternalPower = "suspend-then-hibernate";
 
-  # docs: https://nixos.wiki/wiki/Syncthing
-  services.syncthing = {
+  services.ollama = {
     enable = true;
-    user = "rramirez";
-    dataDir = "/home/rramirez/Sync";
-    configDir = "/home/rramirez/.config/syncthing";
-    settings = {
-      devices = {
-        dev-ssdnodes = {
-          id = "NIYWJNO-AUDJBM4-2FSQTPJ-PJXOYLP-TXKTCLR-TKOXG7V-H5HG7TO-LKY3QAK";
-          addresses = "tcp://100.101.103.79:22000";
-          autoAcceptFolders = true;
-        };
-#        "pixel-6-grapheneos" = { id = "2KN6SQA-TCVSWE6-FLULPEA-4H2JIQG-EOMARWC-N5Z7S6I-6BG7DEW-TYYLEAX"; };
-      };
-#      folders = {
-#        "Default Folder" = {
-#          path = "/home/rramirez/Sync";
-#          devices = [ "dev-ssdnodes" ];
-#        };
-#      };
-    };
-    overrideFolders = false;
+    #acceleration = "cuda";
   };
 
   # This value determines the NixOS release from which the default
@@ -319,5 +298,5 @@ in
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "23.11"; # Did you read the comment?
+  system.stateVersion = "24.05"; # Did you read the comment?
 }

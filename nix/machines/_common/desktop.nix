@@ -29,7 +29,7 @@ in
     gnome.cheese # webcam camera tool
     gnome.nautilus # file browser
     gomuks # matrix
-    google-chrome
+    #google-chrome
     imagemagick # dup might be a problem?
     light # screen brightness management
     mpv
