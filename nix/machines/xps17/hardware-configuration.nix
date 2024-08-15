@@ -8,7 +8,7 @@
     [ (modulesPath + "/installer/scan/not-detected.nix")
     ];
 
-  boot.initrd.availableKernelModules = [ "xhci_pci" "thunderbolt" "vmd" "nvme" "usb_storage" "sd_mod" "rtsx_pci_sdmmc" ];
+  boot.initrd.availableKernelModules = [ "xhci_pci" "thunderbolt" "nvme" "usbhid" "usb_storage" "sd_mod" "rtsx_pci_sdmmc" ];
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
@@ -19,8 +19,9 @@
     };
 
   fileSystems."/boot" =
-    { device = "/dev/disk/by-label/boot";
+    { device = "/dev/disk/by-uuid/A93E-3B12";
       fsType = "vfat";
+      options = [ "fmask=0022" "dmask=0022" ];
     };
 
   fileSystems."/nix" =
@@ -38,47 +39,17 @@
       fsType = "zfs";
     };
 
-  fileSystems."/mnt/D" =
-    { device = "/dev/nvme1n1p1";
-      fsType = "ntfs";
-      options = [ "rw" "uid=1000" ];
-    };
-
-  swapDevices = [ ];
+  swapDevices =
+    [ { device = "/dev/disk/by-uuid/204c5ead-9b5f-4e27-86c7-6fd7c2537225"; }
+    ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
   # (the default) this is the recommended approach. When using systemd-networkd it's
   # still possible to use this option, but it's recommended to use it in conjunction
   # with explicit per-interface declarations with `networking.interfaces.<interface>.useDHCP`.
   networking.useDHCP = lib.mkDefault true;
-  #networking.interfaces.enp0s13f0u3u4u2.useDHCP = lib.mkDefault true;
-  networking.interfaces.wlp0s20f3.useDHCP = lib.mkDefault true;
+  # networking.interfaces.wlp0s20f3.useDHCP = lib.mkDefault true;
 
   nixpkgs.hostPlatform = lib.mkDefault "x86_64-linux";
-  powerManagement.cpuFreqGovernor = lib.mkDefault "powersave";
   hardware.cpu.intel.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
-
-  # HiDPI - high-resolution display
-  services.xserver.dpi = 190; # set the DPI to enlarge the mouse cursor size
-  # hardware.video.hidpi.enable = lib.mkDefault true;
-
-  # bigger tty fonts
-  # console.font =
-  #   "${pkgs.terminus_font}/share/consolefonts/ter-u28n.psf.gz";
-  environment.variables = {
-    GDK_SCALE = "2";
-    GDK_DPI_SCALE = "0.5";
-    _JAVA_OPTIONS = "-Dsun.java2d.uiScale=2";
-    XCURSOR_SIZE = "32";
-  };
-
-  # fix nixos-rebuild flake breakage due to NetworkManager-wait-online
-  # source: https://github.com/NixOS/nixpkgs/issues/180175#issuecomment-1658731959
-  systemd.services.NetworkManager-wait-online = {
-    serviceConfig = {
-      ExecStart = [ "" "${pkgs.networkmanager}/bin/nm-online -q" ];
-    };
-  };
-
-  services.logind.lidSwitch = "ignore";
 }
