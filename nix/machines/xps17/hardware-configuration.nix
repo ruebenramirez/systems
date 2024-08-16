@@ -39,6 +39,12 @@
       fsType = "zfs";
     };
 
+  fileSystems."/mnt/D" =
+    { device = "/dev/nvme1n1p1";
+      fsType = "ntfs";
+      options = [ "rw" "uid=1000" ];
+    };
+
   swapDevices =
     [ { device = "/dev/disk/by-uuid/204c5ead-9b5f-4e27-86c7-6fd7c2537225"; }
     ];
