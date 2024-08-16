@@ -152,10 +152,6 @@ in
     };
   };
 
-  # enable iPhone usb tethering for internet access
-  services.usbmuxd.enable = true;
-
-
 
   # Enable the OpenSSH daemon.
   services.openssh = {
@@ -247,6 +243,7 @@ in
 
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
+
   # fingerprint reader configuration
   services.fprintd.enable = true;
   services.fprintd.tod.enable = true;
@@ -267,11 +264,12 @@ in
     };
   };
 
-  # dont hiberate/sleep by default
   powerManagement.enable = true;
+
   # Enable tlp for stricter governance of power management
   # Validate status: `sudo tlp-stat -b`
   services.tlp.enable = true;
+
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
   # on your system were taken. It‘s perfectly fine and recommended to leave
