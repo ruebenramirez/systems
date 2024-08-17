@@ -17,6 +17,7 @@ in
     alacritty # terminal emulator of choice
     arandr # ui xrandr tool for interacting the multimonitors
     autorandr # cli xrandr tool for saving/load profiles
+    barrier # share mouse and keyboard across multiple machines
     betterbird-stable.betterbird # email client (fork of thunderbird)
     blueman # bluetooth device management
     brave
@@ -29,7 +30,7 @@ in
     gnome.cheese # webcam camera tool
     gnome.nautilus # file browser
     gomuks # matrix
-    #google-chrome
+    google-chrome
     imagemagick # dup might be a problem?
     light # screen brightness management
     mpv
@@ -47,6 +48,8 @@ in
     signal-desktop # signal chat app
     slack # work chat app
     speedtest-cli
+    syncthing
+    syncthingtray
     telegram-desktop
     tesseract5 # deps for ocr screenshot
     udiskie # automount attached usb disks
@@ -81,6 +84,21 @@ in
 
     # unmanaged vscode
     vscode.fhs
+
+    # VPN
+    tailscale
+    openvpn
+
+    # media editing
+    gimp-with-plugins
+    inkscape-with-extensions
+
+    # davinci-resolve # disabling because problem with python2.7 being insecure
+
+    wine
+    wine64
+    winetricks
+    winePackages.fonts
   ];
 
   services.xserver = {
@@ -116,5 +134,34 @@ in
     source-code-pro
   ];
 
+  # light is a backlight management utility
   programs.light.enable = true;
+
+  # Audio - Enable pipewire for sound.
+  sound.enable = true;
+  hardware.pulseaudio.enable = false;
+  services.pipewire = {
+    enable = true;
+    alsa.enable = true;
+    pulse.enable = true;
+    wireplumber.extraConfig.bluetoothEnhancements = {
+      "monitor.bluez.properties" = {
+          "bluez5.enable-sbc-xq" = true;
+          "bluez5.enable-msbc" = true;
+          "bluez5.enable-hw-volume" = true;
+          "bluez5.roles" = [ "hsp_hs" "hsp_ag" "hfp_hf" "hfp_ag" ];
+      };
+    };
+  };
+
+  # Bluetooth
+  hardware.bluetooth.enable = true;
+  services.blueman.enable = true;
+
+
+  services.ollama = {
+    enable = true;
+    #acceleration = "cuda";
+  };
+
 }

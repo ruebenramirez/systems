@@ -45,9 +45,21 @@ in
     yt-dlp # download youtube video/audio
     grc
     difftastic
+    imagemagick
   ];
 
   programs.direnv.enable = true;
+
+
+  # use Fish shell
+  users.defaultUserShell = pkgs.fish;
+  programs.fish.enable = true;
+
+  services.tailscale.enable = true;
+
+  environment.variables = {
+    EDITOR="vim";
+  };
 }
 
 

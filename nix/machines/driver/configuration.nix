@@ -10,6 +10,7 @@ in
   imports =
     [
       ./hardware-configuration.nix
+      ./fingerprint-reader.nix
       ../_common/desktop.nix
       ../_common/base.nix
     ];
@@ -43,6 +44,7 @@ in
   };
   programs.nm-applet.enable = true;
 
+  # DNS services
   services.resolved = {
     enable = true;
 #    dnssec = "true";
@@ -52,34 +54,7 @@ in
 #      DNSOverTLS=yes
 #    '';
   };
-  services.tailscale.enable = true;
-
-  # Audio - Enable pipewire for sound.
-  sound.enable = true;
-  hardware.pulseaudio.enable = false; 
-  services.pipewire = {
-    enable = true;
-    alsa.enable = true;
-    pulse.enable = true;
-    wireplumber.extraConfig.bluetoothEnhancements = {
-      "monitor.bluez.properties" = {
-          "bluez5.enable-sbc-xq" = true;
-          "bluez5.enable-msbc" = true;
-          "bluez5.enable-hw-volume" = true;
-          "bluez5.roles" = [ "hsp_hs" "hsp_ag" "hfp_hf" "hfp_ag" ];
-      };
-    };
-  };
-
-
-  # Bluetooth
-  hardware.bluetooth.enable = true;
-  services.blueman.enable = true;
-
-
-  # use Fish shell
-  users.defaultUserShell = pkgs.fish;
-  programs.fish.enable = true;
+  services.avahi.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users.rramirez = {
@@ -110,7 +85,6 @@ in
       ticker # stocks
       newsboat
       icdiff
-      imagemagick
       magic-wormhole
       nixpkgs-review
 
@@ -119,31 +93,10 @@ in
       pcsclite
       pinentry
 
-      # VPN
-      tailscale
-      openvpn
-
-      libimobiledevice # internet via iPhone usb tethering
-      fprintd # fingerprint reader
-      barrier # share mouse and keyboard across multiple machines
-
-      # media editing
-      gimp-with-plugins
-      inkscape-with-extensions
-
-      # davinci-resolve # disabling because problem with python2.7 being insecure
-
-      wine
-      wine64
-      winetricks
-      winePackages.fonts
-
       toybox # strings cli to view strings in a binary file
 
       k3d # micro kubernetes distribution
 
-      syncthing
-      syncthingtray
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -168,30 +121,6 @@ in
     ];
   };
 
-  services.cron = {
-    enable = true;
-    # Clean up nixOS generations
-    # NOTE: Still requires a nix-rebuild switch to update grub
-    # List generations: nix-env --list-generations -p /nix/var/nix/profiles/system
-    systemCronJobs = [
-      "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
-    ];
-  };
-
-  # internet via iPhone usb-tethering
-  services.usbmuxd = {
-    enable = true;
-    package = pkgs.usbmuxd2;
-  };
-
-  services.avahi.enable = true;
-
-  # firmware update
-  services.fwupd.enable = true;
-
-
-  #services.logind.extraConfig = "HandleLidSwitch=ignore";
-
   # part of gnupg reqs
   services.pcscd.enable = true;
   # Some programs need SUID wrappers, can be configured further or are
@@ -214,13 +143,11 @@ in
     '';
   };
   # List services that you want to enable:
-
   # Open ports in the firewall.
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
-
 
   # ZFS
   services.zfs = {
@@ -233,43 +160,12 @@ in
       monthly = 3;
     };
   };
+  systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
   virtualisation.docker.enable = true;
 
-  systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
-
-
-  # fingerprint reader configuration
-  services.fprintd.enable = true;
-  services.fprintd.tod.enable = true;
-  services.fprintd.tod.driver = pkgs.libfprint-2-tod1-goodix;
-  systemd = {
-    user.services.polkit-gnome-authentication-agent-1 = {
-      description = "polkit-gnome-authentication-agent-1";
-      wantedBy = [ "graphical-session.target" ];
-      wants = [ "graphical-session.target" ];
-      after = [ "graphical-session.target" ];
-      serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
-          Restart = "on-failure";
-          RestartSec = 1;
-          TimeoutStopSec = 10;
-        };
-    };
-  };
-  # 1password system (fingerprint) auth
-  security.polkit.enable = true;
-  programs._1password.enable = true;
-  programs._1password-gui = {
-    enable = true;
-    polkitPolicyOwners = [ "rramirez" ];
-  };
-
-  environment.variables = {
-    EDITOR="vim";
-  };
-
+  # firmware update
+  services.fwupd.enable = true;
 
   # laptop power management
   powerManagement.enable = true;
@@ -295,17 +191,24 @@ in
   # Validate status: `sudo tlp-stat -b`
 
   # if laptop lid closes
+  #services.logind.extraConfig = "HandleLidSwitch=ignore";
   services.logind.lidSwitch = "suspend-then-hibernate";
   services.logind.lidSwitchExternalPower = "suspend-then-hibernate";
 
-  services.ollama = {
+
+  services.cron = {
     enable = true;
-    #acceleration = "cuda";
+    # Clean up nixOS generations
+    # NOTE: Still requires a nix-rebuild switch to update grub
+    # List generations: nix-env --list-generations -p /nix/var/nix/profiles/system
+    systemCronJobs = [
+      "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
+    ];
   };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
-  # on your system were taken. It‘s perfectly fine and recommended to leave
+  # on your system were taken. It's perfectly fine and recommended to leave
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
