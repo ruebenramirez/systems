@@ -46,6 +46,7 @@ in
     grc
     difftastic
     imagemagick
+    rtorrent
   ];
 
   programs.direnv.enable = true;
