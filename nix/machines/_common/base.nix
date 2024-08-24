@@ -47,6 +47,7 @@ in
     difftastic
     imagemagick
     rtorrent
+    lshw
   ];
 
   programs.direnv.enable = true;
