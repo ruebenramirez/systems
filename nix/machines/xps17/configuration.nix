@@ -128,7 +128,6 @@ in
       tailscale # VPN
       openvpn # VPN
       libimobiledevice # internet via iPhone usb tethering
-      fprintd # fingerprint reader
       barrier # share mouse and keyboard across multiple machines
       networkmanagerapplet # network manager system tray applet
       # media editing
@@ -238,27 +237,6 @@ in
   virtualisation.docker.enable = true;
 
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
-
-
-  # fingerprint reader configuration
-  services.fprintd.enable = true;
-  services.fprintd.tod.enable = true;
-  services.fprintd.tod.driver = pkgs.libfprint-2-tod1-goodix;
-  systemd = {
-    user.services.polkit-gnome-authentication-agent-1 = {
-      description = "polkit-gnome-authentication-agent-1";
-      wantedBy = [ "graphical-session.target" ];
-      wants = [ "graphical-session.target" ];
-      after = [ "graphical-session.target" ];
-      serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.polkit_gnome}/libexec/polkit-gnome-authentication-agent-1";
-          Restart = "on-failure";
-          RestartSec = 1;
-          TimeoutStopSec = 10;
-        };
-    };
-  };
 
   powerManagement.enable = true;
 
