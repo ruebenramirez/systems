@@ -78,10 +78,6 @@ in
   hardware.pulseaudio.enable = true;
   hardware.pulseaudio.support32Bit = true;
 
-  # Bluetooth
-  hardware.bluetooth.enable = true;
-  services.blueman.enable = true;
-
   # 1password system authentication
   security.polkit.enable = true;
   programs._1password.enable = true;
