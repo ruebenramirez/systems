@@ -99,6 +99,7 @@ in
     wine64
     winetricks
     winePackages.fonts
+    drawio
   ];
 
   services.xserver = {
