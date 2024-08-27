@@ -48,6 +48,7 @@ in
     imagemagick
     rtorrent
     lshw
+    nmap
   ];
 
   programs.direnv.enable = true;
