@@ -14,6 +14,7 @@ in
       ../_common/desktop.nix
       #../_common/bluetooth.nix
       ../_common/base.nix
+      ../_common/syncthing.nix
     ];
 
   # Set your time zone.
