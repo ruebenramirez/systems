@@ -12,7 +12,7 @@ in
       ./hardware-configuration.nix
       ./fingerprint-reader.nix
       ../_common/desktop.nix
-      #../_common/bluetooth.nix
+      ../_common/bluetooth.nix
       ../_common/base.nix
       ../_common/syncthing.nix
     ];
