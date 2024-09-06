@@ -6,7 +6,9 @@ let
 in
 {
   # temporary for obsidian support
-  nixpkgs.config.permittedInsecurePackages = [ "electron-25.9.0" ];
+  nixpkgs.config.permittedInsecurePackages = [
+    "olm-3.2.16"        # element dependency #TODO: read up on the OLM security issues upstream
+  ];
 
 
   # install Desktop packages
