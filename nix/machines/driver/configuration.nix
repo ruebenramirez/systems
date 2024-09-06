@@ -98,6 +98,7 @@ in
       toybox # strings cli to view strings in a binary file
 
       k3d # micro kubernetes distribution
+      helmfile-wrapped
 
     ];
 
