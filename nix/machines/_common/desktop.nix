@@ -100,6 +100,7 @@ in
     winetricks
     winePackages.fonts
     drawio
+    koreader
   ];
 
   services.xserver = {
