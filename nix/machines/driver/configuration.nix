@@ -77,6 +77,9 @@ in
     }
   ];
 
+
+  virtualisation.docker.enable = true; # required for k3d
+
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment = {
@@ -97,9 +100,9 @@ in
 
       toybox # strings cli to view strings in a binary file
 
-      k3d # micro kubernetes distribution
+      k3d # k3s on docker (docker required)
       kubectl
-      helm
+      kubernetes-helm
       helmfile-wrapped
 
     ];
@@ -167,7 +170,6 @@ in
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
-  virtualisation.docker.enable = true;
 
   # firmware update
   services.fwupd.enable = true;
