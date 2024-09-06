@@ -103,15 +103,19 @@ in
     koreader
   ];
 
+
+  # Enable touchpad support (enabled default in most desktopManager).
+  services.libinput.enable = true;
+  services.displayManager = {
+    defaultSession = "none+i3";
+  };
+
   services.xserver = {
     enable = true;
     desktopManager = {
       xterm.enable = false;
     };
 
-    displayManager = {
-      defaultSession = "none+i3";
-    };
 
     # This is the way
     windowManager.i3 = {
@@ -124,12 +128,13 @@ in
       ];
     };
 
-    # Enable touchpad support (enabled default in most desktopManager).
-    libinput.enable = true;
 
-    layout = "us";
-    # swap caps and escape keys + swap alt and win keys
-    xkbOptions = "caps:escape, altwin:swap_alt_win";
+    xkb = {
+      layout = "us";
+
+      # swap caps and escape keys + swap alt and win keys
+      options = "caps:escape, altwin:swap_alt_win";
+    };
   };
 
   fonts.packages = with pkgs; [
