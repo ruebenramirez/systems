@@ -152,8 +152,4 @@ in
     pulse.enable = true;
   };
 
-  services.ollama = {
-    enable = true;
-    #acceleration = "cuda";
-  };
 }
