@@ -47,6 +47,7 @@ in
     rtorrent
     lshw
     nmap
+    uutils-coreutils-noprefix
   ];
 
   programs.direnv.enable = true;
