@@ -72,11 +72,13 @@ in
     qrtool
     xdotool
 
-    # ocr screenshot text
+    # screenshot ands ocr screenshot deps
     tesseract
     scrot
     xsel
     imagemagick
+    grim
+    slurp
 
     # genAI
     ollama
