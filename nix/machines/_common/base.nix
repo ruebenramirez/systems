@@ -87,13 +87,13 @@ in
         """""""""""""""""""""""""""""""""""""
         " indentation: use spaces instead of tabs
         """""""""""""""""""""""""""""""""""""
-	set expandtab
+        set expandtab
         set tabstop=4
-	set shiftwidth=4
-	set softtabstop=4
+        set shiftwidth=4
+        set softtabstop=4
 
         " set 2 space tabs when appropriate
-        autocmd FileType *.nix,go,r,R,yml,yaml,json,markdown,ruby,javascript,Rakefile setlocal shiftwidth=2 tabstop=2 softtabstop=2 showtabline=2
+        autocmd FileType *.nix,nix,go,r,R,yml,yaml,json,markdown,ruby,javascript,Rakefile setlocal shiftwidth=2 tabstop=2 softtabstop=2 showtabline=2
 
         " set 4 space tabs when appropriate
         autocmd FileType python,*.py.tpl setlocal tabstop=4 expandtab shiftwidth=4 softtabstop=4 showtabline=4
