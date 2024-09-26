@@ -37,7 +37,7 @@ in
   boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
 
   networking = {
-    hostName = "P14s";
+    hostName = "driver";
     hostId = "6f602d2b";
 
     # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
