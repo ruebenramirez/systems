@@ -109,41 +109,46 @@ in
     libopenaptx    # aptX codec
     fdk_aac     # AAC codec
     pwvucontrol
+
+    playerctl
+
+    rofi-wayland
+    wdisplays
+    wl-clipboard
   ];
 
 
   # Enable touchpad support (enabled default in most desktopManager).
   services.libinput.enable = true;
-  services.displayManager = {
-    defaultSession = "none+i3";
-  };
 
-  services.xserver = {
-    enable = true;
-    desktopManager = {
-      xterm.enable = false;
-    };
+  programs.sway.enable = true;
 
+  # # configure i3wm
+  # services.displayManager = {
+  #   defaultSession = "none+i3";
+  # };
+  # services.xserver = {
+  #   enable = true;
+  #   desktopManager = {
+  #     xterm.enable = false;
+  #   };
+  #   # This is the way
+  #   windowManager.i3 = {
+  #     enable = true;
+  #     extraPackages = with pkgs; [
+  #       dmenu # simple launcher
+  #       i3status # default i3 status bar
+  #       i3lock # default + simple lock that matches my config
+  #       dunst
+  #     ];
+  #   };
+  #   xkb = {
+  #     layout = "us";
 
-    # This is the way
-    windowManager.i3 = {
-      enable = true;
-      extraPackages = with pkgs; [
-        dmenu # simple launcher
-        i3status # default i3 status bar
-        i3lock # default + simple lock that matches my config
-        dunst
-      ];
-    };
-
-
-    xkb = {
-      layout = "us";
-
-      # swap caps and escape keys + swap alt and win keys
-      options = "caps:escape, altwin:swap_alt_win";
-    };
-  };
+  #     # swap caps and escape keys + swap alt and win keys
+  #     options = "caps:escape, altwin:swap_alt_win";
+  #   };
+  # };
 
   fonts.packages = with pkgs; [
     source-code-pro
