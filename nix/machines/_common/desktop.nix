@@ -21,14 +21,11 @@ in
     autorandr # cli xrandr tool for saving/load profiles
     barrier # share mouse and keyboard across multiple machines
     betterbird-stable.betterbird # email client (fork of thunderbird)
-    blueman # bluetooth device management
     brave
     calibre # manage ebooks
     discord # projects/gaming chat app
     dmidecode # reads info from connected hardware
     element-desktop #matrix chat desktop client
-    feh # set wallpaper
-    flameshot # screenshot tool
     gnome.cheese # webcam camera tool
     gnome.nautilus # file browser
     gomuks # matrix
@@ -41,36 +38,40 @@ in
     firefox
     obs-studio # screen recording
     obsidian # notes
-    pasystray # task bar applet for sound management
-    pavucontrol # sound management
     pciutils # contains the lspci tool
     powertop # power management profiling tool
-    remmina
-    scrot # deps for ocr screenshot
+    remmina  # best RDP client
     signal-desktop # signal chat app
     slack # work chat app
-    speedtest-cli
+    speedtest-cli # test internet connection bandwidth
     tesseract5 # deps for ocr screenshot
     udiskie # automount attached usb disks
     ungoogled-chromium
     usbutils # contains lsusb tool
-    viewnior
-    vlc # video player with lots format compatibility
-    vscode.fhs
+    viewnior # image viewer
+    vscode.fhs # VSCode editor with unmanaged plugin controls
     xbindkeys # keyboard shortcuts
-    xcalib
-    xclip
     xournal # pdf annotations
     xsel # deps for ocr screenshot
     zathura # simple pdf viewer
-    zoom-us
-    libnotify
+    zoom-us # meeting software
+    libnotify #
     acpi # battery life monitoring
     tor-browser-bundle-bin
-    polkit
-    polkit_gnome
-    qrtool
-    xdotool
+    polkit # auth security?
+    polkit_gnome # auth security?
+    qrtool # generate qr code images on the command line
+    # media editing
+    gimp-with-plugins
+    inkscape-with-extensions
+    # VPN
+    tailscale
+    openvpn
+
+
+    vlc # video player with lots format compatibility
+    gpodder # podcast listener desktop app (syncs progress with antennapod android podcast app)
+
 
     # screenshot ands ocr screenshot deps
     tesseract
@@ -79,20 +80,12 @@ in
     imagemagick
     grim
     slurp
+    scrot # deps for ocr screenshot
 
     # genAI
     ollama
 
-    # unmanaged vscode
-    vscode.fhs
 
-    # VPN
-    tailscale
-    openvpn
-
-    # media editing
-    gimp-with-plugins
-    inkscape-with-extensions
 
     # davinci-resolve # disabling because problem with python2.7 being insecure
 
@@ -109,6 +102,7 @@ in
     libopenaptx    # aptX codec
     fdk_aac     # AAC codec
     pwvucontrol
+    blueman # bluetooth device management
 
     playerctl
 
