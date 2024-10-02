@@ -6,48 +6,54 @@ let
 in
 {
   environment.systemPackages = with pkgs; [
-    ncdu
-    btop
-    dig
-    file
-    wget
-    git
-    git-lfs
-    ldns
-    tmux
-    silver-searcher
-    stow
-    gnumake
-    jq
-    lsof
-    neovim
-    nixpkgs-fmt
-    openssl
-    shellcheck
-    tree
-    manix # useful search for nix docs
-    unzip
-    iotop # disk io performance monitor tool
-    htop # system resource monitoring tool
-    nethogs # network traffic monitoring tool
     black # python linter
-    ctags
-    cmake
-    mosh # lightweight ssh for remoting over slow or unstable networks
+    btop
     cargo # rust app dev lifecycling
+    cmake
+    ctags
+    difftastic
+    dig # query dns
+    dmidecode # reads info from connected hardware
+    file
     fish # Fish shell
     fzf # fuzzy finder - supports ctrl-r for fish shell
-    keychain # remember my ssh key passphrases
-    tig # ncurses git repo viewer
-    parted # manage disk partitions
-    yt-dlp # download youtube video/audio
+    git
+    git-lfs
+    gnumake
     grc
-    difftastic
+    htop # system resource monitoring tool
     imagemagick
-    rtorrent
+    iotop # disk io performance monitor tool
+    jq
+    keychain # remember my ssh key passphrases
+    ldns
     lshw
+    lsof
+    manix # useful search for nix docs
+    mosh # lightweight ssh for remoting over slow or unstable networks
+    ncdu
+    neovim
+    nethogs # network traffic monitoring tool
+    nixpkgs-fmt
     nmap
+    openssl
+    parted # manage disk partitions
+    pciutils # contains the lspci tool
+    powertop # power management profiling tool
+    qrtool # generate qr code images on the command line
+    rclone
+    rtorrent
+    shellcheck
+    silver-searcher
+    stow
+    tig # ncurses git repo viewer
+    tmux
+    tree
+    unzip
+    usbutils # contains lsusb tool
     uutils-coreutils-noprefix
+    wget
+    yt-dlp # download youtube video/audio
   ];
 
   programs.direnv.enable = true;
