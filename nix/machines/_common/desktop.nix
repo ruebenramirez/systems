@@ -1,4 +1,4 @@
-# This config is only to contain x11 and gui pkgs
+# This config is only to contain shared desktop configuration
 { config, pkgs, betterbird-stable, ... }:
 
 let
@@ -100,17 +100,17 @@ in
     blueman # bluetooth device management
 
     # wayland specific
+    kanshi
+    mako
     rofi-wayland
     wdisplays
     wl-clipboard
-    mako
   ];
 
 
   # Enable touchpad support (enabled default in most desktopManager).
   services.libinput.enable = true;
 
-  programs.sway.enable = true;
 
   fonts.packages = with pkgs; [
     source-code-pro
@@ -118,8 +118,6 @@ in
 
   # light is a backlight management utility
   programs.light.enable = true;
-
-
 
   # bluetooth audio related
   # sourced from: https://github.com/TLATER/dotfiles/blob/a31d74856710936b398318062f0af6616d994eba/nixos-config/default.nix#L154
@@ -180,4 +178,22 @@ in
   };
   services.blueman.enable = true;
   hardware.bluetooth.enable = true;
+
+  # sway window management on wayland (replacing i3)
+  programs.sway = {
+    enable = true;
+    wrapperFeatures.gtk = true;
+  };
+
+  # kanshi manages displays my sway setup
+  systemd.user.services.kanshi = {
+    description = "kanshi dynamic display congfiguration daemon";
+    wantedBy = [ "graphical-session.target" ];
+    partOf = [ "graphical-session.target" ];
+    after = [ "graphical-session.target" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = ''${pkgs.kanshi}/bin/kanshi'';
+    };
+  };
 }
