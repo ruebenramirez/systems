@@ -218,6 +218,8 @@ in
     #acceleration = "cuda";
   };
 
+  hardware.logitech.wireless.enable = true;
+  hardware.logitech.wireless.enableGraphical = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
