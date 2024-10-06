@@ -91,6 +91,7 @@ in
     wine64
     winetricks
     winePackages.fonts
+    wineWowPackages.stable
 
     # bluetooth audio
     bluez-tools
@@ -98,6 +99,7 @@ in
     libopenaptx    # aptX codec
     pwvucontrol
     blueman # bluetooth device management
+    bluetuith
 
     # wayland specific
     kanshi

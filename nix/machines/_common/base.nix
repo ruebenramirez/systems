@@ -6,6 +6,7 @@ let
 in
 {
   environment.systemPackages = with pkgs; [
+    bchunk
     black # python linter
     btop
     cargo # rust app dev lifecycling
@@ -37,6 +38,7 @@ in
     nixpkgs-fmt
     nmap
     openssl
+    p7zip
     parted # manage disk partitions
     pciutils # contains the lspci tool
     powertop # power management profiling tool
