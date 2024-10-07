@@ -16,6 +16,7 @@ in
       ../_common/syncthing.nix
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
+      ../_common/local-llm.nix
     ];
 
   # Set your time zone.
@@ -213,11 +214,6 @@ in
     systemCronJobs = [
       "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
     ];
-  };
-
-  services.ollama = {
-    enable = true;
-    acceleration = "cuda";
   };
 
   # This value determines the NixOS release from which the default

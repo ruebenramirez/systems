@@ -83,7 +83,6 @@ in
     scrot # deps for ocr screenshot
 
     # dev related
-    ollama
     vscode.fhs # VSCode editor with unmanaged plugin controls
 
     # bluetooth audio
