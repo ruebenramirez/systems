@@ -191,4 +191,7 @@ in
       ExecStart = ''${pkgs.kanshi}/bin/kanshi'';
     };
   };
+
+  # logitech dongle support
+  hardware.logitech.wireless.enable = true;
 }
