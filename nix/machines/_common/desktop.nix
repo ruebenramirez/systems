@@ -92,7 +92,7 @@ in
     libopenaptx    # aptX codec
     pwvucontrol
     blueman # bluetooth device management
-    bluetuith
+    bluetuith # CLI bluetooth device management
 
     # wayland specific
     kanshi
