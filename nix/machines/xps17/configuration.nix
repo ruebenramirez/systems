@@ -17,6 +17,7 @@ in
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
       ../_common/local-llm.nix
+      ../_common/kubernetes.nix
     ];
 
   # Set your time zone.
@@ -80,8 +81,6 @@ in
   ];
 
 
-  virtualisation.docker.enable = true; # required for k3d
-
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment = {
@@ -101,12 +100,6 @@ in
       pinentry
 
       toybox # strings cli to view strings in a binary file
-
-      k3d # k3s on docker (docker required)
-      kubectl
-      kubernetes-helm
-      helmfile-wrapped
-
     ];
 
     etc."wpa_supplicant.conf" = {
