@@ -86,8 +86,9 @@ in
     vscode.fhs # VSCode editor with unmanaged plugin controls
 
     # bluetooth audio
-    bluez-tools
     pulseaudio  # for pactcl
+    pulsemixer  # TUI compatible with PipeWire through the PulseAudio compatibility layer
+    bluez-tools
     libopenaptx    # aptX codec
     pwvucontrol
     blueman # bluetooth device management
