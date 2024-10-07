@@ -14,6 +14,7 @@ in
       ../_common/base.nix
       ../_common/syncthing.nix
       ../_common/fingerprint-reader.nix
+      ../_common/gaming.nix
     ];
 
   # Set your time zone.
@@ -104,7 +105,6 @@ in
       kubernetes-helm
       helmfile-wrapped
 
-      steam
     ];
 
     etc."wpa_supplicant.conf" = {
@@ -263,13 +263,6 @@ in
   services.ollama = {
     enable = true;
     acceleration = "cuda";
-  };
-
-  programs.steam = {
-    enable = true;
-    remotePlay.openFirewall = false; # Open ports in the firewall for Steam Remote Play
-    dedicatedServer.openFirewall = false; # Open ports in the firewall for Source Dedicated Server
-    localNetworkGameTransfers.openFirewall = false; # Open ports in the firewall for Steam Local Network Game Transfers
   };
 
   virtualisation.waydroid.enable = true;

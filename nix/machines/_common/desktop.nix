@@ -86,13 +86,6 @@ in
     ollama
     vscode.fhs # VSCode editor with unmanaged plugin controls
 
-    # gaming
-    wine
-    wine64
-    winetricks
-    winePackages.fonts
-    wineWowPackages.stable
-
     # bluetooth audio
     bluez-tools
     pulseaudio  # for pactcl
