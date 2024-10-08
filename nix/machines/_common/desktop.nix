@@ -96,6 +96,7 @@ in
     bluetuith # CLI bluetooth device management
 
     # wayland specific
+    gammastep
     kanshi
     mako
     rofi-wayland
