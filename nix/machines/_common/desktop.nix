@@ -58,10 +58,11 @@ in
     tor-browser-bundle-bin
 
     # media players
-    playerctl # media controls for applications running on linux
-    mpv # media player
-    vlc # video player with lots format compatibility
+    cmus
     gpodder # podcast listener desktop app (syncs progress with antennapod android podcast app)
+    mpv # media player
+    playerctl # media controls for applications running on linux
+    vlc # video player with lots format compatibility
 
     # media editing
     drawio # sketch draw and diagram
