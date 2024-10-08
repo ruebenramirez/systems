@@ -10,10 +10,11 @@ in
   imports =
     [
       ./hardware-configuration.nix
-      ./fingerprint-reader.nix
-      ../_common/desktop.nix
       ../_common/base.nix
+      ../_common/desktop.nix
       ../_common/syncthing.nix
+      ../_common/fingerprint-reader.nix
+      ../_common/kubernetes.nix
     ];
 
   # Set your time zone.
@@ -77,8 +78,6 @@ in
   ];
 
 
-  virtualisation.docker.enable = true; # required for k3d
-
   # List packages installed in system profile. To search, run:
   # $ nix search wget
   environment = {
@@ -109,11 +108,6 @@ in
       winetricks
       winePackages.fonts
     ];
-
-    etc."wpa_supplicant.conf" = {
-      source = "/persist/etc/wpa_supplicant.conf";
-      mode = "symlink";
-    };
   };
 
   # Enable the OpenSSH daemon.
@@ -173,7 +167,6 @@ in
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
-
   # firmware update
   services.fwupd.enable = true;
 
@@ -216,14 +209,6 @@ in
       "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
     ];
   };
-
-  services.ollama = {
-    enable = false;
-    #acceleration = "cuda";
-  };
-
-  hardware.logitech.wireless.enable = true;
-  hardware.logitech.wireless.enableGraphical = true;
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
