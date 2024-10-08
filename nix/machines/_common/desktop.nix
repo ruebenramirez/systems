@@ -100,6 +100,7 @@ in
     kanshi
     mako
     rofi-wayland
+    swayidle
     wdisplays
     wl-clipboard
   ];
