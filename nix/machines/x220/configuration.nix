@@ -196,8 +196,8 @@ in
 
   # if laptop lid closes
   #services.logind.extraConfig = "HandleLidSwitch=ignore";
-  services.logind.lidSwitch = "suspend-then-hibernate";
-  services.logind.lidSwitchExternalPower = "suspend-then-hibernate";
+  #services.logind.lidSwitch = "suspend-then-hibernate";
+  services.logind.lidSwitchExternalPower = "ignore";
 
 
   services.cron = {
