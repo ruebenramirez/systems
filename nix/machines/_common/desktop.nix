@@ -88,11 +88,10 @@ in
 
     # bluetooth audio
     pulseaudio  # for pactcl
-    pulsemixer  # TUI compatible with PipeWire through the PulseAudio compatibility layer
+    pulsemixer  # like pwvucontrol for the CLI
     bluez-tools
-    libopenaptx    # aptX codec
-    pwvucontrol
-    blueman # bluetooth device management
+    libopenaptx # aptX high quality audio codec
+    pwvucontrol # audio control GUI
     bluetuith # CLI bluetooth device management
 
     # wayland specific
