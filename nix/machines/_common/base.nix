@@ -68,7 +68,7 @@ in
     vimAlias = true;
     configure = {
       customRC = ''
-
+        set background=light " better colors for a white background
         set backspace=indent,eol,start " allow backspacing over these
 
         set cursorline " underline the line that the cursor is currently on
