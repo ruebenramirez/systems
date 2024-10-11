@@ -98,7 +98,7 @@ in
         set softtabstop=4
 
         " set 2 space tabs when appropriate
-        autocmd FileType *.nix,nix,go,r,R,yml,yaml,json,markdown,ruby,javascript,Rakefile setlocal shiftwidth=2 tabstop=2 softtabstop=2 showtabline=2
+        autocmd FileType vim,*.nix,nix,go,r,R,yml,yaml,json,markdown,ruby,javascript,Rakefile setlocal shiftwidth=2 tabstop=2 softtabstop=2 showtabline=2
 
         " set 4 space tabs when appropriate
         "autocmd FileType python,*.py.tpl setlocal tabstop=4 expandtab shiftwidth=4 softtabstop=4 showtabline=4
@@ -268,7 +268,6 @@ in
   # use Fish shell
   users.defaultUserShell = pkgs.fish;
   programs.fish.enable = true;
-
 
   environment.variables = {
     EDITOR="vim";
