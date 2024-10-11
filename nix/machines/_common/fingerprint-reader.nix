@@ -28,12 +28,6 @@ in
         };
     };
   };
-  # 1password system (fingerprint) auth
-  security.polkit.enable = true;
-  programs._1password.enable = true;
-  programs._1password-gui = {
-    enable = true;
-    polkitPolicyOwners = [ "rramirez" ];
-  };
+
 
 }
