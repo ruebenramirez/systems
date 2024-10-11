@@ -10,7 +10,6 @@ in
     "olm-3.2.16"        # element dependency #TODO: read up on the OLM security issues upstream
   ];
 
-
   # install Desktop packages
   environment.systemPackages = with pkgs; [
     _1password
@@ -108,7 +107,6 @@ in
   # Enable touchpad support (enabled default in most desktopManager).
   services.libinput.enable = true;
 
-
   fonts.packages = with pkgs; [
     source-code-pro
   ];
@@ -180,6 +178,12 @@ in
   programs.sway = {
     enable = true;
     wrapperFeatures.gtk = true;
+  };
+
+  xdg.portal = {
+    enable = true;
+    wlr.enable = true;
+    extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   };
 
   # kanshi manages displays my sway setup
