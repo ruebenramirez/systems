@@ -106,7 +106,6 @@ in
       newsboat
       icdiff
       tailscale # VPN
-      toybox # strings cli to view strings in a binary file
     ];
   };
 

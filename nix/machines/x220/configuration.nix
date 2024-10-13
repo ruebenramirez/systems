@@ -133,7 +133,6 @@ in
       wine64
       winetricks
       winePackages.fonts
-      toybox # strings cli to view strings in a binary file
     ];
 
     etc."wpa_supplicant.conf" = {

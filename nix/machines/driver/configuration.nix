@@ -94,8 +94,6 @@ in
       gnupg
       pcsclite
       pinentry
-
-      toybox # strings cli to view strings in a binary file
     ];
 
     etc."wpa_supplicant.conf" = {
