@@ -42,7 +42,6 @@ in
     koreader
     mupdf # pdf viewer with vim keybindings
     xournal # pdf annotations
-    zathura # simple pdf viewer
 
     # comms
     gomuks # matrix
