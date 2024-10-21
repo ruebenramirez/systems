@@ -29,9 +29,13 @@ in
     acpi # battery life monitoring
     libnotify # notifications on the desktop
     light # screen brightness management
-    udiskie # automount attached usb disks
     polkit # auth security?
     polkit_gnome # auth security?
+
+    # mounting filesystems
+    exfat
+    ntfs3g
+    udiskie # automount attached usb disks
 
     # books and whitepapers related
     calibre # manage ebooks
@@ -101,6 +105,7 @@ in
     swayidle
     wdisplays
     wl-clipboard
+    xdg-utils
   ];
 
 
@@ -209,4 +214,7 @@ in
     polkitPolicyOwners = [ "rramirez" ];
   };
 
+  services.udisks2 = {
+    enable = true;
+  };
 }
