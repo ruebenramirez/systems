@@ -79,12 +79,9 @@ in
 
     # screenshot ands ocr screenshot deps
     tesseract
-    scrot
-    xsel
     imagemagick
     grim
     slurp
-    scrot # deps for ocr screenshot
 
     # dev related
     vscode.fhs # VSCode editor with unmanaged plugin controls
