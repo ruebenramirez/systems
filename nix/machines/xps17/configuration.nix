@@ -188,8 +188,8 @@ in
   # Validate status: `sudo tlp-stat -b`
 
   # if laptop lid closes
-  services.logind.lidSwitch = "suspend-then-hibernate";
-  services.logind.lidSwitchExternalPower = "ignore"; # server mode
+  services.logind.lidSwitch = "ignore"; # laptop as a server
+  services.logind.lidSwitchExternalPower = "ignore"; # laptop as a server
   services.logind.lidSwitchDocked = "ignore"; # clamshell mode
 
 
