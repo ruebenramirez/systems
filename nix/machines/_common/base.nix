@@ -109,7 +109,7 @@ in
         autocmd FileType python,*.py.tpl BufWritePre * :Black
 
         set colorcolumn=80 " visual indicator appears at this column
-        set textwidth=90 " controls line wrapping (automatically breaks lines at this column)
+        set textwidth=80 " controls line wrapping
 
         " Terraform formatting
         let g:terraform_align=1
