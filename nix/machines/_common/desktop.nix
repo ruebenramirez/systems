@@ -1,5 +1,5 @@
 # This config is only to contain shared desktop configuration
-{ config, pkgs, betterbird-stable, ... }:
+{ config, pkgs, ... }:
 
 let
 
@@ -45,7 +45,6 @@ in
 
     # comms
     gomuks # matrix
-    betterbird-stable.betterbird # email client (fork of thunderbird)
     discord # projects/gaming chat app
     element-desktop #matrix chat desktop client
     signal-desktop # signal chat app
