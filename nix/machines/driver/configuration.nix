@@ -16,6 +16,7 @@ in
       ../_common/syncthing.nix
       ../_common/fingerprint-reader.nix
       ../_common/kubernetes.nix
+      ../_common/android.nix
     ];
 
   # Set your time zone.
@@ -63,7 +64,7 @@ in
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "audio" "docker" "networkmanager" "sound" "wheel" ];
+    extraGroups = [ "adbusers" "audio" "docker" "networkmanager" "sound" "wheel" ];
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
   };
   security.sudo.extraRules = [
