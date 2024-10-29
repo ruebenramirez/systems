@@ -33,7 +33,6 @@ in
     manix # useful search for nix docs
     mosh # lightweight ssh for remoting over slow or unstable networks
     ncdu
-    neovim
     nethogs # network traffic monitoring tool
     nixpkgs-fmt
     nmap
