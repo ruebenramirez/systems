@@ -55,40 +55,65 @@ in
     uutils-coreutils-noprefix
     wget
     yt-dlp # download youtube video/audio
+
+    # editor specific configuration
+    # git is needed for gitsigns-nvim
+    # ripgrep and fd are needed for telescope-nvim
+    ripgrep git fd
+    haskell-language-server
+    # ghc, stack and cabal are required to run the language server
+    stack
+    ghc
+    cabal-install
+    manix
+    nil
+
+
   ];
 
   programs.direnv.enable = true;
 
-  # neovim config
   programs.neovim = {
     enable = true;
     defaultEditor = true;
     viAlias = true;
     vimAlias = true;
     configure = {
+      packages.myVimPackage = with pkgs.vimPlugins; {
+        start = [
+          (nvim-treesitter.withAllGrammars)
+          bufferline-nvim
+          cmp-nvim-lsp
+          cmp-path
+          csv-vim
+          gitsigns-nvim
+          indent-blankline-nvim
+          nerdtree
+          nvim-cmp
+          nvim-compe
+          nvim-lspconfig
+          nvim-web-devicons
+          tagbar
+          telescope-manix
+          telescope-nvim
+          vim-commentary
+          vim-dirdiff
+          vim-endwise
+          vim-nix
+          vim-oscyank
+          vim-tmux-navigator
+        ];
+      };
       customRC = ''
-        set background=light " better colors for a white background
-        set backspace=indent,eol,start " allow backspacing over these
-
         set cursorline " underline the line that the cursor is currently on
-        set encoding=utf-8
         set paste
         set number
-        set numberwidth=3
-
-        set list " show invisible characters
-
-        syntax on " enable syntax highlighting
-
-        if &diff
-          colorscheme blue
-        endif
+        "set numberwidth=3
 
         " better searching
         set hlsearch " highlight search terms
         highlight! link DiffText MatchParen " Better diff highlighting
         set ignorecase " search without case sensitivity
-
 
         " indentation: use spaces instead of tabs
         set expandtab
@@ -104,35 +129,8 @@ in
 
         autocmd BufWritePre * :%s/\s\+$//e " Remove end of line whitespace on save
 
-        " format python code with Black on save
-        autocmd FileType python,*.py.tpl BufWritePre * :Black
-
         set colorcolumn=80 " visual indicator appears at this column
         set textwidth=80 " controls line wrapping
-
-        " Terraform formatting
-        let g:terraform_align=1
-        let g:terraform_fmt_on_save=1
-
-
-        " Leader keyboard shortcuts
-        "set timeoutlen=500
-        let mapleader = ","
-
-        " close file
-        nnoremap <leader>q :q<cr>
-
-        " save file
-        nnoremap <leader>s :w<cr>
-
-        " new tab
-        nnoremap <leader>t :Tex<cr>
-
-        " horizontal split
-        nnoremap <leader>h :sp<cr>
-
-        " vertical split
-        nnoremap <leader>v :vsp<cr>
 
         " insert date
         nnoremap <leader>d :put =strftime('%Y-%m-%d')
@@ -155,65 +153,116 @@ in
         nnoremap <C-H> <C-W><C-H>
 
         nmap <F8> :TagbarToggle<CR>
-      '';
 
-      packages.myVimPackage = with pkgs.vimPlugins; {
-        start = [
-          ctrlp
-          nerdtree
-          tagbar
-          vim-commentary
-          vim-dirdiff
-          vim-easymotion
-          vim-endwise
-          vim-signify
-          vim-tmux-navigator
-        ];
-      };
+        " Configure Telescope
+        " Find files using Telescope command-line sugar.
+        nnoremap <leader>ff <cmd>Telescope find_files<cr>
+        nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+        nnoremap <leader>fb <cmd>Telescope buffers<cr>
+        nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
+        vmap <C-c> y:OSCYankVisual<cr>
+
+        nnoremap <silent><A-h> :BufferLineCyclePrev<CR>
+        nnoremap <silent><A-l> :BufferLineCycleNext<CR>
+        nnoremap <silent><A-c> :bdelete!<CR>
+
+        set completeopt=menuone,noselect
+        set mouse-=a
+        set tw=80
+        set wrap linebreak
+        set number
+        set signcolumn=yes:2
+        set foldexpr=nvim_treesitter#foldexpr()
+
+        lua << EOF
+        vim.g.mapleader = ' '
+        local actions = require('telescope.actions')
+        require('gitsigns').setup()
+        require('telescope').setup {
+          defaults = {
+            mappings = {
+              i = {
+                ["<A-j>"] = actions.move_selection_next,
+                ["<A-k>"] = actions.move_selection_previous
+              }
+            }
+          }
+        }
+        require'nvim-treesitter.configs'.setup {
+          indent = {
+            enable = true
+          }
+        }
+        require('bufferline').setup {
+          options = {
+            show_close_icon = false,
+            show_buffer_close_icons = false
+          }
+        }
+        require("ibl").setup {}
+
+        vim.cmd[[
+          match ExtraWhitespace /\s\+$/
+          highlight ExtraWhitespace ctermbg=red guibg=red
+        ]]
+
+        vim.opt.list = true
+
+        -- LSP + nvim-cmp setup
+        local lspc = require('lspconfig')
+        lspc.hls.setup {}
+        local cmp = require("cmp")
+        cmp.setup {
+          sources = {
+            { name = "nvim_lsp" },
+            { name = "path" },
+          },
+          formatting = {
+            format = function(entry, vim_item)
+              vim_item.menu = ({
+                nvim_lsp = "[LSP]",
+                path = "[Path]",
+              })[entry.source.name]
+              return vim_item
+            end
+          },
+          mapping = {
+            ['<Tab>'] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }),
+            ['<S-Tab>'] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }),
+            ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+            ['<C-f>'] = cmp.mapping.scroll_docs(4),
+            ['<C-Space>'] = cmp.mapping.complete(),
+            ['<C-e>'] = cmp.mapping.close(),
+            ['<CR>'] = cmp.mapping.confirm({
+              behavior = cmp.ConfirmBehavior.Replace,
+              select = true,
+            })
+          },
+        }
+
+        local servers = { 'nil_ls' }
+        for _, lsp in ipairs(servers) do
+          require('lspconfig')[lsp].setup {
+            capabilities = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities()),
+            on_attach = on_attach,
+          }
+        end
+        EOF
+      '';
     };
   };
 
   programs.tmux = {
     enable = true;
-    plugins = with pkgs.tmuxPlugins; [ vim-tmux-navigator ];
+    plugins = with pkgs.tmuxPlugins; [
+      yank
+      vim-tmux-navigator
+    ];
     extraConfig = ''
-      set -g default-terminal xterm-256color
-      set -g status-right "#S:#H"
-      set -g status-bg colour40
-      setw -g window-status-current-style bg=colour40 # new tmux
-
-      # nested tmux
-      bind -n S-left  prev
-      bind -n S-right next
-      bind -n S-C-left  swap-window -t -1
-      bind -n S-C-right swap-window -t +1
-      bind -n M-F11 set -qg status-bg colour25
-      bind -n M-F12 set -qg status-bg colour40
-      bind -n S-up \
-        send-keys M-F12 \; \
-        set -qg status-bg colour25 \; \
-        unbind -n S-left \; \
-        unbind -n S-right \; \
-        unbind -n S-C-left \; \
-        unbind -n S-C-right \; \
-        set -qg prefix C-a
-      bind -n S-down \
-        send-keys M-F11 \; \
-        set -qg status-bg colour40 \; \
-        bind -n S-left  prev \; \
-        bind -n S-right next \; \
-        bind -n S-C-left swap-window -t -1 \; \
-        bind -n S-C-right swap-window -t +1 \; \
-        set -qg prefix C-b
-
-      # Bind reload key
-      bind r source-file ~/.tmux.conf \; display-message "Config reloaded..."
-
-      # allow neovim to escape INSERT mode quickly
-      set -sg escape-time 0
-
-      # configure default shell (zsh)
-      set-option -g default-shell $SHELL
+      set -g set-clipboard on
+      set -g default-terminal "tmux-256color"
+      set -ag terminal-overrides ",xterm-256color:RGB"
 
       # switch active pane w/ vim keys
       bind j select-pane -D
@@ -221,8 +270,8 @@ in
       bind h select-pane -L
       bind l select-pane -R
 
-
-      # use Ctrl + vim keys to move around
+      # vim-tmux-navigator plugin configuration
+      # use Ctrl + vim keys to move between vim and tmux panes
       is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
           | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|\.?n?vim?x?(-wrapped)?)(diff)?$'"
 
@@ -246,21 +295,10 @@ in
       bind -n 'C-\' if-shell "$is_vim" "send-keys 'C-\\'" "select-pane -l"
 
 
-      # source: https://www.rockyourcode.com/copy-and-paste-in-tmux/
-      ## Use vim keybindings in copy mode
-      setw -g mode-keys vi
-      set-option -s set-clipboard off
+      # Use vim keybindings in copy mode
+      set-window-option -g mode-keys vi
       unbind p
       bind p paste-buffer
-
-      # copy to the paste buffer
-      bind-key -T copy-mode-vi v send-keys -X begin-selection
-      bind-key -T copy-mode-vi y send-keys -X rectangle-toggle
-      unbind -T copy-mode-vi Enter
-
-      # share tmux paste buffer to OS clipboard
-      bind-key -T copy-mode-vi Enter send-keys -X copy-pipe-and-cancel 'wl-copy'
-      bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel 'wl-copy'
     '';
   };
 
@@ -269,7 +307,7 @@ in
   programs.fish.enable = true;
 
   environment.variables = {
-    EDITOR="vim";
+    EDITOR="nvim";
   };
 
   # tailscale everywhere by default

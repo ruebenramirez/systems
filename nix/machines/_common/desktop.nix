@@ -104,13 +104,13 @@ in
     xdg-utils
   ];
 
+  fonts.packages = with pkgs; [
+    source-code-pro
+  ];
 
   # Enable touchpad support (enabled default in most desktopManager).
   services.libinput.enable = true;
 
-  fonts.packages = with pkgs; [
-    source-code-pro
-  ];
 
   # light is a backlight management utility
   programs.light.enable = true;
