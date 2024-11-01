@@ -87,6 +87,7 @@ in
     # bluetooth audio
     pulseaudio  # for pactcl
     pulsemixer  # like pwvucontrol for the CLI
+    bluez-experimental
     bluez-tools
     libopenaptx # aptX high quality audio codec
     pwvucontrol # audio control GUI
@@ -115,6 +116,7 @@ in
   programs.light.enable = true;
 
   # bluetooth audio related
+
   # sourced from: https://github.com/TLATER/dotfiles/blob/a31d74856710936b398318062f0af6616d994eba/nixos-config/default.nix#L154
   services.pipewire = {
     enable = true;
@@ -172,7 +174,18 @@ in
     };
   };
   services.blueman.enable = true;
-  hardware.bluetooth.enable = true;
+  hardware.bluetooth = {
+    enable = true;
+    settings = {
+      General = {
+        # enable mpris-proxy (bluetooth headphone media controls)
+        Experimental = true;
+      };
+    };
+  };
+
+  # load MRPIS into dbus (bluetooth headphone media controls)
+  services.dbus.packages = [ pkgs.bluez];
 
   # sway window management on wayland (replacing i3)
   programs.sway = {
