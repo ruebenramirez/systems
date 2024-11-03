@@ -105,7 +105,7 @@ in
   ];
 
   fonts.packages = with pkgs; [
-    source-code-pro
+    (nerdfonts.override { fonts = [ "SourceCodePro" ]; })
   ];
 
   # Enable touchpad support (enabled default in most desktopManager).
