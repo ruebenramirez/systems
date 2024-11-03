@@ -132,6 +132,8 @@ in
         set colorcolumn=80 " visual indicator appears at this column
         set textwidth=80 " controls line wrapping
 
+        let mapleader=" "
+
         " insert date
         nnoremap <leader>d :put =strftime('%Y-%m-%d')
 
@@ -175,12 +177,16 @@ in
         set signcolumn=yes:2
         set foldexpr=nvim_treesitter#foldexpr()
 
+
         lua << EOF
         vim.g.mapleader = ' '
+
+        -- Telescope configuration
         local actions = require('telescope.actions')
         require('gitsigns').setup()
         require('telescope').setup {
           defaults = {
+            file_ignore_patterns = { "node_modules", ".git" },
             mappings = {
               i = {
                 ["<A-j>"] = actions.move_selection_next,
@@ -189,6 +195,14 @@ in
             }
           }
         }
+
+        -- Telescope keymaps
+        local telescope_builtin = require('telescope.builtin')
+        vim.keymap.set('n', '<leader>ff', telescope_builtin.find_files, {})
+        vim.keymap.set('n', '<leader>fg', telescope_builtin.live_grep, {})
+        vim.keymap.set('n', '<leader>fb', telescope_builtin.buffers, {})
+
+
         require'nvim-treesitter.configs'.setup {
           indent = {
             enable = true
@@ -262,7 +276,9 @@ in
     extraConfig = ''
       set -g set-clipboard on
       set -g default-terminal "tmux-256color"
+      # This setting is crucial for mosh sessions
       set -ag terminal-overrides ",xterm-256color:RGB"
+      set -ag terminal-overrides "vte*:XT:Ms=\\E]52;c;%p2%s\\7,xterm*:XT:Ms=\\E]52;c;%p2%s\\7"
 
       # switch active pane w/ vim keys
       bind j select-pane -D
