@@ -10,6 +10,7 @@ in
   imports =
     [
       ./hardware-configuration.nix
+      ./reverse-proxies.nix
       ../_common/base.nix
       ../_common/desktop.nix
       ../_common/nvidia-graphics.nix

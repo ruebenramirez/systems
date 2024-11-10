@@ -10,14 +10,14 @@ in
   ];
 
   services.ollama = {
-    enable = true;
     acceleration = "cuda";
+    enable = true;
+    listenAddress = "0.0.0.0";
   };
 
   services.open-webui = {
     enable = true;
-    host = "0.0.0.0";
+    host = "127.0.0.1";
     port = 8888;
   };
-
 }
