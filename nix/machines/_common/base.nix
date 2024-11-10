@@ -280,6 +280,10 @@ in
       set -ag terminal-overrides ",xterm-256color:RGB"
       set -ag terminal-overrides "vte*:XT:Ms=\\E]52;c;%p2%s\\7,xterm*:XT:Ms=\\E]52;c;%p2%s\\7"
 
+      # navigate next and prev tmux tabs
+      bind -n S-left  prev
+      bind -n S-right next
+
       # switch active pane w/ vim keys
       bind j select-pane -D
       bind k select-pane -U
