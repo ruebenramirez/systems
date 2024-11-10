@@ -181,6 +181,14 @@ in
         lua << EOF
         vim.g.mapleader = ' '
 
+        -- shift + tab to remove one level of indentation
+        -- Insert mode
+        vim.keymap.set('i', '<S-Tab>', '<C-d>')
+        -- Normal mode
+        vim.keymap.set('n', '<S-Tab>', '<<')
+        -- Visual mode
+        vim.keymap.set('v', '<S-Tab>', '<gv')
+
         -- Telescope configuration
         local actions = require('telescope.actions')
         require('gitsigns').setup()
