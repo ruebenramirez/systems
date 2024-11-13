@@ -102,9 +102,11 @@ in
       pinentry
     ];
 
-    etc."wpa_supplicant.conf" = {
-      source = "/persist/etc/wpa_supplicant.conf";
-      mode = "symlink";
+    etc = {
+      "wpa_supplicant.conf" = {
+        source = "/persist/etc/wpa_supplicant.conf";
+        mode = "symlink";
+      };
     };
   };
 
