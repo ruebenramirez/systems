@@ -89,7 +89,6 @@ in
       ticker # stocks
       newsboat
       icdiff
-      magic-wormhole
       nixpkgs-review
 
       # hardware key

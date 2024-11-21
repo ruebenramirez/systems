@@ -30,6 +30,7 @@ in
     ldns
     lshw
     lsof
+    magic-wormhole
     manix # useful search for nix docs
     mosh # lightweight ssh for remoting over slow or unstable networks
     ncdu

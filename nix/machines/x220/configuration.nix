@@ -114,7 +114,6 @@ in
       newsboat
       icdiff
       imagemagick
-      magic-wormhole
       nixpkgs-review
       # hardware key
       gnupg
