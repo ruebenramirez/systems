@@ -123,7 +123,6 @@ in
       openvpn # VPN
       libimobiledevice # internet via iPhone usb tethering
       fprintd # fingerprint reader
-      barrier # share mouse and keyboard across multiple machines
       # media editing
       gimp-with-plugins
       inkscape-with-extensions
