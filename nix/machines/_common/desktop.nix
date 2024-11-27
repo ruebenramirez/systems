@@ -207,9 +207,47 @@ in
     after = [ "graphical-session.target" ];
     serviceConfig = {
       Type = "simple";
-      ExecStart = ''${pkgs.kanshi}/bin/kanshi'';
+      ExecStart = ''${pkgs.kanshi}/bin/kanshi -c /etc/kanshi/config'';
     };
   };
+
+  environment.etc."kanshi/config" = {
+    text = ''
+      profile thinkpad_undocked {
+        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,0
+      }
+
+      profile thinkpad_standing_desk {
+        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,0
+        output "GWD ARZOPA " mode 2560x1600 position 1920,0 scale 1.20
+      }
+
+      profile thinkpad_desk {
+        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 3840,0
+        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 0,0 scale 1.00
+      }
+
+      profile thinkpad_x220_undocked {
+        output "LG Display 0x036C Unknown" mode 1366x768 position 0,0
+      }
+
+      profile xps17_undocked {
+        output eDP-1 mode 3840x2400@60Hz position 0,0
+      }
+
+      profile xps17_desk {
+        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 3840,0 scale 2.00
+        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 0,0 scale 1.00
+      }
+
+      profile xps17_standing_desk {
+        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 0,0 scale 2.00
+        output "GWD ARZOPA " mode 2560x1600 position 1920,0 scale 1.20
+      }
+    '';
+    mode="0644";
+  };
+
 
   # logitech dongle support
   hardware.logitech.wireless.enable = true;
