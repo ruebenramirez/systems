@@ -106,6 +106,7 @@ in
         ];
       };
       customRC = ''
+        set background=light
         set cursorline " underline the line that the cursor is currently on
         set paste
         set number
