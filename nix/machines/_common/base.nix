@@ -68,7 +68,6 @@ in
     manix
     nil
 
-
   ];
 
   programs.direnv.enable = true;
@@ -230,7 +229,7 @@ in
           highlight ExtraWhitespace ctermbg=red guibg=red
         ]]
 
-        vim.opt.list = true
+        vim.opt.list = false
 
         -- LSP + nvim-cmp setup
         local lspc = require('lspconfig')
