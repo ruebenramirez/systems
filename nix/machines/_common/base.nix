@@ -9,7 +9,6 @@ in
     bchunk
     black # python linter
     btop
-    cargo # rust app dev lifecycling
     cmake
     ctags
     difftastic

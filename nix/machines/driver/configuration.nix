@@ -17,6 +17,7 @@ in
       ../_common/fingerprint-reader.nix
       ../_common/kubernetes.nix
       ../_common/android.nix
+      ../_common/rust-dev.nix
     ];
 
   # Set your time zone.
