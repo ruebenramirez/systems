@@ -98,6 +98,12 @@ in
       gnupg
       pcsclite
       pinentry
+
+      # qemu SCaLE kiosk pi qemu vm display testing
+      libGL
+      SDL2
+      mesa
+      egl-wayland
     ];
 
     etc."wpa_supplicant.conf" = {
