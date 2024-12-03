@@ -19,6 +19,7 @@ in
       ../_common/gaming.nix
       ../_common/local-llm.nix
       ../_common/kubernetes.nix
+      ../_common/rust-dev.nix
     ];
 
   # Set your time zone.
