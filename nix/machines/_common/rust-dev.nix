@@ -12,5 +12,8 @@ in
     rustc
     rustfmt
     #rustup
+
+    openssl
+    pkg-config
   ];
 }
