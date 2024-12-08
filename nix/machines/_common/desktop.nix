@@ -80,6 +80,7 @@ in
     imagemagick
     grim
     slurp
+    ocrmypdf
 
     # dev related
     vscode.fhs # VSCode editor with unmanaged plugin controls
