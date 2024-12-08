@@ -237,8 +237,8 @@ in
       }
 
       profile xps17_desk {
-        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 2123,0 scale 2.00
-        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2133,0 scale 1.00
+        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 640,0 scale 2.00
+        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.00
         output "GWD ARZOPA " mode 2560x1600 position 0,1200 scale 1.20
       }
 
