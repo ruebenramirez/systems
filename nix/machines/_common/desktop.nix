@@ -12,14 +12,14 @@ in
 
   # install Desktop packages
   environment.systemPackages = with pkgs; [
-    _1password
+    _1password-cli
     _1password-gui # password manager
     alacritty # terminal emulator of choice
     arandr # ui xrandr tool for interacting the multimonitors
     autorandr # cli xrandr tool for saving/load profiles
     barrier # share mouse and keyboard across multiple machines
-    gnome.cheese # webcam camera tool
-    gnome.nautilus # file browser
+    cheese # webcam camera tool
+    nautilus # file browser
     obsidian # notes
     remmina  # best RDP client
     speedtest-cli # test internet connection bandwidth

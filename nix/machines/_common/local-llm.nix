@@ -12,7 +12,7 @@ in
   services.ollama = {
     acceleration = "cuda";
     enable = true;
-    listenAddress = "0.0.0.0";
+    host = "0.0.0.0";
   };
 
   services.open-webui = {

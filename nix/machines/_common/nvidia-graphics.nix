@@ -6,7 +6,7 @@ in
 {
 
   # Nvidia GPU config
-  hardware.opengl = {
+  hardware.graphics = {
     enable = true;
   };
 
