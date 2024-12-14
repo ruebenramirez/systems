@@ -12,6 +12,7 @@ in
 
   # install Desktop packages
   environment.systemPackages = with pkgs; [
+    popcorntime
     _1password-cli
     _1password-gui # password manager
     alacritty # terminal emulator of choice
@@ -228,10 +229,6 @@ in
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 0,0 scale 1.00
       }
 
-      profile thinkpad_x220_undocked {
-        output "LG Display 0x036C Unknown" mode 1366x768 position 0,0
-      }
-
       profile xps17_undocked {
         output eDP-1 mode 3840x2400@60Hz position 0,0
       }
@@ -239,12 +236,7 @@ in
       profile xps17_desk {
         output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 640,0 scale 2.00
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.00
-        output "GWD ARZOPA " mode 2560x1600 position 0,1200 scale 1.20
-      }
-
-      profile xps17_standing_desk {
-        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 0,0 scale 2.00
-        output "GWD ARZOPA " mode 2560x1600 position 1920,0 scale 1.20
+        #output "GWD ARZOPA " mode 2560x1600 position 0,1200 scale 1.20
       }
     '';
     mode="0644";
