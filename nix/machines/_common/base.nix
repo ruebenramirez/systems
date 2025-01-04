@@ -24,6 +24,7 @@ in
     htop # system resource monitoring tool
     imagemagick
     iotop # disk io performance monitor tool
+    jujutsu
     jq
     keychain # remember my ssh key passphrases
     ldns
