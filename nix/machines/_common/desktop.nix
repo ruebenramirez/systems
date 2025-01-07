@@ -82,6 +82,7 @@ in
     grim
     slurp
     ocrmypdf
+    satty
 
     # dev related
     vscode.fhs # VSCode editor with unmanaged plugin controls
