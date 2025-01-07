@@ -41,6 +41,7 @@ in
     p7zip
     parted # manage disk partitions
     pciutils # contains the lspci tool
+    pigz
     powertop # power management profiling tool
     qrtool # generate qr code images on the command line
     rclone
