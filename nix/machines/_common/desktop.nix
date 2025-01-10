@@ -20,11 +20,16 @@ in
     autorandr # cli xrandr tool for saving/load profiles
     barrier # share mouse and keyboard across multiple machines
     cheese # webcam camera tool
-    nautilus # file browser
     obsidian # notes
     remmina  # best RDP client
     speedtest-cli # test internet connection bandwidth
     viewnior # image viewer
+
+    # file browser and google drive integration
+    nautilus # file browser
+    insync
+    insync-nautilus
+    insync-emblem-icons
 
     # core behind the scenes tools
     acpi # battery life monitoring
