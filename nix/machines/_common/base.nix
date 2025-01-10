@@ -103,6 +103,7 @@ in
           vim-nix
           vim-oscyank
           vim-tmux-navigator
+          firenvim
         ];
       };
       customRC = ''
