@@ -77,9 +77,12 @@ in
     gimp-with-plugins
     inkscape-with-extensions
 
-    # VPN
+    # Network and VPN
+    networkmanagerapplet
     tailscale
     openvpn
+    wireguard-tools
+
 
     # screenshot ands ocr screenshot deps
     tesseract
