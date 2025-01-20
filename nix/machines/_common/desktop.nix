@@ -60,8 +60,6 @@ in
     # web browsers
     brave # browser that protects privacy and blocks a lot of ads
     firefox
-    ungoogled-chromium
-    google-chrome
     tor-browser-bundle-bin
 
     # media players
