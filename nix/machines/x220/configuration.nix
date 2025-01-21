@@ -14,7 +14,6 @@ in
       ../_common/desktop.nix
       ../_common/syncthing.nix
       ../_common/fingerprint-reader.nix
-      ../_common/kubernetes.nix
     ];
 
   # Set your time zone.
@@ -49,12 +48,8 @@ in
   # DNS services
   services.resolved = {
     enable = true;
-#    dnssec = "true";
     domains = [ "~." ];
     fallbackDns = [ "1.1.1.1" "1.0.0.1" ];
-#    extraConfig = ''
-#      DNSOverTLS=yes
-#    '';
   };
   services.avahi.enable = true;
 
@@ -96,17 +91,7 @@ in
       pcsclite
       pinentry
       tailscale # VPN
-      openvpn # VPN
-      libimobiledevice # internet via iPhone usb tethering
       fprintd # fingerprint reader
-      # media editing
-      gimp-with-plugins
-      inkscape-with-extensions
-      # davinci-resolve # disabling because problem with python2.7 being insecure
-      wine
-      wine64
-      winetricks
-      winePackages.fonts
     ];
   };
 
