@@ -15,15 +15,16 @@ in
     popcorntime
     _1password-cli
     _1password-gui # password manager
-    alacritty # terminal emulator of choice
     arandr # ui xrandr tool for interacting the multimonitors
     autorandr # cli xrandr tool for saving/load profiles
     barrier # share mouse and keyboard across multiple machines
     cheese # webcam camera tool
+    ghostty # terminal emulator
     obsidian # notes
     remmina  # best RDP client
     speedtest-cli # test internet connection bandwidth
     viewnior # image viewer
+
 
     # file browser and google drive integration
     nautilus # file browser
