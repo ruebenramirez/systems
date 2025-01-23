@@ -36,6 +36,7 @@ in
     acpi # battery life monitoring
     libnotify # notifications on the desktop
     light # screen brightness management
+    pmutils # power management utilities
     polkit # auth security?
     polkit_gnome # auth security?
 
