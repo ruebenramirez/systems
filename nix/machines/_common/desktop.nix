@@ -91,6 +91,7 @@ in
 
     # dev related
     vscode.fhs # VSCode editor with unmanaged plugin controls
+    nerdctl
 
     # bluetooth audio
     pulseaudio  # for pactcl
