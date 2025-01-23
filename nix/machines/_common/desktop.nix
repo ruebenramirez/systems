@@ -77,9 +77,7 @@ in
     inkscape-with-extensions
 
     # Network and VPN
-    networkmanagerapplet
     tailscale
-    openvpn
     wireguard-tools
 
 
