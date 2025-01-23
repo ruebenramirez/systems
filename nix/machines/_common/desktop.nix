@@ -12,7 +12,6 @@ in
 
   # install Desktop packages
   environment.systemPackages = with pkgs; [
-    popcorntime
     _1password-cli
     _1password-gui # password manager
     arandr # ui xrandr tool for interacting the multimonitors
