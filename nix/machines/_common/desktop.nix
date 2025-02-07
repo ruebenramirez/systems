@@ -23,6 +23,7 @@ in
     remmina  # best RDP client
     speedtest-cli # test internet connection bandwidth
     viewnior # image viewer
+    localsend
 
 
     # file browser and google drive integration
