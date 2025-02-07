@@ -249,10 +249,6 @@ in
     mode="0644";
   };
 
-
-  # logitech dongle support
-  hardware.logitech.wireless.enable = true;
-
   # 1password system auth
   security.polkit.enable = true;
   programs._1password.enable = true;
