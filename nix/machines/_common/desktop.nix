@@ -112,6 +112,7 @@ in
     swayidle
     wdisplays
     wl-clipboard
+    wtype
     xdg-utils
   ];
 
