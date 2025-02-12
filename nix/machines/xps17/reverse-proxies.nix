@@ -34,6 +34,6 @@
     enable = true;
     trustedInterfaces = [ "tailscale0" ];
     allowedUDPPorts = [ config.services.tailscale.port ];
-    allowedTCPPorts = [ 443 ];  # For HTTPS
+    allowedTCPPorts = [ 80 443 ];
   };
 }
