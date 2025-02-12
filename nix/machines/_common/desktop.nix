@@ -22,6 +22,7 @@ in
     obsidian # notes
     remmina  # best RDP client
     speedtest-cli # test internet connection bandwidth
+    timer
     viewnior # image viewer
     localsend
 
