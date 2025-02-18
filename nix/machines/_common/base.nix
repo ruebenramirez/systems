@@ -179,6 +179,12 @@ in
         set signcolumn=yes:2
         set foldexpr=nvim_treesitter#foldexpr()
 
+        augroup markdown_settings
+          autocmd!
+          autocmd FileType markdown setlocal formatlistpat=^\\s*\\d\\+\\.\\s\\+\\\|^\\s*[-*+]\\s\\+
+          autocmd FileType markdown setlocal formatoptions+=n
+          autocmd FileType markdown setlocal autoindent
+        augroup END
 
         lua << EOF
         vim.g.mapleader = ' '
