@@ -9,17 +9,18 @@ in
 {
   imports =
     [
-      ./hardware-configuration.nix
-      ./reverse-proxies.nix
       ../_common/base.nix
       ../_common/desktop.nix
-      ../_common/nvidia-graphics.nix
-      ../_common/syncthing.nix
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
-      ../_common/local-llm.nix
+      ../_common/jellyfin.nix
       ../_common/kubernetes.nix
+      ../_common/local-llm.nix
+      ../_common/nvidia-graphics.nix
       ../_common/rust-dev.nix
+      ../_common/syncthing.nix
+      ./hardware-configuration.nix
+      ./reverse-proxies.nix
     ];
 
   # Set your time zone.
