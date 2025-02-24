@@ -15,9 +15,6 @@ in
       ../_common/gaming.nix
       ../_common/syncthing.nix
       ../_common/fingerprint-reader.nix
-      ../_common/kubernetes.nix
-      ../_common/android.nix
-      ../_common/rust-dev.nix
     ];
 
   # Set your time zone.
@@ -55,7 +52,7 @@ in
   services.resolved = {
     enable = true;
     domains = [ "~." ];
-    fallbackDns = [ "1.1.1.1" "1.0.0.1" ];
+    fallbackDns = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
   };
   services.avahi.enable = true;
 
@@ -63,7 +60,7 @@ in
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "adbusers" "audio" "docker" "networkmanager" "sound" "wheel" ];
+    extraGroups = [ "adbusers" "audio" "networkmanager" "sound" "wheel" ];
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
   };
   security.sudo.extraRules = [
@@ -94,12 +91,6 @@ in
       gnupg
       pcsclite
       pinentry
-
-      # qemu SCaLE kiosk pi qemu vm display testing
-      libGL
-      SDL2
-      mesa
-      egl-wayland
     ];
 
     etc."wpa_supplicant.conf" = {
