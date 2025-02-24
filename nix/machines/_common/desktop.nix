@@ -48,6 +48,7 @@ in
 
     # books and whitepapers related
     calibre # manage ebooks
+    foliate # ebook reader
     koreader
     mupdf # pdf viewer with vim keybindings
     xournal # pdf annotations
