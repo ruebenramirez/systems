@@ -9,12 +9,13 @@ in
 {
   imports =
     [
-      ./hardware-configuration.nix
       ../_common/base.nix
       ../_common/desktop.nix
-      ../_common/gaming.nix
-      ../_common/syncthing.nix
       ../_common/fingerprint-reader.nix
+      ../_common/kubernetes.nix
+      ../_common/rust-dev.nix
+      ../_common/syncthing.nix
+      ./hardware-configuration.nix
     ];
 
   # Set your time zone.
@@ -34,7 +35,7 @@ in
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" ];
-  boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+  # boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
 
@@ -60,7 +61,7 @@ in
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "adbusers" "audio" "networkmanager" "sound" "wheel" ];
+    extraGroups = [ "adbusers" "audio" "docker" "networkmanager" "sound" "wheel" ];
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
   };
   security.sudo.extraRules = [
