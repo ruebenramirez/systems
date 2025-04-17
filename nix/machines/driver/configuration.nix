@@ -12,6 +12,7 @@ in
       ../_common/base.nix
       ../_common/desktop.nix
       ../_common/fingerprint-reader.nix
+      ../_common/gaming.nix
       ../_common/kubernetes.nix
       ../_common/rust-dev.nix
       ../_common/syncthing.nix

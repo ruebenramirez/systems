@@ -5,6 +5,7 @@ let
 in
 {
   environment.systemPackages = with pkgs; [
+    lutris
     steam
     wine
     wine64
