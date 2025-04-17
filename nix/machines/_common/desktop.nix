@@ -16,7 +16,6 @@ in
     _1password-gui # password manager
     arandr # ui xrandr tool for interacting the multimonitors
     autorandr # cli xrandr tool for saving/load profiles
-    barrier # share mouse and keyboard across multiple machines
     cheese # webcam camera tool
     ghostty # terminal emulator
     obsidian # notes
@@ -54,7 +53,6 @@ in
     xournal # pdf annotations
 
     # comms
-    gomuks # matrix
     discord # projects/gaming chat app
     element-desktop #matrix chat desktop client
     signal-desktop # signal chat app
@@ -62,8 +60,7 @@ in
     zoom-us # meeting software
 
     # web browsers
-    brave # browser that protects privacy and blocks a lot of ads
-    librewolf
+    brave
     tor-browser-bundle-bin
 
     # media players
