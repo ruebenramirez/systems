@@ -236,7 +236,13 @@ in
         output "GWD ARZOPA " mode 2560x1600 position 1920,0 scale 1.20
       }
 
-      profile thinkpad_desk {
+      profile thinkpad_three_monitor_desk {
+        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 214,0 scale 1.00
+        output "GWD ARZOPA 0x70320205" mode 2560x1600 position 0,1200 scale 1.20
+        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2134,0 scale 1.00
+      }
+
+      profile thinkpad_two_monitor_desk {
         output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,0 scale 1.00
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 1920,0 scale 1.00
       }
