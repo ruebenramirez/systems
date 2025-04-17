@@ -81,7 +81,6 @@ in
     tailscale
     wireguard-tools
 
-
     # screenshot ands ocr screenshot deps
     tesseract
     imagemagick
