@@ -5,11 +5,6 @@ let
 
 in
 {
-  # temporary for obsidian support
-  nixpkgs.config.permittedInsecurePackages = [
-    "olm-3.2.16"        # element dependency #TODO: read up on the OLM security issues upstream
-  ];
-
   # install Desktop packages
   environment.systemPackages = with pkgs; [
     _1password-cli
