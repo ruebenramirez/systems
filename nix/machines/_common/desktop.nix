@@ -271,19 +271,4 @@ in
   services.udisks2 = {
     enable = true;
   };
-
-  systemd.user.services.rclone-gdrive = {
-    description = "Mount Google Drive via rclone";
-    after = [ "network-online.target" ];
-    wants = [ "network-online.target" ];
-    wantedBy = [ "default.target" ];
-
-    serviceConfig = {
-      ExecStart = "${pkgs.rclone}/bin/rclone mount gdrive:/ %h/gdrive --vfs-cache-mode writes";
-      ExecStop = "${pkgs.fuse}/bin/fusermount -u %h/gdrive";
-      Restart = "on-failure";
-      Type = "notify";
-    };
-  };
-
 }
