@@ -16,7 +16,4 @@ in
     jellyfin-web
     jellyfin-ffmpeg
   ];
-
-
-
 }
