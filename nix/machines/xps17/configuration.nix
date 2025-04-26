@@ -11,16 +11,9 @@ in
     [
       ../_common/base.nix
       ../_common/desktop.nix
-      ../_common/fingerprint-reader.nix
-      ../_common/gaming.nix
       ../_common/jellyfin.nix
-      ../_common/kubernetes.nix
-      ../_common/local-llm.nix
       ../_common/nvidia-graphics.nix
-      ../_common/rust-dev.nix
-      ../_common/syncthing.nix
       ./hardware-configuration.nix
-      ./reverse-proxies.nix
     ];
 
   # Set your time zone.
@@ -39,7 +32,6 @@ in
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.supportedFilesystems = [ "ntfs" ];
   boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
@@ -51,7 +43,6 @@ in
     firewall.checkReversePath = "loose";
     networkmanager.enable = true;
   };
-  programs.nm-applet.enable = true;
 
   # DNS services
   services.resolved = {
@@ -150,7 +141,8 @@ in
   };
   # List services that you want to enable:
   # Open ports in the firewall.
-  networking.firewall.allowedTCPPorts = [ 8089 9008 ];
+  # networking.firewall.allowedTCPPorts = [ ... ];
+  # networking.firewall.allowedTCPPorts = [ 8089 9008 ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
@@ -214,5 +206,5 @@ in
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "24.05"; # Did you read the comment?
+  system.stateVersion = "24.11"; # Did you read the comment?
 }
