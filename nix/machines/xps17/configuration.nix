@@ -12,8 +12,12 @@ in
       ../_common/base.nix
       ../_common/desktop.nix
       ../_common/jellyfin.nix
+      ../_common/local-llm.nix
       ../_common/nvidia-graphics.nix
+      ../_common/syncthing.nix
+      ./cifs-samba-shares.nix
       ./hardware-configuration.nix
+      ./firewall.nix
     ];
 
   # Set your time zone.
@@ -39,8 +43,6 @@ in
     hostName = "xps17";
     hostId = "6f602d2c";
 
-    # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
-    firewall.checkReversePath = "loose";
     networkmanager.enable = true;
   };
 
@@ -74,7 +76,6 @@ in
       ];
     }
   ];
-
 
   # List packages installed in system profile. To search, run:
   # $ nix search wget
@@ -139,13 +140,6 @@ in
         ServerAliveCountMax 3
     '';
   };
-  # List services that you want to enable:
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedTCPPorts = [ 8089 9008 ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
 
   # ZFS
   services.zfs = {
