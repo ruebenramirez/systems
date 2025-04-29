@@ -52,7 +52,6 @@ in
     element-desktop #matrix chat desktop client
     signal-desktop # signal chat app
     slack # work chat app
-    thunderbird #email client
     zoom-us # meeting software
 
     # web browsers
