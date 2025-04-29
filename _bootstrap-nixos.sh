@@ -43,6 +43,21 @@ function info {
 
 ################################################################################
 
+# Check if disk is an SSD
+function is_ssd {
+    local disk_name=$1
+    # Check if rotational is 0 (SSD) or 1 (HDD)
+    if [[ -f "/sys/block/${disk_name}/queue/rotational" ]]; then
+        local rotational=$(cat "/sys/block/${disk_name}/queue/rotational")
+        if [[ "$rotational" == "0" ]]; then
+            return 0  # It's an SSD
+        fi
+    fi
+    return 1  # It's not an SSD or we couldn't determine
+}
+
+################################################################################
+
 export DISK=$1
 
 if ! [[ -v DISK ]]; then
@@ -62,8 +77,6 @@ if [[ "$EUID" > 0 ]]; then
     exit 1
 fi
 
-# TODO: I dont think I need this
-# personal user name
 export ZFS_POOL="zroot"
 
 # ephemeral datasets
@@ -98,6 +111,15 @@ zpool create -f "$ZFS_POOL" "$DISK_PART_ROOT"
 
 info "Enabling compression for '$ZFS_POOL' ZFS pool ..."
 zfs set compression=on "$ZFS_POOL"
+
+# Check if the disk is an SSD and enable autotrim if it is
+if is_ssd "${DISK}"; then
+    info "Detected SSD: Enabling ZFS autotrim for '$ZFS_POOL' pool ..."
+    zpool set autotrim=on "$ZFS_POOL"
+    info "ZFS autotrim enabled for optimal SSD performance"
+else
+    info "Detected rotational disk (HDD): Skipping ZFS autotrim"
+fi
 
 info "Creating '$ZFS_DS_ROOT' ZFS dataset ..."
 zfs create -p -o mountpoint=legacy "$ZFS_DS_ROOT"
