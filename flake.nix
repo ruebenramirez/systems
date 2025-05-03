@@ -1,32 +1,77 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = { self, nixpkgs}: {
-    nixosConfigurations = {
-      vmdev = nixpkgs.lib.nixosSystem {
-        system = "aarch64-linux";
-        modules = [ ./nix/machines/vmdev/configuration.nix ];
-      };
-      driver = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [ ./nix/machines/driver/configuration.nix ];
-      };
-      sign = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [ ./nix/machines/sign/configuration.nix ];
-        # Example how to pass an arg to configuration.nix:
-        #specialArgs = { hostname = "staging"; };
-      };
-      x220 = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [ ./nix/machines/x220/configuration.nix ];
-      };
-      xps17 = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
-        modules = [ ./nix/machines/xps17/configuration.nix ];
-      };
+  outputs = { self, nixpkgs, nixpkgs-unstable}@inputs:
+
+    let
+      # List of supported systems
+      supportedSystems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "armv7l-linux"
+        "armv6l-linux"
+        # Add other architectures as needed
+      ];
+
+      # Helper function to create attribute sets for each system
+      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+
+      # Create nixpkgs for each system
+      nixpkgsFor = forAllSystems (system: import nixpkgs {
+        inherit system;
+        config.allowUnfree = true;
+      });
+
+      # Create unstable for each system
+      unstableFor = forAllSystems (system: import nixpkgs-unstable {
+        inherit system;
+        config.allowUnfree = true;
+      });
+
+    in {
+
+      nixosConfigurations = {
+
+
+        # # ARM host
+        # "arm-host" = nixpkgs.lib.nixosSystem {
+        #   system = "aarch64-linux";
+        #   specialArgs = {
+        #     unstable = unstableFor."aarch64-linux";
+        #     pkgs = nixpkgsFor."aarch64-linux";
+        #   };
+        #   modules = [ ./configuration.nix ];
+        # };
+
+        "driver" = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [ ./nix/machines/driver/configuration.nix ];
+          specialArgs = {
+            pkgs-unstable = unstableFor."x86_64-linux";
+            pkgs = nixpkgsFor."x86_64-linux";
+          };
+        };
+
+        "x220" = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [ ./nix/machines/x220/configuration.nix ];
+          specialArgs = {
+            pkgs-unstable = unstableFor."x86_64-linux";
+            pkgs = nixpkgsFor."x86_64-linux";
+          };
+        };
+
+        "xps17" = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [ ./nix/machines/xps17/configuration.nix ];
+          specialArgs = {
+            pkgs-unstable = unstableFor."x86_64-linux";
+            pkgs = nixpkgsFor."x86_64-linux";
+          };
+        };
     };
   };
 }

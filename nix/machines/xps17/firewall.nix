@@ -10,6 +10,7 @@
     139
     445
     8089
+    8888
     9008
   ];
   networking.firewall.allowedUDPPorts = [

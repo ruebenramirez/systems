@@ -1,16 +1,10 @@
 # The base toolchain that I expect on a system
-{ config, pkgs, ... }:
+{ config, pkgs, pkgs-unstable, ... }:
 
 let
 
 in
 {
-
-  nixpkgs.config.permittedInsecurePackages = [
-    "jujutsu-0.23.0"
-    "olm-3.2.16"
-  ];
-
   environment.systemPackages = with pkgs; [
     bchunk
     black # python linter
@@ -30,7 +24,7 @@ in
     htop # system resource monitoring tool
     imagemagick
     iotop # disk io performance monitor tool
-    jujutsu
+    pkgs-unstable.jujutsu
     jq
     keychain # remember my ssh key passphrases
     ldns
