@@ -5,6 +5,10 @@ let
 in
 {
 
+  environment.systemPackages = with pkgs; [
+    nvtopPackages.full
+  ];
+
   # Nvidia GPU config
   hardware.graphics = {
     enable = true;
