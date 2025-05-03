@@ -43,6 +43,24 @@
         "directory mask" = "0755";
         "force user" = "moni";  # Replace with your username
       };
+      jellyfin-video = {
+        path = "/tank/Video";
+        browseable = "yes";
+        "read only" = "no";
+        "guest ok" = "no";
+        "create mask" = "0644";
+        "directory mask" = "0755";
+        "force user" = "rramirez";  # Replace with your username
+      };
+      jellyfin-music = {
+        path = "/tank/Music";
+        browseable = "yes";
+        "read only" = "no";
+        "guest ok" = "no";
+        "create mask" = "0644";
+        "directory mask" = "0755";
+        "force user" = "rramirez";  # Replace with your username
+      };
     };
   };
 
