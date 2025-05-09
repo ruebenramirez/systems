@@ -12,6 +12,7 @@ in
       ../_common/base.nix
       ../_common/desktop.nix
       ../_common/jellyfin.nix
+      ../_common/kubernetes.nix
       ../_common/local-llm.nix
       ../_common/nvidia-graphics.nix
       ../_common/syncthing.nix
