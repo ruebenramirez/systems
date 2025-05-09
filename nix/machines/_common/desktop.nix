@@ -14,6 +14,7 @@ in
     cheese # webcam camera tool
     finamp #jellyfin client
     ghostty # terminal emulator
+    libreoffice
     obsidian # notes
     remmina  # best RDP client
     speedtest-cli # test internet connection bandwidth
