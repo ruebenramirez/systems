@@ -12,6 +12,7 @@ in
     arandr # ui xrandr tool for interacting the multimonitors
     autorandr # cli xrandr tool for saving/load profiles
     cheese # webcam camera tool
+    finamp #jellyfin client
     ghostty # terminal emulator
     obsidian # notes
     remmina  # best RDP client
