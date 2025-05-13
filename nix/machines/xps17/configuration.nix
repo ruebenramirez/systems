@@ -20,6 +20,7 @@ in
       ./cifs-samba-shares.nix
       ./hardware-configuration.nix
       ./firewall.nix
+      ./freshrss.nix
     ];
 
   # Set your time zone.
