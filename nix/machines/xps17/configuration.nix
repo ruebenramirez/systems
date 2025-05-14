@@ -11,15 +11,15 @@ in
     [
       ../_common/base.nix
       ../_common/desktop.nix
-      ../_common/jellyfin.nix
-      ../_common/kubernetes.nix
-      ../_common/local-llm.nix
       ../_common/nvidia-graphics.nix
-      ../_common/audiobookshelf.nix
+      ../_common/services/audiobookshelf.nix
+      ../_common/services/freshrss.nix
+      ../_common/services/jellyfin.nix
+      ../_common/services/kubernetes.nix
+      ../_common/services/local-llm.nix
       ./cifs-samba-shares.nix
       ./hardware-configuration.nix
       ./firewall.nix
-      ./freshrss.nix
     ];
 
   # Set your time zone.
