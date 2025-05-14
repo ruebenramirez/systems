@@ -12,7 +12,6 @@ in
       ./hardware-configuration.nix
       ../_common/base.nix
       ../_common/desktop.nix
-      ../_common/syncthing.nix
       ../_common/fingerprint-reader.nix
     ];
 
