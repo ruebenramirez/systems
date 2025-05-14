@@ -12,6 +12,7 @@ in
       ./hardware-configuration.nix
       ../_common/base.nix
       ../_common/desktop.nix
+      ../_common/services/kubernetes.nix
       ../_common/fingerprint-reader.nix
     ];
 
@@ -133,7 +134,7 @@ in
   };
   # List services that you want to enable:
   # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
+  # networking.firewall.allowedTCPPorts = [ 80 ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
