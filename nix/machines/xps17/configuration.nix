@@ -15,7 +15,6 @@ in
       ../_common/kubernetes.nix
       ../_common/local-llm.nix
       ../_common/nvidia-graphics.nix
-      ../_common/syncthing.nix
       ../_common/audiobookshelf.nix
       ./cifs-samba-shares.nix
       ./hardware-configuration.nix
