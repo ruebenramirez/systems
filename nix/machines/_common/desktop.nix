@@ -58,6 +58,7 @@ in
 
     # web browsers
     brave
+    librewolf
     tor-browser-bundle-bin
 
     # media players
