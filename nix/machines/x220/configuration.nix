@@ -9,6 +9,7 @@ in
 {
   imports =
     [
+      ./cloudflared-reverse-proxy.nix
       ./hardware-configuration.nix
       ../_common/base.nix
       ../_common/desktop.nix
