@@ -10,7 +10,7 @@ in
   imports =
     [
       ../_common/base.nix
-      ../_common/desktop.nix
+      ../_common/desktop/default.nix
       ../_common/nvidia-graphics.nix
       ../_common/services/audiobookshelf.nix
       ../_common/services/freshrss.nix

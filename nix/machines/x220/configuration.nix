@@ -12,7 +12,7 @@ in
       ./cloudflared-reverse-proxy.nix
       ./hardware-configuration.nix
       ../_common/base.nix
-      ../_common/desktop.nix
+      ../_common/desktop/default.nix
       ../_common/services/kubernetes.nix
       ../_common/fingerprint-reader.nix
     ];

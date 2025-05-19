@@ -10,7 +10,7 @@ in
   imports =
     [
       ../_common/base.nix
-      ../_common/desktop.nix
+      ../_common/desktop/default.nix
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
       ./hardware-configuration.nix
