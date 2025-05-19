@@ -2,9 +2,11 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
+    disko.url = "github:nix-community/disko";
+    disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable}@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko}@inputs:
 
     let
       # List of supported systems
@@ -70,6 +72,16 @@
           specialArgs = {
             pkgs-unstable = unstableFor."x86_64-linux";
             pkgs = nixpkgsFor."x86_64-linux";
+          };
+        };
+
+        "ssdnodes-1" = nixpkgs.lib.nixosSystem {
+          system = "x86_64-linux";
+          modules = [ ./nix/machines/ssdnodes-1/configuration.nix ];
+          specialArgs = {
+            pkgs-unstable = unstableFor."x86_64-linux";
+            pkgs = nixpkgsFor."x86_64-linux";
+            inherit disko;
           };
         };
     };
