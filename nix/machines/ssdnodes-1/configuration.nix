@@ -97,6 +97,9 @@
       ];
     }
   ];
+  environment.shellInit = ''
+    export TERM=xterm-256color
+  '';
 
   # Enable the OpenSSH daemon.
   services.openssh = {
