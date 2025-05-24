@@ -1,67 +1,17 @@
-# The base toolchain that I expect on a system
 { config, pkgs, pkgs-unstable, ... }:
 
 let
 
 in
 {
-  environment.systemPackages = with pkgs; [
-    bchunk
-    black # python linter
-    btop
-    cmake
-    ctags
-    difftastic
-    dig # query dns
-    dmidecode # reads info from connected hardware
-    file
-    fish # Fish shell
-    fzf # fuzzy finder - supports ctrl-r for fish shell
-    git
-    git-lfs
-    gnumake
-    grc
-    htop # system resource monitoring tool
-    imagemagick
-    iotop # disk io performance monitor tool
-    pkgs-unstable.jujutsu
-    jq
-    keychain # remember my ssh key passphrases
-    ldns
-    lshw
-    lsof
-    magic-wormhole
-    manix # useful search for nix docs
-    mosh # lightweight ssh for remoting over slow or unstable networks
-    ncdu
-    nethogs # network traffic monitoring tool
-    nixpkgs-fmt
-    nmap
-    openssl
-    p7zip
-    parted # manage disk partitions
-    pciutils # contains the lspci tool
-    pigz
-    powertop # power management profiling tool
-    qrtool # generate qr code images on the command line
-    rclone
-    rtorrent
-    shellcheck
-    silver-searcher
-    stow
-    tig # ncurses git repo viewer
-    tmux
-    tree
-    unzip
-    usbutils # contains lsusb tool
-    uutils-coreutils-noprefix
-    wget
-    yt-dlp # download youtube video/audio
 
+  environment.systemPackages = with pkgs; [
     # editor specific configuration
     # git is needed for gitsigns-nvim
     # ripgrep and fd are needed for telescope-nvim
-    ripgrep git fd
+    ripgrep
+    git
+    fd
     haskell-language-server
     # ghc, stack and cabal are required to run the language server
     stack
@@ -69,10 +19,11 @@ in
     cabal-install
     manix
     nil
-
   ];
 
-  programs.direnv.enable = true;
+  environment.variables = {
+    EDITOR="nvim";
+  };
 
   programs.neovim = {
     enable = true;
@@ -282,76 +233,4 @@ in
       '';
     };
   };
-
-  programs.tmux = {
-    enable = true;
-    plugins = with pkgs.tmuxPlugins; [
-      yank
-      vim-tmux-navigator
-    ];
-    extraConfig = ''
-      set -g set-clipboard on
-      set -g default-terminal "tmux-256color"
-
-      # This setting is crucial for mosh sessions
-      set -ag terminal-overrides ",xterm-256color:RGB"
-      set -ag terminal-overrides "vte*:XT:Ms=\\E]52;c;%p2%s\\7,xterm*:XT:Ms=\\E]52;c;%p2%s\\7"
-
-      set -g status-bg colour40
-      setw -g window-status-current-style bg=colour40
-
-      # navigate next and prev tmux tabs
-      bind -n S-left  prev
-      bind -n S-right next
-
-      # switch active pane w/ vim keys
-      bind j select-pane -D
-      bind k select-pane -U
-      bind h select-pane -L
-      bind l select-pane -R
-
-      # vim-tmux-navigator plugin configuration
-      # use Ctrl + vim keys to move between vim and tmux panes
-      is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
-          | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|\.?n?vim?x?(-wrapped)?)(diff)?$'"
-
-      is_fzf="ps -o state= -o comm= -t '#{pane_tty}' \
-        | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?fzf$'"
-
-      bind -n C-h run "($is_vim && tmux send-keys C-h) || \
-                       tmux select-pane -L"
-
-      bind -n C-j run "($is_vim && tmux send-keys C-j)  || \
-                       ($is_fzf && tmux send-keys C-j) || \
-                       tmux select-pane -D"
-
-      bind -n C-k run "($is_vim && tmux send-keys C-k) || \
-                       ($is_fzf && tmux send-keys C-k)  || \
-                       tmux select-pane -U"
-
-      bind -n C-l run "($is_vim && tmux send-keys C-l) || \
-                       tmux select-pane -R"
-
-      bind -n 'C-\' if-shell "$is_vim" "send-keys 'C-\\'" "select-pane -l"
-
-
-      # Use vim keybindings in copy mode
-      set-window-option -g mode-keys vi
-      unbind p
-      bind p paste-buffer
-    '';
-  };
-
-  # use Fish shell
-  users.defaultUserShell = pkgs.fish;
-  programs.fish.enable = true;
-
-  environment.variables = {
-    EDITOR="nvim";
-  };
-
-  # tailscale everywhere by default
-  services.tailscale.enable = true;
 }
-
-

@@ -8,7 +8,7 @@
       (modulesPath + "/profiles/qemu-guest.nix")
       disko.nixosModules.disko
       ./disk-config.nix
-      ../_common/base.nix
+      ../_common/base/default.nix
       ../_common/services/kubernetes.nix
     ];
 
