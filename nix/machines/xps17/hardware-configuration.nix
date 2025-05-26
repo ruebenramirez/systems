@@ -13,6 +13,14 @@
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
+  # Import tank zpool from USB-C DAS
+  boot.postBootCommands = ''
+    echo "=== STARTING ZPOOL IMPORT ==="
+    ${pkgs.zfs}/bin/zpool import tank
+    ${pkgs.zfs}/bin/zpool status
+    echo "=== ZPOOL IMPORT COMPLETE ==="
+  '';
+
   fileSystems."/" =
     { device = "zroot/local/root";
       fsType = "zfs";
@@ -43,11 +51,6 @@
 #    { device = "/dev/nvme1n1p1";
 #      fsType = "ntfs";
 #      options = [ "rw" "uid=1000" ];
-#    };
-
-#  fileSystems."/tank" =
-#    { device = "tank";
-#      fsType = "zfs";
 #    };
 
   swapDevices =
