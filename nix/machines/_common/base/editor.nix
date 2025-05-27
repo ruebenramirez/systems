@@ -19,6 +19,7 @@ in
     cabal-install
     manix
     nil
+    nodejs # required for firenvim
   ];
 
   environment.variables = {
@@ -38,6 +39,7 @@ in
           cmp-nvim-lsp
           cmp-path
           csv-vim
+          firenvim
           gitsigns-nvim
           indent-blankline-nvim
           nerdtree
