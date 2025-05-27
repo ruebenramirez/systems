@@ -11,6 +11,7 @@ in
     [
       ../_common/base/default.nix
       ../_common/desktop/default.nix
+      ../_common/gaming.nix
       ../_common/nvidia-graphics.nix
       ../_common/services/audiobookshelf.nix
       ../_common/services/freshrss.nix
@@ -18,8 +19,8 @@ in
       ../_common/services/kubernetes.nix
       ../_common/services/local-llm.nix
       ./cifs-samba-shares.nix
-      ./hardware-configuration.nix
       ./firewall.nix
+      ./hardware-configuration.nix
     ];
 
   # Set your time zone.
