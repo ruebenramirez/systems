@@ -14,10 +14,14 @@
   boot.extraModulePackages = [ ];
 
   # Import tank zpool from USB-C DAS
+  boot.zfs.extraPools = [ "tank" ];
+  boot.zfs.forceImportAll = true;  # Critical for external pools
+  boot.zfs.devNodes = "/dev/disk/by-id";
   boot.postBootCommands = ''
     echo "=== STARTING ZPOOL IMPORT ==="
-    ${pkgs.zfs}/bin/zpool import tank
+    ${pkgs.zfs}/bin/zpool import -a -N -d /dev/disk/by-id || true
     ${pkgs.zfs}/bin/zpool status
+    ${pkgs.zfs}/bin/zfs mount -a
     echo "=== ZPOOL IMPORT COMPLETE ==="
   '';
 
