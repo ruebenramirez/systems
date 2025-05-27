@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
@@ -15,7 +15,6 @@
         "aarch64-linux"
         "armv7l-linux"
         "armv6l-linux"
-        # Add other architectures as needed
       ];
 
       # Helper function to create attribute sets for each system
@@ -37,52 +36,58 @@
 
       nixosConfigurations = {
 
-
-        # # ARM host
-        # "arm-host" = nixpkgs.lib.nixosSystem {
-        #   system = "aarch64-linux";
-        #   specialArgs = {
-        #     unstable = unstableFor."aarch64-linux";
-        #     pkgs = nixpkgsFor."aarch64-linux";
-        #   };
-        #   modules = [ ./configuration.nix ];
-        # };
-
         "driver" = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [ ./nix/machines/driver/configuration.nix ];
-          specialArgs = {
-            pkgs-unstable = unstableFor."x86_64-linux";
-            pkgs = nixpkgsFor."x86_64-linux";
-          };
+          modules = [
+            ./nix/machines/driver/configuration.nix
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              # Pass unstable packages via _module.args instead of specialArgs
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+              };
+            }
+          ];
         };
 
         "x220" = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [ ./nix/machines/x220/configuration.nix ];
-          specialArgs = {
-            pkgs-unstable = unstableFor."x86_64-linux";
-            pkgs = nixpkgsFor."x86_64-linux";
-          };
+          modules = [
+            ./nix/machines/x220/configuration.nix
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+              };
+            }
+          ];
         };
 
         "xps17" = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [ ./nix/machines/xps17/configuration.nix ];
-          specialArgs = {
-            pkgs-unstable = unstableFor."x86_64-linux";
-            pkgs = nixpkgsFor."x86_64-linux";
-          };
+          modules = [
+            ./nix/machines/xps17/configuration.nix
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+              };
+            }
+          ];
         };
 
         "ssdnodes-1" = nixpkgs.lib.nixosSystem {
-          system = "x86_64-linux";
-          modules = [ ./nix/machines/ssdnodes-1/configuration.nix ];
-          specialArgs = {
-            pkgs-unstable = unstableFor."x86_64-linux";
-            pkgs = nixpkgsFor."x86_64-linux";
-            inherit disko;
-          };
+          modules = [
+            ./nix/machines/ssdnodes-1/configuration.nix
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+                inherit disko;
+              };
+            }
+          ];
         };
     };
   };

@@ -25,9 +25,6 @@ in
   # Set your time zone.
   time.timeZone = "America/Chicago";
 
-  # Necessary in most configurations
-  nixpkgs.config.allowUnfree = true;
-
   nix.settings.trusted-users = [ "rramirez" ];
 
   # remove the annoying experimental warnings
@@ -38,7 +35,6 @@ in
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   networking = {

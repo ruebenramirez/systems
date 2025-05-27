@@ -42,7 +42,6 @@ in
           indent-blankline-nvim
           nerdtree
           nvim-cmp
-          nvim-compe
           nvim-lspconfig
           nvim-web-devicons
           tagbar

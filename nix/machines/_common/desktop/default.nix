@@ -49,7 +49,6 @@ in
     foliate # ebook reader
     koreader
     mupdf # pdf viewer with vim keybindings
-    xournal # pdf annotations
 
     # comms
     discord # projects/gaming chat app
@@ -96,7 +95,7 @@ in
 
 
   fonts.packages = with pkgs; [
-    (nerdfonts.override { fonts = [ "SourceCodePro" ]; })
+    nerd-fonts.sauce-code-pro
   ];
 
   # Enable touchpad support (enabled default in most desktopManager).

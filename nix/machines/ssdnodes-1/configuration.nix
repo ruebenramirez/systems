@@ -15,9 +15,6 @@
   # Set your time zone.
   time.timeZone = "America/Chicago";
 
-  # Necessary in most configurations
-  nixpkgs.config.allowUnfree = true;
-
   nix.settings.trusted-users = [ "rramirez" ];
 
   # remove the annoying experimental warnings

@@ -12,7 +12,6 @@
 
   services.samba = {
     enable = true;
-    securityType = "user";
     # Replace extraConfig with settings
     settings = {
       global = {
@@ -23,8 +22,6 @@
         "dns proxy" = "no";
         "security" = "user";
       };
-    };
-    shares = {
       rueb = {
         path = "/tank/Shares/rueb";
         browseable = "yes";
