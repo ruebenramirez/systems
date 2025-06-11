@@ -15,12 +15,14 @@ in
       ../_common/nvidia-graphics.nix
       ../_common/services/audiobookshelf.nix
       ../_common/services/freshrss.nix
+      ../_common/services/immich.nix
       ../_common/services/jellyfin.nix
       ../_common/services/kubernetes.nix
       ../_common/services/local-llm.nix
       ./cifs-samba-shares.nix
       ./firewall.nix
       ./hardware-configuration.nix
+      ./services/cloudflared-reverse-proxy.nix
       ./services/syncthing.nix
     ];
 
