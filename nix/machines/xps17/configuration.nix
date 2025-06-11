@@ -21,6 +21,7 @@ in
       ./cifs-samba-shares.nix
       ./firewall.nix
       ./hardware-configuration.nix
+      ./services/syncthing.nix
     ];
 
   # Set your time zone.
