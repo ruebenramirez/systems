@@ -13,6 +13,7 @@ in
       ../_common/desktop/default.nix
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
+      ../_common/services/syncthing.nix
       ./hardware-configuration.nix
     ];
 
