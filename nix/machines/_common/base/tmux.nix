@@ -18,11 +18,6 @@ in
     extraConfig = ''
       set -g set-clipboard on
       set -g default-terminal "tmux-256color"
-
-      # This setting is crucial for mosh sessions
-      set -ag terminal-overrides ",xterm-256color:RGB"
-      set -ag terminal-overrides "vte*:XT:Ms=\\E]52;c;%p2%s\\7,xterm*:XT:Ms=\\E]52;c;%p2%s\\7"
-
       set -g status-bg colour40
       setw -g window-status-current-style bg=colour40
 

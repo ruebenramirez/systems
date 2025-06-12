@@ -8,7 +8,6 @@ in
 
   imports = [
     ./editor.nix
-    ./mosh.nix
     ./tmux.nix
   ];
 
