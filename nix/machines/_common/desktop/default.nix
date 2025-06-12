@@ -17,7 +17,6 @@ in
     autorandr # cli xrandr tool for saving/load profiles
     cheese # webcam camera tool
     finamp #jellyfin client
-    ghostty # terminal emulator
     libreoffice
     obsidian # notes
     remmina  # best RDP client
@@ -25,6 +24,11 @@ in
     timer
     viewnior # image viewer
     localsend
+
+    # Terminal Emulators
+    alacritty
+    ghostty
+    wezterm
 
     # file browser and google drive integration
     nautilus # file browser
