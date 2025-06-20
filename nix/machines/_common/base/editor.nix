@@ -1,29 +1,20 @@
 { config, pkgs, pkgs-unstable, ... }:
 
-let
-
-in
 {
-
   environment.systemPackages = with pkgs; [
-    # editor specific configuration
-    # git is needed for gitsigns-nvim
-    # ripgrep and fd are needed for telescope-nvim
-    ripgrep
+    # Core development tools
     git
-    fd
-    haskell-language-server
-    # ghc, stack and cabal are required to run the language server
-    stack
-    ghc
-    cabal-install
-    manix
-    nil
-    nodejs # required for firenvim
+    # Search and navigation tools - required for telescope-nvim
+    ripgrep      # for live_grep and grep_string
+    fd           # faster find alternative for find_files
+    # Language servers
+    nil          # Nix language server
+    nodejs       # required for some language servers and firenvim
+    manix        # Nix documentation tool
   ];
 
   environment.variables = {
-    EDITOR="nvim";
+    EDITOR = "nvim";
   };
 
   programs.neovim = {
@@ -34,67 +25,96 @@ in
     configure = {
       packages.myVimPackage = with pkgs.vimPlugins; {
         start = [
+          # Core plugins
           (nvim-treesitter.withAllGrammars)
-          bufferline-nvim
-          cmp-nvim-lsp
-          cmp-path
-          csv-vim
-          firenvim
-          gitsigns-nvim
-          indent-blankline-nvim
-          nerdtree
-          nvim-cmp
           nvim-lspconfig
           nvim-web-devicons
-          tagbar
-          telescope-manix
+
+          # Completion framework
+          nvim-cmp
+          cmp-nvim-lsp
+          cmp-path
+          cmp-buffer  # Added for buffer completions
+
+          # Navigation and search
           telescope-nvim
+          telescope-manix
+
+          # Git integration
+          gitsigns-nvim
+
+          # File management and editing
           vim-commentary
+          vim-tmux-navigator
+          vim-oscyank
+
+          # Additional utilities
+          tagbar
           vim-dirdiff
           vim-endwise
           vim-nix
-          vim-oscyank
-          vim-tmux-navigator
         ];
       };
       customRC = ''
+        " ========================================
+        " BASIC VIM SETTINGS
+        " ========================================
         set background=light
-        set cursorline " underline the line that the cursor is currently on
-        set paste
         set number
-        "set numberwidth=3
+        set relativenumber        " Best practice: relative line numbers
+        set cursorline
+        set signcolumn=yes       " Always show sign column to avoid layout shift
 
-        " better searching
-        set hlsearch " highlight search terms
-        highlight! link DiffText MatchParen " Better diff highlighting
-        set ignorecase " search without case sensitivity
+        " Search configuration
+        set hlsearch
+        set incsearch            " Incremental search
+        set ignorecase
+        set smartcase           " Case-sensitive when uppercase letters present
 
-        " indentation: use spaces instead of tabs
+        " Indentation settings
         set expandtab
         set tabstop=4
         set shiftwidth=4
         set softtabstop=4
+        set autoindent
+        set smartindent
 
-        " set 2 space tabs when appropriate
-        autocmd FileType vim,*.nix,nix,go,r,R,yml,yaml,json,markdown,ruby,javascript,Rakefile setlocal shiftwidth=2 tabstop=2 softtabstop=2 showtabline=2
+        " Modern defaults
+        set mouse=a             " Enable mouse support
+        set clipboard=unnamedplus " Use system clipboard
+        set splitbelow          " Split windows below current
+        set splitright          " Split windows to the right
+        set updatetime=250      " Faster updates for better UX
+        set timeoutlen=300      " Faster which-key
+        set undofile            " Persistent undo
 
-        " set 4 space tabs when appropriate
-        "autocmd FileType python,*.py.tpl setlocal tabstop=4 expandtab shiftwidth=4 softtabstop=4 showtabline=4
+        " Visual improvements
+        set colorcolumn=80
+        set textwidth=80
+        set scrolloff=8         " Keep 8 lines above/below cursor
+        set sidescrolloff=8     " Keep 8 columns left/right of cursor
 
-        autocmd BufWritePre * :%s/\s\+$//e " Remove end of line whitespace on save
+        " Disable folding
+        set nofoldenable        " Disable folding completely
 
-        set colorcolumn=80 " visual indicator appears at this column
-        set textwidth=80 " controls line wrapping
+        " Language-specific settings
+        autocmd FileType vim,*.nix,nix,go,r,R,yml,yaml,json,markdown,ruby,javascript,Rakefile
+          \ setlocal shiftwidth=2 tabstop=2 softtabstop=2
 
+        " Clean up whitespace on save
+        autocmd BufWritePre * :%s/\s\+$//e
+
+        " Leader key
         let mapleader=" "
 
-        " insert date
-        nnoremap <leader>d :put =strftime('%Y-%m-%d')
+        " ========================================
+        " KEY MAPPINGS
+        " ========================================
+        " Date insertion
+        nnoremap <leader>d :put =strftime('%Y-%m-%d')<CR>
+        nnoremap <leader>D :put =strftime('%Y-%m-%d:%H:%M:%S')<CR>
 
-        " insert datetime
-        nnoremap <leader>D :put =strftime('%Y-%m-%d:%H:%M:%S')
-
-        " Go to tab by number
+        " Tab navigation
         noremap <leader>1 1gt
         noremap <leader>2 2gt
         noremap <leader>3 3gt
@@ -102,134 +122,383 @@ in
         noremap <leader>5 5gt
         noremap <leader>6 6gt
 
-        " navigation with control keys
+        " Window navigation
         nnoremap <C-J> <C-W><C-J>
         nnoremap <C-K> <C-W><C-K>
         nnoremap <C-L> <C-W><C-L>
         nnoremap <C-H> <C-W><C-H>
 
+        " Tagbar toggle
         nmap <F8> :TagbarToggle<CR>
 
-        " Configure Telescope
-        " Find files using Telescope command-line sugar.
-        nnoremap <leader>ff <cmd>Telescope find_files<cr>
-        nnoremap <leader>fg <cmd>Telescope live_grep<cr>
-        nnoremap <leader>fb <cmd>Telescope buffers<cr>
-        nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+        " Telescope mappings
+        nnoremap <leader>ff <cmd>Telescope find_files<CR>
+        nnoremap <leader>fg <cmd>Telescope live_grep<CR>
+        nnoremap <leader>fb <cmd>Telescope buffers<CR>
+        nnoremap <leader>fh <cmd>Telescope help_tags<CR>
+        nnoremap <leader>fr <cmd>Telescope oldfiles<CR>
+        nnoremap <leader>fc <cmd>Telescope grep_string<CR>
 
-        vmap <C-c> y:OSCYankVisual<cr>
+        " Better indentation handling
+        vnoremap < <gv
+        vnoremap > >gv
 
-        nnoremap <silent><A-h> :BufferLineCyclePrev<CR>
-        nnoremap <silent><A-l> :BufferLineCycleNext<CR>
-        nnoremap <silent><A-c> :bdelete!<CR>
+        " OSC Yank for copy to system clipboard over SSH
+        vmap <C-c> y:OSCYankVisual<CR>
 
-        set completeopt=menuone,noselect
-        set mouse-=a
-        set tw=80
-        set wrap linebreak
-        set number
-        set signcolumn=yes:2
-        set foldexpr=nvim_treesitter#foldexpr()
+        " Clear search highlighting
+        nnoremap <Esc> :nohlsearch<CR>
 
-        augroup markdown_settings
-          autocmd!
-          autocmd FileType markdown setlocal formatlistpat=^\\s*\\d\\+\\.\\s\\+\\\|^\\s*[-*+]\\s\\+
-          autocmd FileType markdown setlocal formatoptions+=n
-          autocmd FileType markdown setlocal autoindent
-        augroup END
-
+        " ========================================
+        " LUA CONFIGURATION
+        " ========================================
         lua << EOF
+        -- Set leader key early
         vim.g.mapleader = ' '
+        vim.g.maplocalleader = ' '
 
-        -- shift + tab to remove one level of indentation
-        -- Insert mode
+        -- Modern completion options
+        vim.opt.completeopt = {'menu', 'menuone', 'noselect', 'noinsert'}
+
+        -- Better shift-tab behavior for insert mode
         vim.keymap.set('i', '<S-Tab>', '<C-d>')
-        -- Normal mode
         vim.keymap.set('n', '<S-Tab>', '<<')
-        -- Visual mode
         vim.keymap.set('v', '<S-Tab>', '<gv')
 
-        -- Telescope configuration
-        local actions = require('telescope.actions')
-        require('gitsigns').setup()
-        require('telescope').setup {
-          defaults = {
-            file_ignore_patterns = { "node_modules", ".git" },
-            mappings = {
-              i = {
-                ["<A-j>"] = actions.move_selection_next,
-                ["<A-k>"] = actions.move_selection_previous
-              }
-            }
-          }
-        }
-
-        -- Telescope keymaps
-        local telescope_builtin = require('telescope.builtin')
-        vim.keymap.set('n', '<leader>ff', telescope_builtin.find_files, {})
-        vim.keymap.set('n', '<leader>fg', telescope_builtin.live_grep, {})
-        vim.keymap.set('n', '<leader>fb', telescope_builtin.buffers, {})
-
-
-        require'nvim-treesitter.configs'.setup {
-          indent = {
-            enable = true
-          }
-        }
-        require('bufferline').setup {
-          options = {
-            show_close_icon = false,
-            show_buffer_close_icons = false
-          }
-        }
-        require("ibl").setup {}
-
-        vim.cmd[[
+        -- Highlight trailing whitespace
+        vim.cmd([[
           match ExtraWhitespace /\s\+$/
           highlight ExtraWhitespace ctermbg=red guibg=red
-        ]]
+        ]])
 
-        vim.opt.list = false
-
-        -- LSP + nvim-cmp setup
-        local lspc = require('lspconfig')
-        lspc.hls.setup {}
-        local cmp = require("cmp")
-        cmp.setup {
-          sources = {
-            { name = "nvim_lsp" },
-            { name = "path" },
+        -- ========================================
+        -- TREESITTER CONFIGURATION
+        -- ========================================
+        require('nvim-treesitter.configs').setup {
+          highlight = {
+            enable = true,
+            additional_vim_regex_highlighting = false,
           },
+          indent = {
+            enable = true
+          },
+          -- Incremental selection
+          incremental_selection = {
+            enable = true,
+            keymaps = {
+              init_selection = "gnn",
+              node_incremental = "grn",
+              scope_incremental = "grc",
+              node_decremental = "grm",
+            },
+          },
+        }
+
+        -- ========================================
+        -- TELESCOPE CONFIGURATION
+        -- ========================================
+        local telescope = require('telescope')
+        local actions = require('telescope.actions')
+
+        telescope.setup {
+          defaults = {
+            prompt_prefix = "🔍 ",
+            selection_caret = "❯ ",
+            file_ignore_patterns = {
+              "node_modules",
+              ".git/",
+              "*.pyc",
+              "__pycache__/",
+              ".cache/"
+            },
+            layout_config = {
+              horizontal = {
+                preview_width = 0.6,
+              },
+              vertical = {
+                mirror = false,
+              },
+            },
+            sorting_strategy = "ascending",
+            layout_strategy = "horizontal",
+            mappings = {
+              i = {
+                ["<C-j>"] = actions.move_selection_next,
+                ["<C-k>"] = actions.move_selection_previous,
+                ["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+                ["<C-x>"] = actions.select_horizontal,
+                ["<C-v>"] = actions.select_vertical,
+                ["<C-t>"] = actions.select_tab,
+                ["<C-u>"] = actions.preview_scrolling_up,
+                ["<C-d>"] = actions.preview_scrolling_down,
+              },
+              n = {
+                ["<C-j>"] = actions.move_selection_next,
+                ["<C-k>"] = actions.move_selection_previous,
+                ["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
+                ["<C-x>"] = actions.select_horizontal,
+                ["<C-v>"] = actions.select_vertical,
+                ["<C-t>"] = actions.select_tab,
+              },
+            },
+          },
+          pickers = {
+            find_files = {
+              hidden = true,
+              find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" },
+            },
+            live_grep = {
+              additional_args = function()
+                return {"--hidden"}
+              end
+            },
+            buffers = {
+              previewer = false,
+              layout_config = { width = 80 },
+            },
+          },
+        }
+
+        -- Load telescope extensions
+        telescope.load_extension('manix')
+
+        -- ========================================
+        -- GITSIGNS CONFIGURATION
+        -- ========================================
+        require('gitsigns').setup {
+          signs = {
+            add          = { text = '+' },
+            change       = { text = '~' },
+            delete       = { text = '_' },
+            topdelete    = { text = '‾' },
+            changedelete = { text = '~' },
+          },
+          current_line_blame = true,
+          current_line_blame_opts = {
+            virt_text = true,
+            virt_text_pos = 'eol',
+            delay = 300,
+          },
+        }
+
+        -- ========================================
+        -- LSP CONFIGURATION
+        -- ========================================
+        local lspconfig = require('lspconfig')
+
+        -- Enhanced capabilities with nvim-cmp
+        local capabilities = require('cmp_nvim_lsp').default_capabilities()
+        capabilities.textDocument.completion.completionItem.snippetSupport = true
+
+        -- Global diagnostic configuration
+        vim.diagnostic.config({
+          virtual_text = {
+            prefix = '●',
+            source = "if_many",
+          },
+          signs = true,
+          underline = true,
+          update_in_insert = false,
+          severity_sort = true,
+          float = {
+            focusable = false,
+            style = "minimal",
+            border = "rounded",
+            source = "always",
+            header = "",
+            prefix = "",
+          },
+        })
+
+        -- LSP keymaps (applied when LSP attaches)
+        local on_attach = function(client, bufnr)
+          local opts = { noremap = true, silent = true, buffer = bufnr }
+
+          vim.keymap.set('n', 'gD', vim.lsp.buf.declaration, opts)
+          vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
+          vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
+          vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
+          vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
+          vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
+          vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
+          vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
+          vim.keymap.set('n', '<leader>f', function()
+            vim.lsp.buf.format { async = true }
+          end, opts)
+        end
+
+        -- Setup Nix language server
+        lspconfig.nil_ls.setup {
+          capabilities = capabilities,
+          on_attach = on_attach,
+          settings = {
+            ['nil'] = {
+              formatting = {
+                command = { "nixfmt" },
+              },
+            },
+          },
+        }
+
+        -- ========================================
+        -- NVIM-CMP CONFIGURATION
+        -- ========================================
+        local cmp = require('cmp')
+
+        cmp.setup {
+          snippet = {
+            expand = function(args)
+              -- Using Neovim's native snippet support (0.10+)
+              vim.snippet.expand(args.body)
+            end,
+          },
+          sources = cmp.config.sources({
+            { name = 'nvim_lsp', priority = 1000 },
+            { name = 'path', priority = 750 },
+          }, {
+            { name = 'buffer', priority = 500, keyword_length = 3 },
+          }),
           formatting = {
+            fields = { 'kind', 'abbr', 'menu' },
             format = function(entry, vim_item)
+              local kind_icons = {
+                Text = "",
+                Method = "󰆧",
+                Function = "󰊕",
+                Constructor = "",
+                Field = "󰇽",
+                Variable = "󰂡",
+                Class = "󰠱",
+                Interface = "",
+                Module = "",
+                Property = "󰜢",
+                Unit = "",
+                Value = "󰎠",
+                Enum = "",
+                Keyword = "󰌋",
+                Snippet = "",
+                Color = "󰏘",
+                File = "󰈙",
+                Reference = "",
+                Folder = "󰉋",
+                EnumMember = "",
+                Constant = "󰏿",
+                Struct = "",
+                Event = "",
+                Operator = "󰆕",
+                TypeParameter = "󰅲",
+              }
+
+              vim_item.kind = string.format('%s %s', kind_icons[vim_item.kind], vim_item.kind)
               vim_item.menu = ({
                 nvim_lsp = "[LSP]",
                 path = "[Path]",
+                buffer = "[Buffer]",
               })[entry.source.name]
+
               return vim_item
             end
           },
-          mapping = {
-            ['<Tab>'] = cmp.mapping.select_next_item({ behavior = cmp.SelectBehavior.Insert }),
-            ['<S-Tab>'] = cmp.mapping.select_prev_item({ behavior = cmp.SelectBehavior.Insert }),
+          window = {
+            completion = cmp.config.window.bordered(),
+            documentation = cmp.config.window.bordered(),
+          },
+          mapping = cmp.mapping.preset.insert({
+            -- Navigation
+            ['<C-k>'] = cmp.mapping.select_prev_item(),
+            ['<C-j>'] = cmp.mapping.select_next_item(),
             ['<C-b>'] = cmp.mapping.scroll_docs(-4),
             ['<C-f>'] = cmp.mapping.scroll_docs(4),
+
+            -- Completion control
             ['<C-Space>'] = cmp.mapping.complete(),
-            ['<C-e>'] = cmp.mapping.close(),
+            ['<C-e>'] = cmp.mapping.abort(),
+
+            -- Confirm selection
             ['<CR>'] = cmp.mapping.confirm({
               behavior = cmp.ConfirmBehavior.Replace,
-              select = true,
-            })
+              select = false
+            }),
+
+            -- Tab/Shift-Tab for navigation
+            ['<Tab>'] = cmp.mapping(function(fallback)
+              if cmp.visible() then
+                cmp.select_next_item()
+              else
+                fallback()
+              end
+            end, { 'i', 's' }),
+
+            ['<S-Tab>'] = cmp.mapping(function(fallback)
+              if cmp.visible() then
+                cmp.select_prev_item()
+              else
+                fallback()
+              end
+            end, { 'i', 's' }),
+          }),
+          experimental = {
+            ghost_text = {
+              hl_group = "CmpGhostText",
+            },
           },
         }
 
-        local servers = { 'nil_ls' }
-        for _, lsp in ipairs(servers) do
-          require('lspconfig')[lsp].setup {
-            capabilities = require('cmp_nvim_lsp').default_capabilities(vim.lsp.protocol.make_client_capabilities()),
-            on_attach = on_attach,
+        -- Command-line completion
+        cmp.setup.cmdline({ '/', '?' }, {
+          mapping = cmp.mapping.preset.cmdline(),
+          sources = {
+            { name = 'buffer' }
           }
-        end
+        })
+
+        cmp.setup.cmdline(':', {
+          mapping = cmp.mapping.preset.cmdline(),
+          sources = cmp.config.sources({
+            { name = 'path' }
+          }, {
+            { name = 'cmdline' }
+          })
+        })
+
+        -- ========================================
+        -- AUTOCOMMANDS
+        -- ========================================
+
+        -- Highlight on yank
+        vim.api.nvim_create_autocmd('TextYankPost', {
+          callback = function()
+            vim.highlight.on_yank()
+          end,
+        })
+
+        -- Auto-format on save for Nix files
+        vim.api.nvim_create_autocmd('BufWritePre', {
+          pattern = '*.nix',
+          callback = function()
+            vim.lsp.buf.format({ async = false })
+          end,
+        })
+
+        -- Close some filetypes with <q>
+        vim.api.nvim_create_autocmd('FileType', {
+          pattern = {
+            'qf',
+            'help',
+            'man',
+            'notify',
+            'lspinfo',
+            'spectre_panel',
+            'startuptime',
+            'tsplayground',
+            'PlenaryTestPopup',
+          },
+          callback = function(event)
+            vim.bo[event.buf].buflisted = false
+            vim.keymap.set('n', 'q', '<cmd>close<cr>', { buffer = event.buf, silent = true })
+          end,
+        })
+
         EOF
       '';
     };

@@ -49,6 +49,7 @@ in
     pigz
     powertop # power management profiling tool
     qrtool # generate qr code images on the command line
+    ripgrep-all
     rclone
     rtorrent
     shellcheck
