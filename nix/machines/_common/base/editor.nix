@@ -61,7 +61,6 @@
         " ========================================
         set background=light
         set number
-        set relativenumber        " Best practice: relative line numbers
         set cursorline
         set signcolumn=yes       " Always show sign column to avoid layout shift
 
