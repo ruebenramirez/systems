@@ -63,6 +63,12 @@
         set number
         set cursorline
         set signcolumn=yes       " Always show sign column to avoid layout shift
+        set clipboard=unnamedplus " Use system clipboard
+        set splitbelow          " Split windows below current
+        set splitright          " Split windows to the right
+        set updatetime=250      " Faster updates for better UX
+        set timeoutlen=300      " Faster which-key
+        set undofile            " Persistent undo
 
         " Search configuration
         set hlsearch
@@ -77,15 +83,6 @@
         set softtabstop=4
         set autoindent
         set smartindent
-
-        " Modern defaults
-        set mouse=a             " Enable mouse support
-        set clipboard=unnamedplus " Use system clipboard
-        set splitbelow          " Split windows below current
-        set splitright          " Split windows to the right
-        set updatetime=250      " Faster updates for better UX
-        set timeoutlen=300      " Faster which-key
-        set undofile            " Persistent undo
 
         " Visual improvements
         set colorcolumn=80
