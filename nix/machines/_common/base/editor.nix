@@ -219,22 +219,22 @@
             layout_strategy = "horizontal",
             mappings = {
               i = {
-                ["<C-j>"] = actions.move_selection_next,
-                ["<C-k>"] = actions.move_selection_previous,
-                ["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
-                ["<C-x>"] = actions.select_horizontal,
-                ["<C-v>"] = actions.select_vertical,
-                ["<C-t>"] = actions.select_tab,
-                ["<C-u>"] = actions.preview_scrolling_up,
-                ["<C-d>"] = actions.preview_scrolling_down,
+                ["<A-j>"] = actions.move_selection_next,
+                ["<A-k>"] = actions.move_selection_previous,
+                ["<A-q>"] = actions.send_to_qflist + actions.open_qflist,
+                ["<A-x>"] = actions.select_horizontal,
+                ["<A-v>"] = actions.select_vertical,
+                ["<A-t>"] = actions.select_tab,
+                ["<A-u>"] = actions.preview_scrolling_up,
+                ["<A-d>"] = actions.preview_scrolling_down,
               },
               n = {
-                ["<C-j>"] = actions.move_selection_next,
-                ["<C-k>"] = actions.move_selection_previous,
-                ["<C-q>"] = actions.send_to_qflist + actions.open_qflist,
-                ["<C-x>"] = actions.select_horizontal,
-                ["<C-v>"] = actions.select_vertical,
-                ["<C-t>"] = actions.select_tab,
+                ["<A-j>"] = actions.move_selection_next,
+                ["<A-k>"] = actions.move_selection_previous,
+                ["<A-q>"] = actions.send_to_qflist + actions.open_qflist,
+                ["<A-x>"] = actions.select_horizontal,
+                ["<A-v>"] = actions.select_vertical,
+                ["<A-t>"] = actions.select_tab,
               },
             },
           },
@@ -314,7 +314,7 @@
           vim.keymap.set('n', 'gd', vim.lsp.buf.definition, opts)
           vim.keymap.set('n', 'K', vim.lsp.buf.hover, opts)
           vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, opts)
-          vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
+          -- vim.keymap.set('n', '<C-k>', vim.lsp.buf.signature_help, opts)
           vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, opts)
           vim.keymap.set('n', '<leader>ca', vim.lsp.buf.code_action, opts)
           vim.keymap.set('n', 'gr', vim.lsp.buf.references, opts)
