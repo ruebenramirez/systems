@@ -84,10 +84,12 @@
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
-                inherit disko;
               };
             }
           ];
+          specialArgs = {
+            inherit disko;
+          };
         };
     };
   };
