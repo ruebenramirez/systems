@@ -94,8 +94,12 @@
         set nofoldenable        " Disable folding completely
 
         " Language-specific settings
-        autocmd FileType vim,*.nix,nix,go,r,R,yml,yaml,json,markdown,ruby,javascript,Rakefile
+        autocmd FileType vim,go,r,R,yml,yaml,json,markdown,ruby,javascript,Rakefile
           \ setlocal shiftwidth=2 tabstop=2 softtabstop=2
+        autocmd FileType python
+          \ setlocal shiftwidth=4 tabstop=4 softtabstop=4
+        autocmd FileType *.nix,nix
+          \ setlocal shiftwidth=2 tabstop=2 softtabstop=2 textwidth=0 formatoptions-=t formatoptions-=c
 
         " Clean up whitespace on save
         autocmd BufWritePre * :%s/\s\+$//e
