@@ -1,1 +1,5 @@
 *.sw*
+
+# ignore raspberry pi image
+result/**
+result

@@ -138,6 +138,20 @@
             inherit disko;
           };
         };
+
+        "raspberry-pi" = nixpkgs.lib.nixosSystem {
+          modules = [
+            "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+            ./nix/machines/raspberry-pi/configuration.nix
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."aarch64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."aarch64-linux";
+              };
+            }
+          ];
+        };
     };
   };
 }

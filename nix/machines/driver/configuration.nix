@@ -10,6 +10,7 @@ in
   imports =
     [
       ../_common/base/default.nix
+      ../_common/build-machine.nix
       ../_common/desktop/default.nix
       ../_common/android.nix
       ../_common/fingerprint-reader.nix
