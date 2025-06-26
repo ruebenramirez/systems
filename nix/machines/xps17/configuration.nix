@@ -18,6 +18,9 @@ in
       ../_common/services/jellyfin.nix
       ../_common/services/kubernetes.nix
       ../_common/services/local-llm.nix
+      ../_common/services/virtualization.nix
+      ../_common/services/vm-scripts.nix
+      ../_common/services/vm-storage.nix
       ./cifs-samba-shares.nix
       ./firewall.nix
       ./hardware-configuration.nix
