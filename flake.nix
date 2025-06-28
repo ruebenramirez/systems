@@ -4,9 +4,11 @@
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
+    nixos-generators.url = "github:nix-community/nixos-generators";
+    nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, disko}@inputs:
+  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-generators}@inputs:
 
     let
       # List of supported systems
@@ -33,6 +35,51 @@
       });
 
     in {
+
+      # VM image configurations
+      packages = forAllSystems (system: {
+        vm-base-qcow = nixos-generators.nixosGenerate {
+          system = system;
+          specialArgs = {
+            pkgs-unstable = unstableFor.${system};
+          };
+          modules = [
+            ./nix/machines/_common/base/default.nix
+            ./nix/machines/_common/vm-base.nix
+            {
+              networking.hostName = "nixos-vm";
+              # Override for image building
+              virtualisation.diskSize = 10 * 1024; # 10GB
+            }
+          ];
+          format = "qcow";
+        };
+
+        vm-development-qcow = nixos-generators.nixosGenerate {
+          system = system;
+          specialArgs = {
+            pkgs-unstable = unstableFor.${system};
+          };
+          modules = [
+            ./nix/machines/_common/base/default.nix
+            ./nix/machines/_common/vm-base.nix
+            {
+              networking.hostName = "development-vm";
+              virtualisation.diskSize = 20 * 1024; # 20GB
+
+              # Development-specific packages
+              environment.systemPackages = with nixpkgs.legacyPackages.${system}; [
+                vim
+                git
+                nodejs
+                python3
+              ];
+            }
+          ];
+          format = "qcow";
+        };
+      });
+
 
       nixosConfigurations = {
 
