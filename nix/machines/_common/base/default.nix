@@ -12,6 +12,7 @@ in
   ];
 
   environment.systemPackages = with pkgs; [
+    bc
     bchunk
     black # python linter
     btop
