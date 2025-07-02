@@ -9,12 +9,14 @@ in
 {
   imports =
     [
+      ../_common/android.nix
+      ../_common/dev.nix
       ../_common/base/default.nix
       ../_common/build-machine.nix
       ../_common/desktop/default.nix
-      ../_common/android.nix
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
+      ../_common/rust-dev.nix
       ../_common/services/syncthing.nix
       ./hardware-configuration.nix
     ];
