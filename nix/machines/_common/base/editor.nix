@@ -171,6 +171,18 @@
           highlight ExtraWhitespace ctermbg=red guibg=red
         ]])
 
+
+
+        -- ========================================
+        -- indentation correction
+        --    disable C preprocessor directive handling
+        -- ========================================
+        vim.opt.autoindent = true
+        vim.opt.smartindent = false
+        vim.opt.cindent = false
+        vim.opt.indentexpr = ""
+
+
         -- ========================================
         -- TREESITTER CONFIGURATION
         -- ========================================
