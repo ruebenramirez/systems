@@ -24,6 +24,7 @@ in
     timer
     viewnior # image viewer
     localsend
+    ydotool
 
     # Terminal Emulators
     alacritty
@@ -134,4 +135,16 @@ in
     "x-scheme-handler/about" = "librewolf.desktop";
     "x-scheme-handler/unknown" = "librewolf.desktop";
   };
+
+  # ydotool for keyboard-based click automation
+  programs.ydotool = {
+    enable = true;
+  };
+
+  # Tell ydotool where the socket for the daemon is
+  environment.variables = {
+    YDOTOOL_SOCKET = "/run/ydotoold/socket";
+  };
+
+
 }
