@@ -1,6 +1,21 @@
 { config, pkgs, ... }:
 {
 
+  # Enable virtiofs support
+  boot.kernelModules = [ "virtiofs" ];
+
+  # Auto-mount the shared directory from host
+  fileSystems."/mnt/host-storage" = {
+    device = "vm-shared";
+    fsType = "virtiofs";
+    options = [ "rw" "relatime" ];
+  };
+
+  # Ensure the mount point exists
+  systemd.tmpfiles.rules = [
+    "d /mnt/host-storage 0755 root root -"
+  ];
+
   # Enable IP forwarding (required for routing features)
   boot.kernel.sysctl = {
     "net.ipv4.ip_forward" = 1;
