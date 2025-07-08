@@ -64,7 +64,7 @@ in
 
     # web browsers
     brave
-    librewolf
+    firefox
     tor-browser-bundle-bin
 
     # media players
