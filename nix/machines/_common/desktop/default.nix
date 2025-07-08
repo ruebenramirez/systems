@@ -9,6 +9,7 @@ in
     ./onepassword.nix
     ./bluetooth-audio.nix
     ./wayland-display.nix
+    ./lofree-keyboard-function-key-access.nix
   ];
 
   # install Desktop packages
