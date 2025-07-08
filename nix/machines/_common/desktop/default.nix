@@ -24,7 +24,6 @@ in
     speedtest-cli # test internet connection bandwidth
     timer
     viewnior # image viewer
-    localsend
     ydotool
 
     # Terminal Emulators
