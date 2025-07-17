@@ -17,6 +17,7 @@ in
     arandr # ui xrandr tool for interacting the multimonitors
     autorandr # cli xrandr tool for saving/load profiles
     cheese # webcam camera tool
+    aerc
     evolution
     finamp #jellyfin client
     libreoffice
