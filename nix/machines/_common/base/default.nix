@@ -32,6 +32,7 @@ in
     imagemagick
     iotop # disk io performance monitor tool
     pkgs-unstable.jujutsu
+    jjui
     jq
     keychain # remember my ssh key passphrases
     ldns
