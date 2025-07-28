@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+~/bin/setup-swayidle &
+swaylock -f -c 000000

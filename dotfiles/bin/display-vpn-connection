@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# e.g. out: us-den-wg-101.mullvad.ts.net.
+VPN=$(tailscale status --peers --json | jq ".Peer.[] | select(.ExitNode == true).DNSName" --raw-output)
+
+if [[ -n "$VPN" ]]; then
+    echo "$VPN active"
+else
+    echo "disabled"
+fi
+
+

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+WINEPREFIX=~/.wine_cncgenerals wine explorer /desktop=generals,2048x1536 ~/.wine_cncgenerals/drive_c/Program\ Files/EA\ Games/Command\ \&\ Conquer\ Generals\ Zero\ Hour/generals.exe

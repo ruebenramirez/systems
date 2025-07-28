@@ -1,5 +1,9 @@
 *.sw*
 
-# ignore raspberry pi image
+# ignore fish generated files
+**/fish_variables
+
+# ignore nix build artifacts
 result/**
 result
+

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -e -x
+# Dependencies: tesseract-ocr imagemagick scrot xsel
+SCR_IMG=`mktemp`
+trap "rm $SCR_IMG*" EXIT
+grim -g "$(slurp)" $SCR_IMG.png
+
+#should increase detection rate
+mogrify -modulate 100,0 -resize 400% $SCR_IMG.png
+
+tesseract $SCR_IMG.png $SCR_IMG -l eng &> /dev/null
+cat $SCR_IMG.txt | wl-copy

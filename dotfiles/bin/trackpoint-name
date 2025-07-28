@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+set -e
+
+sudo libinput list-devices | egrep -i "device:.*trackpoint" | awk '{$1=""; print $0}'

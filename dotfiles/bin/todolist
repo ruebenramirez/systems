@@ -1,0 +1,9 @@
+#!/bin/bash
+
+SEARCH=$*
+if [ $SEARCH != '' ]; then
+    echo "have a search term"
+    ls -lah ~/todos/ | egrep -i "$SEARCH"
+else
+    ls -lah ~/todos/
+fi
