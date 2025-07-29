@@ -1,0 +1,135 @@
+experimental_log_batching_enabled = false
+limit = 0
+
+[keys]
+  up = ["up", "k"]
+  down = ["down", "j"]
+  jump_to_parent = ["J"]
+  jump_to_children = ["K"]
+  jump_to_working_copy = ["@"]
+  apply = ["enter"]
+  cancel = ["esc"]
+  toggle_select = [" "]
+  new = ["n"]
+  commit = ["c"]
+  refresh = ["ctrl+r"]
+  abandon = ["a"]
+  diff = ["d"]
+  quit = ["q"]
+  help = ["?"]
+  describe = ["D"]
+  edit = ["e"]
+  diffedit = ["E"]
+  absorb = ["A"]
+  split = ["s"]
+  undo = ["u"]
+  evolog = ["v"]
+  revset = ["L"]
+  exec_jj = [":"]
+  exec_shell = ["$"]
+  ace_jump = ["f"]
+  quick_search = ["/"]
+  quick_search_cycle = ["'"]
+  custom_commands = ["x"]
+  leader = ["\\"]
+  suspend = ["ctrl+z"]
+  [keys.rebase]
+    mode = ["r"]
+    revision = ["r"]
+    source = ["s"]
+    branch = ["B"]
+    after = ["a"]
+    before = ["b"]
+    onto = ["d"]
+    insert = ["i"]
+  [keys.duplicate]
+    mode = ["y"]
+    after = ["a"]
+    before = ["b"]
+    onto = ["d"]
+  [keys.squash]
+    mode = ["S"]
+    keep_emptied = ["e"]
+    interactive = ["i"]
+  [keys.details]
+    mode = ["l"]
+    close = ["h"]
+    split = ["s"]
+    restore = ["r"]
+    absorb = ["A"]
+    diff = ["d"]
+    select = ["m", " "]
+    revisions_changing_file = ["*"]
+  [keys.preview]
+    mode = ["p"]
+    toggle_bottom = ["P"]
+    scroll_up = ["ctrl+p"]
+    scroll_down = ["ctrl+n"]
+    half_page_down = ["ctrl+d"]
+    half_page_up = ["ctrl+u"]
+    expand = ["ctrl+h"]
+    shrink = ["ctrl+l"]
+  [keys.bookmark]
+    mode = ["b"]
+    set = ["B"]
+    delete = ["d"]
+    move = ["m"]
+    forget = ["f"]
+    track = ["t"]
+    untrack = ["u"]
+  [keys.inline_describe]
+    mode = ["enter"]
+    accept = ["alt+enter", "ctrl+s"]
+  [keys.git]
+    mode = ["g"]
+    push = ["p"]
+    fetch = ["f"]
+  [keys.oplog]
+    mode = ["o"]
+    restore = ["r"]
+  [keys.file_search]
+    toggle = ["ctrl+t"]
+    up = ["up"]
+    down = ["down"]
+    accept = ["enter"]
+    edit = ["alt+e"]
+
+
+[ui]
+  theme = ""
+  auto_refresh_interval = 0
+
+[ui.colors]
+
+[preview]
+  revision_command = ["show", "--color", "always", "-r", "$change_id"]
+  oplog_command = ["op", "show", "$operation_id", "--color", "always"]
+  file_command = ["diff", "--color", "always", "-r", "$change_id", "$file"]
+  show_at_bottom = false
+  show_at_start = false
+  width_percentage = 50.0
+  width_increment_percentage = 5.0
+
+[oplog]
+  limit = 200
+
+[graph]
+  batch_size = 50
+
+
+# jjui leader key support: https://github.com/idursun/jjui/wiki/Leader-Key
+[leader.e]
+context = [ "$file", "$change_id" ]
+help = "Edit file in @"
+send = [ "$", "$EDITOR $file", "enter" ]
+
+[leader.E]
+context = [ "$file", "$change_id" ]
+help = "Edit file in change"
+send = [ "$", "jj edit $change_id && $EDITOR $file", "enter" ]
+
+[leader.h]
+help = "Help"
+send = ["?"]
+
+
