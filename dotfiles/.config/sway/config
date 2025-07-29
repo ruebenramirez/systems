@@ -97,17 +97,6 @@ input "1133:45121:ERGO_M575S_Mouse" {
     scroll_button 275
     scroll_button_lock disabled
 }
-input "1390:388:IST_TrackBall_Mouse" {
-    events enabled
-    pointer_accel -0.4
-    accel_profile adaptive
-    natural_scroll disabled
-    left_handed disabled
-    middle_emulation enabled
-    scroll_method on_button_down
-    scroll_button 275
-    scroll_button_lock disabled
-}
 
 ### Key bindings
 #
