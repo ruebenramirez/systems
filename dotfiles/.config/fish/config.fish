@@ -10,12 +10,6 @@ if test -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 end
 # End Nix on Debian
 
-# Nix on NixOS
-if test -e /home/$USER/.nix-profile/bin
-    fish_add_path /home/$USER/.nix-profile/bin
-end
-# End Nix on NixOS
-
 if status --is-interactive
   eval (direnv hook fish)
 end
