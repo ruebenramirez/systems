@@ -39,7 +39,6 @@ alias ....="cd ../../../"
 alias .....="cd ../../../../"
 
 # typos
-alias k="kubectl"
 alias eixt="exit"
 alias xit="exit"
 alias lll="ls -lah"
@@ -84,24 +83,27 @@ alias girn="grep -irn"
 alias tls="tmux ls"
 alias tad="tmux a -d"
 alias pbedit="sudo /nix/store/*-samba-*/bin/pdbedit"
+alias k="kubectl"
 
-# git aliases
-alias gg="git grep"
-alias gco="git checkout"
-alias gcob="git checkout -b"
-alias gcom="git commit"
-alias gb="git --no-pager branch"
-alias gbr="git branch --remote"
-alias gba="git branch -a"
-alias gbd="git branch -D"
-alias grv="git remote -v"
-alias gfa="git fetch --all"
-alias gs="git status"
-alias gadd="git add"
-alias gd="git diff"
-alias gdc="git diff --cached"
-alias gri="git rebase -i"
-alias gws="watch -n 2 'git log --pretty=format:\"%h - %s%d\" --decorate'"
+if command -v git &>/dev/null
+    alias gg="git grep"
+    alias gco="git checkout"
+    alias gcob="git checkout -b"
+    alias gcom="git commit"
+    alias gb="git --no-pager branch"
+    alias gbr="git branch --remote"
+    alias gba="git branch -a"
+    alias gbd="git branch -D"
+    alias grv="git remote -v"
+    alias gfa="git fetch --all"
+    alias gs="git status"
+    alias gadd="git add"
+    alias gd="git diff"
+    alias gdc="git diff --cached"
+    alias gri="git rebase -i"
+    alias gws="watch -n 2 'git log --pretty=format:\"%h - %s%d\" --decorate'"
+end
+
 function git-push-tags-force
     if test (count $argv) -eq 0
         set remote_name "origin"
@@ -126,20 +128,21 @@ function git-push-tags-force
     echo "All tags have been force pushed to $remote_name."
 end
 
-#jj aliases
-alias jjwl='watch --color -c "jj log -r \"all()\" --color always"'
-alias jjs="jj status"
-alias jjl="jj log -r \"all()\" --patch"
-alias jjd="jj diff"
-alias jjdr="jj diff -r"
-alias jje="jj edit --ignore-immutable"
-alias jjf="jj git fetch --all-remotes"
-alias jjnm="jj git fetch --all-remotes && jj new master@origin"
-alias jjgp="jj git push --ignore-immutable"
-alias jju="jj config set --user user.name \"Rueben Ramirez\" && jj config set --user user.email \"ruebenramirez@gmail.com\""
-alias jjds="jj describe --ignore-immutable"
-alias jja="jj abandon --ignore-immutable"
-alias jjr="jj rebase --ignore-immutable"
+if command -v jj &>/dev/null
+    alias jjwl='watch --color -c "jj log -r \"all()\" --color always"'
+    alias jjs="jj status"
+    alias jjl="jj log -r \"all()\" --patch"
+    alias jjd="jj diff"
+    alias jjdr="jj diff -r"
+    alias jje="jj edit --ignore-immutable"
+    alias jjf="jj git fetch --all-remotes"
+    alias jjnm="jj git fetch --all-remotes && jj new master@origin"
+    alias jjgp="jj git push --ignore-immutable"
+    alias jju="jj config set --user user.name \"Rueben Ramirez\" && jj config set --user user.email \"ruebenramirez@gmail.com\""
+    alias jjds="jj describe --ignore-immutable"
+    alias jja="jj abandon --ignore-immutable"
+    alias jjr="jj rebase --ignore-immutable"
+end
 
 function jj-git-tag
     if test (count $argv) -ne 2
@@ -172,7 +175,6 @@ function jj-git-tag
     end
 end
 
-# docker aliases (if docker is available)
 if command -v docker &>/dev/null
     alias d="docker"
     alias dps="docker ps -a"
@@ -183,11 +185,12 @@ if command -v docker &>/dev/null
     alias dcs="docker-compose"
 end
 
-# terraform aliases
-alias tf="terraform"
-alias tfp="terraform plan -out tfplan"
-alias tfa="terraform apply tfplan"
-alias tfd="terraform destroy"
+if command -v terraform &>/dev/null
+    alias tf="terraform"
+    alias tfp="terraform plan -out tfplan"
+    alias tfa="terraform apply tfplan"
+    alias tfd="terraform destroy"
+end
 
 # timer with alarm
 function tmr
