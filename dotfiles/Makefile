@@ -36,8 +36,3 @@ customBins:
 macos-faster-key-repeat:
 	defaults write -g InitialKeyRepeat -int 10 # normal minimum is 15 (225 ms)
 	defaults write -g KeyRepeat -int 1 # normal minimum is 2 (30 ms)
-
-# TODO: am I using this on NixOS?
-z-install:
-	mkdir -p ~/code/
-	git clone git@github.com:rupa/z.git ~/code/z
