@@ -99,7 +99,7 @@ input "1133:45121:ERGO_M575S_Mouse" {
 }
 input "1390:388:IST_TrackBall_Mouse" {
     events enabled
-    pointer_accel 0.0
+    pointer_accel -0.5
     accel_profile adaptive
     natural_scroll disabled
     left_handed disabled
