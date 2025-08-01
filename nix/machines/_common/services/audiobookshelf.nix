@@ -10,5 +10,6 @@ in
     port = 13378;
     openFirewall = true;
     package = pkgs-unstable.audiobookshelf;
+    user = "rramirez";
   };
 }
