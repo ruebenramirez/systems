@@ -3,7 +3,7 @@ local config = wezterm.config_builder()
 
 -- Font configuration with Nerd Font (geek font) support
 config.font = wezterm.font('SauceCodePro Nerd Font', { weight = 'DemiBold' })
-config.font_size = 18.0
+config.font_size = 16.0
 config.line_height = 1.2
 
 -- Font fallback for symbols and emojis with Nerd Font variants
