@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
 
 pkill gammastep
-
 gammastep -O 3000 &
