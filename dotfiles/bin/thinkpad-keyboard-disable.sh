@@ -1,15 +1,32 @@
 #!/usr/bin/env bash
 
-# Set environment for Sway
-export SWAYSOCK="/run/user/$(id -u)/sway-ipc.$(id -u).$(pgrep -x sway).sock"
+TIMEOUT=15
 
-# Log the action
-echo "$(date): Disabling laptop keyboard - Flow84@Lofree connected" >> /tmp/keyboard-toggle.log
+disable_thinkpad_keyboard() {
+    export SWAYSOCK="/run/user/$(id -u)/sway-ipc.$(id -u).$(pgrep -x sway).sock"
+    swaymsg input "1:1:AT_Translated_Set_2_keyboard" events disabled
+    echo "thinkpad keyboard disabled"
+}
 
-# Disable the laptop keyboard via Sway using exact identifier
-swaymsg input "1:1:AT_Translated_Set_2_keyboard" events disabled
+timeout() {
+    echo ""
+    echo "Waiting $TIMEOUT seconds before re-enabling thinkpad keyboard"
+    echo "<Ctrl>-c to cancel"
+    sleep $TIMEOUT
+}
 
-# Alternative: Use kernel inhibition method if needed
-# echo 1 | sudo tee /sys/class/input/input*/inhibited 2>/dev/null | head -1
+enable_thinkpad_keyboard() {
+    export SWAYSOCK="/run/user/$(id -u)/sway-ipc.$(id -u).$(pgrep -x sway).sock"
+    swaymsg input "1:1:AT_Translated_Set_2_keyboard" events enabled
+    echo "thinkpad keyboard disabled"
+}
 
-exit 0
+main() {
+    disable_thinkpad_keyboard
+    timeout
+    enable_thinkpad_keyboard
+    exit 0
+}
+
+main
+
