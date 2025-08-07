@@ -1,0 +1,7 @@
+# Global mako settings
+default-timeout=5000
+anchor=top-right
+
+# Do not disturb mode configuration
+[mode=do-not-disturb]
+invisible=1
