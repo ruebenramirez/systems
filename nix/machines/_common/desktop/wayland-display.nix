@@ -40,6 +40,11 @@ in
         output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,0
       }
 
+      profile thinkpad_standing_desk {
+        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 0,0 scale 1.00
+        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 960,2160 scale 1.00
+      }
+
       profile thinkpad_desk {
         output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,960 scale 1.00
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 1921,0 scale 1.00
