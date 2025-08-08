@@ -26,6 +26,8 @@ in
       ./hardware-configuration.nix
       ./services/cloudflared-reverse-proxy.nix
       ./services/syncthing.nix
+      ./services/nextcloud/default.nix
+      ./services/nextcloud/secrets.nix
     ];
 
   # Set your time zone.
