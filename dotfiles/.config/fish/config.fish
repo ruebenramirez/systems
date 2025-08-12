@@ -61,6 +61,7 @@ alias os="cat /etc/*release*"
 alias tls="tmux ls"
 alias tad="tmux a -d"
 alias k="kubectl"
+alias repomix="nix-shell -p nodejs --run 'npx repomix --stdout --copy'"
 
 if command -v git &>/dev/null
     alias gg="git grep"
