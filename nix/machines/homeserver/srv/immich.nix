@@ -1,8 +1,5 @@
 { config, pkgs, pkgs-unstable, ... }:
 
-let
-
-in
 {
 	services.immich = {
 		enable = true;
@@ -36,4 +33,11 @@ in
 
 	# Add immich user to hardware acceleration groups
 	users.users.immich.extraGroups = [ "video" "render" ];
+
+  # Automatic db backups
+  services.postgresqlBackup = {
+    enable = true;
+    databases = [ "immich" ];
+    location = "/tank/backups/homeserver/postgresql-immich";
+  };
 }

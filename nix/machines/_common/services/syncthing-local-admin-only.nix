@@ -1,8 +1,6 @@
 
 { config, pkgs, ... }:
-let
-  # Locals
-in
+
 {
 
   # install syncthing packages
