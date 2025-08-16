@@ -1,36 +1,16 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
-
 { config, pkgs, ... }:
-let
-  # Locals
-in
-{
-  imports =
-    [
-      ../_common/base/default.nix
-      ../_common/desktop/default.nix
-      ../_common/nvidia-graphics.nix
-      ../_common/services/audiobookshelf.nix
-      ../_common/services/freshrss.nix
-      ../_common/services/immich.nix
-      ../_common/services/jellyfin.nix
-      ../_common/services/kubernetes.nix
-      #../_common/services/local-llm.nix
-      ../_common/services/virtualization.nix
-      ../_common/services/vm-scripts.nix
-      ../_common/services/vm-storage.nix
-      ./cifs-samba-shares.nix
-      ./firewall.nix
-      ./hardware-configuration.nix
-      ./services/cloudflared-reverse-proxy.nix
-      ./services/syncthing.nix
-      ./services/nextcloud/default.nix
-      ./services/nextcloud/secrets.nix
-    ];
 
-  # Set your time zone.
+{
+  imports = [
+    ./hardware-configuration.nix
+    ../_common/nvidia-graphics.nix
+    ../_common/base/default.nix
+    ../_common/desktop/default.nix
+    ../_common/gaming.nix
+    ../_common/services/kubernetes.nix
+    ../_common/services/syncthing-local-admin-only.nix
+  ];
+
   time.timeZone = "America/Chicago";
 
   nix.settings.trusted-users = [ "rramirez" ];
@@ -83,33 +63,7 @@ in
     }
   ];
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment = {
-    systemPackages = with pkgs; [
-      awscli2
-      gh
-      glab
-      ticker # stocks
-      newsboat
-      icdiff
-      nixpkgs-review
-
-      # hardware key
-      gnupg
-      pcsclite
-      pinentry
-    ];
-
-    etc = {
-      "wpa_supplicant.conf" = {
-        source = "/persist/etc/wpa_supplicant.conf";
-        mode = "symlink";
-      };
-    };
-  };
-
-  # Enable the OpenSSH daemon.
+  # SSH
   services.openssh = {
     enable = true;
     hostKeys = [
@@ -124,19 +78,6 @@ in
       }
     ];
   };
-
-  # part of gnupg reqs
-  services.pcscd.enable = true;
-  # Some programs need SUID wrappers, can be configured further or are
-  # started in user sessions.
-  # programs.mtr.enable = true;
-  programs.gnupg.agent = {
-    enable = true;
-    # pinentryFlavor = "tty";
-    # Make pinentry across multiple terminal windows, seamlessly
-    enableSSHSupport = true;
-  };
-
   programs.ssh = {
     # Fix timeout from client side
     # Ref: https://www.cyberciti.biz/tips/open-ssh-server-connection-drops-out-after-few-or-n-minutes-of-inactivity.html
@@ -183,12 +124,6 @@ in
     };
   };
   # Validate status: `sudo tlp-stat -b`
-
-  # if laptop lid closes
-  services.logind.lidSwitch = "ignore"; # laptop as a server
-  services.logind.lidSwitchExternalPower = "ignore"; # laptop as a server
-  services.logind.lidSwitchDocked = "ignore"; # clamshell mode
-
 
   services.cron = {
     enable = true;

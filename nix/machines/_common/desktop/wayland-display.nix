@@ -1,8 +1,5 @@
 { config, pkgs, ... }:
 
-let
-
-in
 {
 
   environment.systemPackages = with pkgs; [
@@ -57,7 +54,7 @@ in
       }
 
       profile xps17_undocked {
-        output eDP-1 mode 3840x2400@60Hz position 0,0
+        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400@60Hz position 0,0 scale 2.00
       }
 
       profile xps17_desk {

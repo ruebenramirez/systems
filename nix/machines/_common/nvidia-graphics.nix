@@ -1,8 +1,5 @@
 { config, pkgs, betterbird-stable, ... }:
 
-let
-
-in
 {
   environment.systemPackages = with pkgs; [
     nvtopPackages.full
@@ -21,6 +18,7 @@ in
     open = true;
     nvidiaSettings = true;
     package = config.boot.kernelPackages.nvidiaPackages.stable;
+    # use intel discreet graphics by default
     prime = {
       #sync.enable = true;
       offload = {
