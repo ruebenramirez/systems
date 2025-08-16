@@ -60,7 +60,8 @@ config.default_cursor_style = 'BlinkingBlock'
 
 -- Performance
 config.front_end = 'WebGpu'
-config.webgpu_power_preference = 'HighPerformance'
+--config.webgpu_power_preference = 'HighPerformance'
+config.webgpu_power_preference = 'LowPower'
 
 -- Key bindings
 config.keys = {
