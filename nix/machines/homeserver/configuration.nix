@@ -18,7 +18,7 @@
     ./srv/freshrss.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
-    ./srv/kubernetes.nix
+    #./srv/kubernetes.nix
     ./srv/syncthing-remote-admin.nix
     ./srv/cifs-samba-shares.nix
     # TODO: work through nextcloud deployment after tailscale IP available
