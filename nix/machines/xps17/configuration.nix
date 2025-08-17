@@ -6,6 +6,7 @@
     ../_common/nvidia-graphics.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix
+    ../_common/fingerprint-reader.nix
     ../_common/gaming.nix
     ../_common/services/kubernetes.nix
     ../_common/services/syncthing-local-admin-only.nix
