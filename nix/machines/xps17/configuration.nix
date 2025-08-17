@@ -48,17 +48,13 @@
     extraGroups = [ "audio" "docker" "networkmanager" "sound" "wheel" ];
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
   };
-  security.sudo.extraRules = [
-    {
-      users = ["rramirez"];
-      commands = [
-        {
-          command = "ALL";
-          options = ["NOPASSWD"];
-        }
-      ];
-    }
-  ];
+  security.sudo.extraRules = [ {
+    users = ["rramirez"];
+    commands = [ {
+        command = "ALL";
+        options = ["NOPASSWD"];
+    }];
+  } ];
 
   # SSH
   services.openssh = {
