@@ -16,14 +16,14 @@
     virtualHosts = {
       "freshrss.internal" = {
         listen = pkgs.lib.mkForce [{
-          addr = "100.103.101.22";
+          addr = "100.101.12.57";
           port = 8080;
         }];
       };
     };
   };
   networking.extraHosts = ''
-    100.103.101.22    freshrss.internal
+    100.101.12.57    freshrss.internal
   '';
 
   networking.firewall.allowedTCPPorts = [ 8080 ];
