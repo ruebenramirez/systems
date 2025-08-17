@@ -82,27 +82,11 @@
 
   # PostgreSQL database with custom data location
   services.postgresql = {
-    enable = true;
-    package = pkgs.postgresql_16;
-    dataDir = "/tank/var/lib/postgresql";
     ensureDatabases = [ "nextcloud" ];
     ensureUsers = [{
       name = "nextcloud";
       ensureDBOwnership = true;
     }];
-  };
-
-  # Redis for caching with custom working directory
-  services.redis.servers.nextcloud = {
-    enable = true;
-    port = 6379;
-    bind = "127.0.0.1";
-    settings = {
-      dir = pkgs.lib.mkForce "/tank/var/lib/redis";
-      # Disable RDB snapshots for caching-only use (prevents MISCONF errors)
-      save = pkgs.lib.mkForce "";
-      stop-writes-on-bgsave-error = pkgs.lib.mkForce "no";
-    };
   };
 
   # Nginx configuration for custom port 8884 and IP address

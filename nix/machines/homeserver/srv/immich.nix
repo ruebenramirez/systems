@@ -15,14 +15,20 @@
 		# Hardware acceleration
 		accelerationDevices = null; # Full device access
 
-		# Database configuration
+		# Postgresql Database configuration managed by the module
 		database = {
 			enable = true;
 			createDB = true;
 		};
 
 		# Redis configuration
-		redis.enable = true;
+    redis = {
+      enable = false;
+      host = "127.0.0.1";
+      port = 6379;
+    };
+    # dedicate DB 1 for immich use
+    environment.REDIS_DBINDEX = "1";
 
 		# Machine learning with CUDA
 		machine-learning.enable = true;
@@ -36,8 +42,7 @@
 
   # Automatic db backups
   services.postgresqlBackup = {
-    enable = true;
     databases = [ "immich" ];
-    location = "/tank/backups/homeserver/postgresql-immich";
   };
+
 }

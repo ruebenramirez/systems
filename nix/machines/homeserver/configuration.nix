@@ -16,6 +16,8 @@
     # homeserver services
     ./srv/audiobookshelf.nix
     ./srv/freshrss.nix
+    ./srv/postgresql.nix
+    ./srv/redis.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
     #./srv/kubernetes.nix
