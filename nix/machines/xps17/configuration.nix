@@ -118,6 +118,10 @@
   };
   # Validate status: `sudo tlp-stat -b`
 
+  # if laptop lid closes (disable clamshell mode)
+  services.logind.lidSwitch = "suspend-then-hibernate";
+  services.logind.lidSwitchDocked = "suspend-then-hibernate";
+
   services.cron = {
     enable = true;
     # Clean up nixOS generations
