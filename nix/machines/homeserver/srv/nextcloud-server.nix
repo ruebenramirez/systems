@@ -5,7 +5,7 @@
   services.nextcloud = {
     enable = true;
     package = pkgs.nextcloud31;  # Latest stable version as of 2025
-    hostName = "100.103.101.22:8884";  # Changed from hostname to IP address
+    hostName = "100.101.12.57:8884";  # Changed from hostname to IP address
     https = false;  # Disable HTTPS for HTTP-only on port 8884
     maxUploadSize = "16G";
 
@@ -27,7 +27,13 @@
     };
 
     # Redis for caching (automatically configured)
-    configureRedis = true;
+    caching.redis = true;
+    settings.redis = {
+      host = "127.0.0.1";
+      post = 6379;
+      dbindex = 2; #dedicate
+      timeout = 1.5;
+    };
 
     # Applications to install and enable
     autoUpdateApps.enable = true;
@@ -70,12 +76,12 @@
       mail_sendmailmode = "smtp";
       # Trusted domains configuration for IP access
       trusted_domains = [
-        "100.103.101.22:8884"
+        "100.101.12.57:8884"
         "localhost"
       ];
       # Overwrite settings for custom port handling
-      "overwrite.cli.url" = "http://100.103.101.22:8884/";
-      overwritehost = "100.103.101.22:8884";
+      "overwrite.cli.url" = "http://100.101.12.57:8884/";
+      overwritehost = "100.101.12.57:8884";
       overwriteprotocol = "http";
     };
   };
@@ -99,14 +105,14 @@
           port = 8884;
         }
         {
-          addr = "100.103.101.22";  # Explicitly bind to the target IP
+          addr = "100.101.12.57";  # Explicitly bind to the target IP
           port = 8884;
         }
       ];
       # Additional server names for IP-based access
       serverAliases = [
-        "100.103.101.22"
-        "100.103.101.22:8884"
+        "100.101.12.57"
+        "100.101.12.57:8884"
       ];
       # Note: .well-known locations are automatically configured by the Nextcloud module
     };
@@ -126,21 +132,16 @@
 
   # Automatic db backups
   services.postgresqlBackup = {
-    enable = true;
     databases = [ "nextcloud" ];
-    location = "/tank/backups/homeserver/postgresql-nextcloud";
   };
 
   # Create required directories and set permissions
-  systemd.tmpfiles.rules = [
-    # Main directory structure
-    "d /tank/srv 0755 root root -"
-    "d /tank/srv/nextcloud 0755 root root -"
-    "d /tank/srv/nextcloud/data 0750 nextcloud nextcloud -"
-    "d /tank/var/lib/postgresql 0750 postgres postgres -"
-    "d /tank/var/lib/redis 0750 redis redis -"
-    "d /tank/backups/homeserver/nextcloud/ 0755 root root -"
-    "d /tank/backups/homeserver/nextcloud/data 0750 nextcloud nextcloud -"
-    "d /tank/backups/homeserver/postgresql 0750 postgres postgres -"
-  ];
+  # systemd.tmpfiles.rules = [
+  #   # Main directory structure
+  #   "d /tank/srv 0755 root root -"
+  #   "d /tank/srv/nextcloud 0755 root root -"
+  #   "d /tank/srv/nextcloud/data 0750 nextcloud nextcloud -"
+  #   "d /tank/backups/homeserver/nextcloud/ 0755 root root -"
+  #   "d /tank/backups/homeserver/nextcloud/data 0750 nextcloud nextcloud -"
+  # ];
 }
