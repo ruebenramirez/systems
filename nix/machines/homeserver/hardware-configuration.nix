@@ -32,7 +32,7 @@
 
   fileSystems."/boot" =
     # TODO: update disk uuid
-    { device = "/dev/disk/by-uuid/B641-024E";
+    { device = "/dev/disk/by-uuid/8041-67D1";
       fsType = "vfat";
       options = [ "fmask=0022" "dmask=0022" ];
     };
@@ -54,7 +54,7 @@
 
   swapDevices =
     # TODO: update disk uuid
-    [ { device = "/dev/disk/by-uuid/dd258b4f-cfdc-42ed-a5d2-da51f590073a"; }
+    [ { device = "/dev/disk/by-uuid/59c09ea0-c438-4859-ac40-76d847fcfb5b"; }
     ];
 
   # Enables DHCP on each ethernet and wireless interface. In case of scripted networking
