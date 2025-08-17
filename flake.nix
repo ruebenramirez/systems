@@ -83,6 +83,20 @@
 
       nixosConfigurations = {
 
+        "homeserver" = nixpkgs.lib.nixosSystem {
+          modules = [
+            ./nix/machines/homeserver/configuration.nix
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              # Pass unstable packages via _module.args instead of specialArgs
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+              };
+            }
+          ];
+        };
+
         "driver" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/driver/configuration.nix
