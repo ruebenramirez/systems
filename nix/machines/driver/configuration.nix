@@ -1,23 +1,18 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
-
 { config, pkgs, ... }:
-let
-  # Locals
-in
+
 {
   imports =
     [
       ../_common/android.nix
       ../_common/dev.nix
+      ../_common/amd-gpu.nix
       ../_common/base/default.nix
       ../_common/build-machine.nix
       ../_common/desktop/default.nix
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
       ../_common/rust-dev.nix
-      ../_common/services/syncthing.nix
+      ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
     ];
 

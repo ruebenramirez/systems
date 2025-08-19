@@ -4,7 +4,11 @@
 
   hardware.graphics = {
     enable = true;
-    extraPackages = with pkgs; [ mesa libva libva-utils ];
+    extraPackages = with pkgs; [
+      mesa
+      libva
+      libva-utils
+    ];
   };
 
   environment.variables = {
