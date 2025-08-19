@@ -5,6 +5,7 @@
     ./hardware-configuration.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix
+    ../_common/amd-gpu.nix
     ../_common/dev.nix
 
     # general services
