@@ -74,6 +74,7 @@ in
     mpv # media player
     playerctl # media controls for applications running on linux
     vlc # video player with lots format compatibility
+    ffmpeg
 
     # media editing
     drawio # sketch draw and diagram
