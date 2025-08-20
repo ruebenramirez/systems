@@ -44,16 +44,11 @@
         calendar
         contacts
         mail
-        notes
-        tasks
-        deck
         files_mindmap
         gpoddersync
         maps
-        music
         nextpod
         onlyoffice
-        phonetrack
         spreed
         whiteboard;
     };
