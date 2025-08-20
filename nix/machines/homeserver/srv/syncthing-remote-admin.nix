@@ -10,4 +10,7 @@
           configDir = "/home/rramirez/.config/syncthing";
       };
   };
+
+  networking.firewall.allowedTCPPorts = [ 8384 ];
+
 }
