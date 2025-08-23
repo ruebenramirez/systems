@@ -30,6 +30,13 @@
     hostName = "xps17";
     hostId = "6f602d2c";
 
+    # Networking patch for Tailscale exit node usage
+    # Remove warning from tailscale:
+    #  Strict reverse path filtering breaks Tailscale exit node use
+    #    and some subnet routing setups
+    firewall.checkReversePath = "loose";
+    # tailscale exit node usage on ipv6
+    nftables.enable = true;
     networkmanager.enable = true;
   };
 
