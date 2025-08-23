@@ -13,7 +13,7 @@ set $up k
 set $right l
 
 # Your preferred terminal emulator
-set $term wezterm
+set $term alacritty
 
 # Your preferred application launcher
 # Note: pass the final command to swaymsg so that the resulting window can be opened
@@ -103,8 +103,8 @@ input "1133:45121:ERGO_M575_Mouse" {
 # Basics:
 #
     # Start a terminal
-    bindsym $mod+Return exec "wezterm -e tmux"
-    bindsym $mod+Shift+Return exec "wezterm"
+    bindsym $mod+Return exec "alacritty -e tmux"
+    bindsym $mod+Shift+Return exec "alacritty"
 
     # Kill focused window
     bindsym $mod+Shift+q kill
