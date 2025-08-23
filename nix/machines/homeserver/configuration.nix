@@ -7,6 +7,7 @@
     ../_common/desktop/default.nix
     ../_common/amd-gpu.nix
     ../_common/dev.nix
+    ../_common/services/syncthing-remote-admin.nix
 
     # general services
     # TODO: work through intel -> amd conversion
@@ -21,7 +22,7 @@
     ./srv/redis.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
-    #./srv/kubernetes.nix
+    ./srv/kubernetes.nix
     ./srv/syncthing-remote-admin.nix
     ./srv/cifs-samba-shares.nix
     ./srv/nextcloud-server.nix

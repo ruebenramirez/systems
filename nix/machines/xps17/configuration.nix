@@ -9,7 +9,7 @@
     ../_common/fingerprint-reader.nix
     ../_common/gaming.nix
     ../_common/services/kubernetes.nix
-    ../_common/services/syncthing-local-admin-only.nix
+    ../_common/services/syncthing-remote-admin.nix
   ];
 
   time.timeZone = "America/Chicago";
