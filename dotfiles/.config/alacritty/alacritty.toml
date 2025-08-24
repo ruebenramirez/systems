@@ -1,6 +1,9 @@
 [env]
 TERM = "xterm-256color"
 
+[terminal]
+osc52 = "CopyPaste"
+
 [font]
 size = 16
 
@@ -16,74 +19,37 @@ style = "Italic"
 family = "SauceCodePro Nerd Font"
 style = "Regular"
 
-# (catppuccin-latte) Colors for Alacritty
-# source: https://github.com/catppuccin/alacritty/blob/f6cb5a5c2b404cdaceaff193b9c52317f62c62f7/catppuccin-latte.toml
 
-[colors]
-    [colors.primary]
-    background = "#eff1f5"
-    foreground = "#4c4f69"
-    dim_foreground = "#8c8fa1"
-    bright_foreground = "#4c4f69"
+# Colors (PaperColor - Light)
+#   source: https://github.com/alacritty/alacritty-theme/blob/master/themes/papercolor_light.toml
 
-    [colors.cursor]
-    text = "#eff1f5"
-    cursor = "#dc8a78"
+# Default colors
+[colors.primary]
+background = '#eeeeee'
+foreground = '#444444'
 
-    [colors.vi_mode_cursor]
-    text = "#eff1f5"
-    cursor = "#7287fd"
+[colors.cursor]
+text = '#eeeeee'
+cursor = '#444444'
 
-    [colors.search.matches]
-    foreground = "#eff1f5"
-    background = "#6c6f85"
+# Normal colors
+[colors.normal]
+black   = '#eeeeee'
+red     = '#af0000'
+green   = '#008700'
+yellow  = '#5f8700'
+blue    = '#0087af'
+magenta = '#878787'
+cyan    = '#005f87'
+white   = '#444444'
 
-    [colors.search.focused_match]
-    foreground = "#eff1f5"
-    background = "#40a02b"
-
-    [colors.footer_bar]
-    foreground = "#eff1f5"
-    background = "#6c6f85"
-
-    [colors.hints.start]
-    foreground = "#eff1f5"
-    background = "#df8e1d"
-
-    [colors.hints.end]
-    foreground = "#eff1f5"
-    background = "#6c6f85"
-
-    [colors.selection]
-    text = "#eff1f5"
-    background = "#dc8a78"
-
-    [colors.normal]
-    black = "#bcc0cc"
-    red = "#d20f39"
-    green = "#40a02b"
-    yellow = "#df8e1d"
-    blue = "#1e66f5"
-    magenta = "#ea76cb"
-    cyan = "#179299"
-    white = "#5c5f77"
-
-    [colors.bright]
-    black = "#acb0be"
-    red = "#d20f39"
-    green = "#40a02b"
-    yellow = "#df8e1d"
-    blue = "#1e66f5"
-    magenta = "#ea76cb"
-    cyan = "#179299"
-    white = "#6c6f85"
-
-    [[colors.indexed_colors]]
-    index = 16
-    color = "#fe640b"
-
-    [[colors.indexed_colors]]
-    index = 17
-    color = "#dc8a78"
-[terminal]
-osc52 = "CopyPaste"
+# Bright colors
+[colors.bright]
+black   = '#bcbcbc'
+red     = '#d70000'
+green   = '#d70087'
+yellow  = '#8700af'
+blue    = '#d75f00'
+magenta = '#d75f00'
+cyan    = '#005faf'
+white   = '#005f87'
