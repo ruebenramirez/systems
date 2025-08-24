@@ -53,9 +53,6 @@
           vim-dirdiff
           vim-endwise
           vim-nix
-
-          # browser integration
-          firenvim
         ];
       };
       customRC = ''
