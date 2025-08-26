@@ -50,6 +50,7 @@ alias ports="sudo netstat -netpul"
 alias portsg="sudo netstat -netpul | grep $argv"
 alias powertop="sudo powertop"
 alias nethogs="sudo nethogs -b"
+alias nethogs="sudo nvtop"
 
 # aliases
 alias nup="nix-update"
