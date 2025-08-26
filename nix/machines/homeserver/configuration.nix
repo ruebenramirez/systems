@@ -10,11 +10,10 @@
     ../_common/services/syncthing-remote-admin.nix
     ../_common/services/kubernetes.nix
 
-    # general services
-    # TODO: work through intel -> amd conversion
-    # ../_common/services/virtualization.nix
-    # ../_common/services/vm-scripts.nix
-    # ../_common/services/vm-storage.nix
+    # virtualization services
+    ../_common/services/virtualization-amd.nix
+    ../_common/services/vm-scripts.nix
+    ../_common/services/vm-storage.nix
 
     # homeserver services
     ./srv/audiobookshelf.nix

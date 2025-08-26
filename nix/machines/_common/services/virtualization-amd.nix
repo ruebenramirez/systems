@@ -1,11 +1,11 @@
 { config, pkgs, pkgs-unstable, ... }:
 {
-  # Enable KVM kernel modules
-  boot.kernelModules = [ "kvm-intel" "kvm-amd" "tun" ];
+  # Enable KVM kernel modules for AMD
+  boot.kernelModules = [ "kvm-amd" "tun" ];
 
-  # Optional: Enable nested virtualization
+  # Optional: Enable nested virtualization for AMD processors
   boot.extraModprobeConfig = ''
-    options kvm_intel nested=1
+    options kvm_amd nested=1
     options kvm ignore_msrs=1
   '';
 
