@@ -3,28 +3,26 @@
 {
   services.freshrss = {
     enable = true;
-    baseUrl = "http://freshrss.internal";
+    baseUrl = "https://freshrss.rueb.dev";
     database.type = "sqlite";
     passwordFile = "/persist/secrets/freshrss-pass";
     defaultUser = "admin";
     package = pkgs-unstable.freshrss;
-    virtualHost = "freshrss.internal";
+    virtualHost = "freshrss.rueb.dev";
+    webserver = "nginx";
   };
 
   services.nginx = {
     enable = true;
     virtualHosts = {
-      "freshrss.internal" = {
+      "freshrss.rueb.dev" = {
         listen = pkgs.lib.mkForce [{
-          addr = "100.101.12.57";
+          addr = "127.0.0.1";
           port = 8080;
         }];
       };
     };
   };
-  networking.extraHosts = ''
-    100.101.12.57    freshrss.internal
-  '';
 
   networking.firewall.allowedTCPPorts = [ 8080 ];
 }

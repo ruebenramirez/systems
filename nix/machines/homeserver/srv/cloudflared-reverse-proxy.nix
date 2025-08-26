@@ -18,6 +18,8 @@
         ingress = {
           "code.rueb.dev" = "http://127.0.0.1:3000";
 
+          "freshrss.rueb.dev" = "http://127.0.0.1:8080";
+
           "monicaandrueben.com" = "http://127.0.0.1:8012";
           "www.monicaandrueben.com" = "http://127.0.0.1:8012";
 
