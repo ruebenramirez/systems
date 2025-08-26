@@ -53,6 +53,9 @@
           vim-dirdiff
           vim-endwise
           vim-nix
+
+          # Theme
+          tokyonight-nvim
         ];
       };
       customRC = ''
