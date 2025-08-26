@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# vin - Launch wezterm with tmux and nix develop for note-taking
+# vin - Launch alacritty with tmux and nix develop for note-taking
 # Author: User
 # Description: Opens a dedicated note-taking environment using nix flake
 
@@ -45,13 +45,13 @@ main() {
         echo "Note: Direnv will be disabled to prevent double-loading" >&2
     fi
 
-    # Launch wezterm with the session
+    # Launch alacritty with the session
     if session_exists; then
-        # Attach to existing session in new wezterm window
-        wezterm start --cwd "$NOTES_DIR" -- tmux attach-session -t "$TMUX_SESSION"
+        # Attach to existing session in new alacritty window
+        alacritty --working-directory "$NOTES_DIR" --command tmux attach-session -t "$TMUX_SESSION"
     else
-        # Create new session and launch in wezterm
-        wezterm start --cwd "$NOTES_DIR" -- bash -c "
+        # Create new session and launch in alacritty
+        alacritty --working-directory "$NOTES_DIR" --command bash -c "
             # Create tmux session with direnv disabled
             tmux new-session -d -s '$TMUX_SESSION' -c '$NOTES_DIR' \\
                 'unset DIRENV_DIFF DIRENV_DIR DIRENV_WATCHES; exec \"\$SHELL\"'
