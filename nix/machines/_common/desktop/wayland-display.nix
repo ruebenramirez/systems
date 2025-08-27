@@ -39,7 +39,7 @@
 
       profile thinkpad_desk {
         output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,960 scale 1.00
-        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 1921,0 scale 1.00
+        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 1921,0 scale 1.10
       }
 
       profile thinkpad_three_monitor_desk {
