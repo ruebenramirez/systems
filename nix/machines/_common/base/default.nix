@@ -56,6 +56,7 @@ in
     rtorrent
     shellcheck
     silver-searcher
+    speedtest-cli # test internet connection bandwidth
     stow
     tig # ncurses git repo viewer
     tree
