@@ -9,6 +9,7 @@
       disko.nixosModules.disko
       ./disk-config.nix
       ../_common/base/default.nix
+      ../_common/dev.nix
       ../_common/services/kubernetes.nix
     ];
 
