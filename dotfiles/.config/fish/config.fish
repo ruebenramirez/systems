@@ -54,6 +54,7 @@ alias nethogs="sudo nvtop"
 
 # aliases
 alias nup="nix-update"
+alias nrs="nix-rebuild-switch-no-update"
 alias hf="hostname -f"
 alias ll="ls -lah"
 alias lt="ls -lat"
