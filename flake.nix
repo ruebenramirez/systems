@@ -22,10 +22,16 @@
       # Helper function to create attribute sets for each system
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
+      # Import overlays
+      overlays = [
+        (import ./overlays/tailscale.nix)
+      ];
+
       # Create nixpkgs for each system
       nixpkgsFor = forAllSystems (system: import nixpkgs {
         inherit system;
         config.allowUnfree = true;
+        overlays = overlays;
       });
 
       # Create unstable for each system
@@ -68,7 +74,7 @@
               virtualisation.diskSize = 20 * 1024; # 20GB
 
               # Development-specific packages
-              environment.systemPackages = with nixpkgs.legacyPackages.${system}; [
+              environment.systemPackages = with nixpkgsFor.${system}; [
                 vim
                 git
                 nodejs
