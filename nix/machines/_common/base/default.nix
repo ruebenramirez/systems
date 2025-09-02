@@ -40,6 +40,7 @@ in
     lsof
     magic-wormhole
     manix # useful search for nix docs
+    mosh
     ncdu
     nethogs # network traffic monitoring tool
     nixpkgs-fmt
