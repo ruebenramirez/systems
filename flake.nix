@@ -23,15 +23,15 @@
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
       # Import overlays
-      overlays = [
-        (import ./overlays/tailscale.nix)
-      ];
+      # overlays = [
+      #   (import ./overlays/tailscale.nix)
+      # ];
 
       # Create nixpkgs for each system
       nixpkgsFor = forAllSystems (system: import nixpkgs {
         inherit system;
         config.allowUnfree = true;
-        overlays = overlays;
+        # overlays = overlays;
       });
 
       # Create unstable for each system
