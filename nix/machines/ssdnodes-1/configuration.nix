@@ -31,7 +31,17 @@
     zfsSupport = true;
   };
 
-  boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+  boot.kernelPackages = pkgs.linuxPackagesFor (pkgs.linux_6_12.override {
+    argsOverride = rec {
+      version = "6.12.41";
+      src = pkgs.fetchurl {
+        url = "mirror://kernel/linux/kernel/v6.x/linux-${version}.tar.xz";
+        sha256 = "axmjrplCPeJBaWTWclHXRZECd68li0xMY+iP2H2/Dic=";
+      };
+      modDirVersion = version;
+    };
+  });
+
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   networking = {
