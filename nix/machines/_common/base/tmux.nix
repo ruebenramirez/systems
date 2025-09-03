@@ -21,10 +21,6 @@ in
       set -g status-bg colour40
       setw -g window-status-current-style bg=colour40
 
-      # osc52 sequence override (fix copy from mosh sessions)
-      #   source: https://gist.github.com/yudai/95b20e3da66df1b066531997f982b57b
-      set-option -ag terminal-overrides ",xterm-256color:Ms=\\E]52;c;%p2%s\\7"
-
       # navigate next and prev tmux tabs
       bind -n S-left  prev
       bind -n S-right next
