@@ -145,6 +145,23 @@
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
+  services.sanoid = {
+    enable = true;
+    interval = "daily";
+    datasets."tank/data" = {
+      recursive = false;
+      autosnap = true;
+      autoprune = true;
+      hourly = 0;
+      daily = 7; # keeps 7 daily backups
+      weekly = 4; # keeps 4 weekly backups
+      monthly = 2; # keeps 2 monthly backups
+      yearly = 0;
+    };
+  };
+
+  environment.systemPackages = with pkgs; [ sanoid ];
+
   # firmware update
   services.fwupd.enable = true;
 
