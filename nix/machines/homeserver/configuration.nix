@@ -90,6 +90,8 @@
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIJ1wxfdli9d8p0rCgry6QD5AfhU75q5uRtiqfFG2mlu"
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOgBVnhpFWDK0G7+ylfGqUUq8n2G5zc47QOaf3CSd2lP"
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICLEy9lNT6rOmwOgSZjbE3GGZyDubPd6IAEZqwlnIZY8"
+      # syncoid
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAoT6LnPxojekkdEDX5MxA9hpiSOK1RX95h41aK1wkX7"
     ];
   };
   security.sudo.extraRules = [ {
