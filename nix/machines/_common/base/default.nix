@@ -70,6 +70,12 @@ in
     gnupg
     pcsclite
     pinentry
+
+    # zfs sanoid/syncoid backup related
+    lzop
+    mbuffer
+    pv
+    sanoid
   ];
 
   programs.direnv.enable = true;
