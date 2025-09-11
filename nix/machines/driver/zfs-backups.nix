@@ -8,7 +8,7 @@
   services.syncoid = {
     enable = true;
     interval = "hourly";
-    commonArgs = [ "--compress=lzop" "--no-sync-snap" ];
+    commonArgs = [ "--compress=lzo" ];
     commands = {
       "backup-tank-data" = {
         source = "rramirez@homeserver:tank/data";
