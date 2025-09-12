@@ -10,16 +10,24 @@ MACHINES=(
     "homeserver:homeserver"
     "ssdnodes-1:ssdnodes-1"
     "driver:driver"
+    "xps17:xps17"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
 SSH_USER="${SSH_USER:-rramirez}"
+
+nix_flake_update() {
+  echo "updating nix flake"
+ cd $FLAKE_DIR
+ nix flake update
+}
 
 update_machine() {
     local host_config="$1"
     IFS=':' read -r hostname config <<< "$host_config"
 
     echo "Updating $hostname ($config)..."
+
 
     nixos-rebuild switch \
         --flake "$FLAKE_DIR#$config" \
@@ -32,11 +40,13 @@ update_machine() {
 
 case "${1:-all}" in
     "all")
+        nix_flake_update
         for machine in "${MACHINES[@]}"; do
             update_machine "$machine"
         done
         ;;
     "build")
+        nix_flake_update
         echo "Building all configurations locally..."
         for machine in "${MACHINES[@]}"; do
             IFS=':' read -r hostname config <<< "$machine"
@@ -45,6 +55,7 @@ case "${1:-all}" in
         done
         ;;
     *)
+        nix_flake_update
         # Update specific machine
         target="$1"
         found=false
