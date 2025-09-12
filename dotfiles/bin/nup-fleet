@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+# Simple NixOS fleet updater
+# Just update your machines. Nothing fancy.
+
+set -e
+
+# Your machines - edit this list
+MACHINES=(
+    "homeserver:homeserver"
+    "ssdnodes-1:ssdnodes-1"
+    "driver:driver"
+)
+
+FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
+SSH_USER="${SSH_USER:-rramirez}"
+
+update_machine() {
+    local host_config="$1"
+    IFS=':' read -r hostname config <<< "$host_config"
+
+    echo "Updating $hostname ($config)..."
+
+    nixos-rebuild switch \
+        --flake "$FLAKE_DIR#$config" \
+        --target-host "$SSH_USER@$hostname" \
+        --use-remote-sudo \
+        --fast
+
+    echo "✓ $hostname updated"
+}
+
+case "${1:-all}" in
+    "all")
+        for machine in "${MACHINES[@]}"; do
+            update_machine "$machine"
+        done
+        ;;
+    "build")
+        echo "Building all configurations locally..."
+        for machine in "${MACHINES[@]}"; do
+            IFS=':' read -r hostname config <<< "$machine"
+            echo "Building $config..."
+            nixos-rebuild build --flake "$FLAKE_DIR#$config"
+        done
+        ;;
+    *)
+        # Update specific machine
+        target="$1"
+        found=false
+        for machine in "${MACHINES[@]}"; do
+            IFS=':' read -r hostname config <<< "$machine"
+            if [[ "$hostname" == "$target" || "$config" == "$target" ]]; then
+                update_machine "$machine"
+                found=true
+                break
+            fi
+        done
+        if [[ "$found" == "false" ]]; then
+            echo "Machine '$target' not found"
+            echo "Available: ${MACHINES[*]}"
+            exit 1
+        fi
+        ;;
+esac
