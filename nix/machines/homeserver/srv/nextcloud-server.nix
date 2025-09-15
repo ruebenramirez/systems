@@ -21,10 +21,8 @@
       dbname = "nextcloud";
       adminpassFile = "/persist/nextcloud/admin-pass";
       adminuser = "admin";
-      overwriteProtocol = "http";  # Force HTTP protocol
-      defaultPhoneRegion = "US";
-      trustedProxies = [ "127.0.0.1" "::1" ];
     };
+
 
     # Redis for caching (automatically configured)
     caching.redis = true;
@@ -74,6 +72,8 @@
         "100.101.12.57:8884"
         "localhost"
       ];
+      trusted_proxies = [ "127.0.0.1" "::1" ];
+
       # Overwrite settings for custom port handling
       "overwrite.cli.url" = "http://100.101.12.57:8884/";
       overwritehost = "100.101.12.57:8884";
