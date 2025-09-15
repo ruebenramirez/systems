@@ -8,9 +8,7 @@
   imports = [
     # Start with just base configuration
     ../_common/base/default.nix
-
-    # Add other modules one by one after confirming they work
-    # ../_common/services/syncthing.nix
+    ./zfs-backups.nix
   ];
 
   # Basic system identification

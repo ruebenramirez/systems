@@ -14,7 +14,8 @@
       ../_common/rust-dev.nix
       ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
-      ./zfs-backups.nix
+      # disable syncoid on driver
+      # ./zfs-backups.nix
     ];
 
   # Set your time zone.
