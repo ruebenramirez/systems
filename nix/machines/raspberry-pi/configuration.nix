@@ -1,12 +1,9 @@
 # Minimal Raspberry Pi 4 Configuration
-# This is a more conservative approach that's less likely to have build issues
 
 { config, lib, pkgs, pkgs-unstable, modulesPath, ... }:
 
 {
-  # Import only essential modules initially
   imports = [
-    # Start with just base configuration
     ../_common/base/default.nix
     ./zfs-backups.nix
   ];
@@ -16,19 +13,14 @@
     hostName = "raspberry-pi";
     hostId = "42eb57a2";  # Generate a unique 8-char hex ID
 
-    # Use simple wireless configuration initially
-    wireless = {
-      enable = true;
-      # You can configure networks here or use wpa_supplicant.conf
-      # networks = {
-      #   "YourSSID" = {
-      #     psk = "YourPassword";
-      #   };
-      # };
-    };
-
-    # Disable NetworkManager initially to avoid conflicts
-    networkmanager.enable = false;
+    # Networking patch for Tailscale exit node usage
+    # Remove warning from tailscale:
+    #  Strict reverse path filtering breaks Tailscale exit node use
+    #    and some subnet routing setups
+    firewall.checkReversePath = "loose";
+    # tailscale exit node usage on ipv6
+    nftables.enable = true;
+    networkmanager.enable = true;
   };
 
   # Time zone
@@ -73,36 +65,32 @@
     '';
   };
 
-  # Minimal boot configuration - use defaults as much as possible
   boot = {
     loader = {
       grub.enable = false;
       generic-extlinux-compatible.enable = true;
     };
-
-    # Use default kernel (generic aarch64) instead of Pi-specific
-    # This avoids the module issues you're seeing
-
-    # Minimal kernel modules
+    supportedFilesystems = [ "zfs" ];
     initrd.availableKernelModules = [ "xhci_pci" "usbhid" "usb_storage" ];
+    initrd.supportedFilesystems = [ "zfs" ];
+    kernelPackages = pkgs.linuxPackages_rpi4;
+    kernelModules = [ "zfs" ];
+    initrd.kernelModules = [ "zfs" ];
 
-    # Disable ZFS
-    supportedFilesystems.zfs = lib.mkForce false;
+    # load up tankbak zpool for syncoid snapshot replication from homeserver
+    zfs.extraPools = [ "tankbak" ];
   };
 
-  # SD Image configuration - keep it simple
   sdImage = {
     compressImage = false;
     expandOnBoot = true;
-
-    # Make sure we don't include unnecessary firmware
     populateFirmwareCommands = "";
     populateRootCommands = "";
   };
 
-  # Essential hardware support
   hardware = {
     enableRedistributableFirmware = true;
+    enableAllHardware = lib.mkForce false;
   };
 
   # SSH configuration
@@ -114,15 +102,5 @@
     };
   };
 
-  # Minimal package set
-  environment.systemPackages = with pkgs; [
-    # Keep it minimal initially
-    wget
-    curl
-    htop
-    nano  # Simpler than vim for initial setup
-  ];
-
-  # System state version
   system.stateVersion = "25.05";
 }

@@ -6,9 +6,17 @@
     disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
   };
 
-  outputs = { self, nixpkgs, nixpkgs-unstable, disko, nixos-generators}@inputs:
+  outputs = {
+    self,
+    nixpkgs,
+    nixpkgs-unstable,
+    disko,
+    nixos-generators,
+    nixos-hardware
+  }@inputs:
 
     let
       # List of supported systems
@@ -161,6 +169,7 @@
 
         "raspberry-pi" = nixpkgs.lib.nixosSystem {
           modules = [
+            nixos-hardware.nixosModules.raspberry-pi-4
             "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
             ./nix/machines/raspberry-pi/configuration.nix
             nixpkgs.nixosModules.readOnlyPkgs
