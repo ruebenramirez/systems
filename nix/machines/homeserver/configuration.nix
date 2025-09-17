@@ -3,6 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ./save-power-amd.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix
     ../_common/amd-gpu.nix
@@ -44,7 +45,6 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" ];
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
-
 
   networking = {
     hostName = "homeserver";
@@ -155,27 +155,6 @@
 
   # firmware update
   services.fwupd.enable = true;
-
-  # TODO: do these things help or hurt in a MiniPC deployment?
-  # # laptop power management
-  # powerManagement.enable = true;
-  # services.tlp = {
-  #   enable = true;
-  #   settings = {
-  #     # Optimize for performance while on AC.
-  #     CPU_SCALING_GOVERNOR_ON_AC = "performance";
-  #     CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
-
-  #     # Optimize for battery runtime while on battery.
-  #     CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
-  #     CPU_ENERGY_PERF_POLICY_ON_BAT = "power";
-
-  #     # extend the life of the battery (I'm always plugged in anyways)
-  #     START_CHARGE_THRESH_BAT0 = 40; # 40 and bellow it starts to charge
-  #     STOP_CHARGE_THRESH_BAT0 = 80; # 80 and above it stops charging
-  #   };
-  # };
-  # # Validate status: `sudo tlp-stat -b`
 
   services.cron = {
     enable = true;
