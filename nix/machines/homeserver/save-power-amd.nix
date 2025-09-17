@@ -39,13 +39,13 @@
   # Disable thermald (Intel-specific)
   services.thermald.enable = false;
 
-  # Disable unused hardware via systemd
-  systemd.services.bluetooth.serviceConfig = {
-    ExecStartPre = "/bin/systemctl mask bluetooth.service";
-    ExecStart = "/bin/true";
-    Type = "oneshot";
-    RemainAfterExit = true;
-  };
+  # # Disable unused hardware via systemd
+  # systemd.services.bluetooth.serviceConfig = {
+  #   ExecStartPre = "/bin/systemctl mask bluetooth.service";
+  #   ExecStart = "/bin/true";
+  #   Type = "oneshot";
+  #   RemainAfterExit = true;
+  # };
 
   # Enable powertop auto-tuning at boot
   systemd.services.powertop-auto-tune = {

@@ -8,53 +8,11 @@
     ./zfs-backups.nix
   ];
 
-  # Basic system identification
-  networking = {
-    hostName = "raspberry-pi";
-    hostId = "42eb57a2";  # Generate a unique 8-char hex ID
-
-    # Networking patch for Tailscale exit node usage
-    # Remove warning from tailscale:
-    #  Strict reverse path filtering breaks Tailscale exit node use
-    #    and some subnet routing setups
-    firewall.checkReversePath = "loose";
-    # tailscale exit node usage on ipv6
-    nftables.enable = true;
-    networkmanager.enable = true;
-  };
-
-  # Time zone
   time.timeZone = "America/Chicago";
 
-  # Essential user configuration
-  users.users = {
-    # Keep nixos user for initial access
-    nixos = {
-      isNormalUser = true;
-      extraGroups = [ "wheel" "networkmanager" ];
-      openssh.authorizedKeys.keys = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea"
-      ];
-    };
-
-    # Your regular user
-    rramirez = {
-      isNormalUser = true;
-      uid = 1000;
-      extraGroups = [ "wheel" "audio" "video" ];
-      openssh.authorizedKeys.keys = [
-        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea"
-      ];
-    };
-  };
-
-  # Sudo configuration
-  security.sudo.wheelNeedsPassword = false;
-
-  # Nix settings
   nix = {
     settings = {
-      trusted-users = [ "nixos" "rramirez" ];
+      trusted-users = [ "rramirez" ];
       substituters = [ "https://nix-community.cachix.org" ];
       trusted-public-keys = [
         "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
@@ -64,6 +22,31 @@
       experimental-features = nix-command flakes
     '';
   };
+
+  hardware = {
+    enableRedistributableFirmware = true;
+    enableAllHardware = lib.mkForce false;
+  };
+
+  sdImage = {
+    compressImage = false;
+    expandOnBoot = true;
+    populateFirmwareCommands = "";
+    populateRootCommands = "";
+  };
+
+  users.users = {
+    rramirez = {
+      isNormalUser = true;
+      uid = 1000;
+      extraGroups = [ "audio" "networkmanager" "video" "wheel" ];
+      openssh.authorizedKeys.keys = [
+        "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea"
+      ];
+    };
+  };
+
+  security.sudo.wheelNeedsPassword = false;
 
   boot = {
     loader = {
@@ -77,28 +60,31 @@
     kernelModules = [ "zfs" ];
     initrd.kernelModules = [ "zfs" ];
 
-    # load up tankbak zpool for syncoid snapshot replication from homeserver
+    # import tankbak zpool at boot for homeserver syncoid snapshot replication
     zfs.extraPools = [ "tankbak" ];
   };
 
-  sdImage = {
-    compressImage = false;
-    expandOnBoot = true;
-    populateFirmwareCommands = "";
-    populateRootCommands = "";
-  };
+  networking = {
+    hostName = "raspberry-pi";
+    hostId = "42eb57a2";  # Generate a unique 8-char hex ID
 
-  hardware = {
-    enableRedistributableFirmware = true;
-    enableAllHardware = lib.mkForce false;
+    networkmanager.enable = true;
+
+    # Networking patch for Tailscale exit node usage
+    # Remove warning from tailscale:
+    #  Strict reverse path filtering breaks Tailscale exit node use
+    #    and some subnet routing setups
+    firewall.checkReversePath = "loose";
+    # tailscale exit node usage on ipv6
+    nftables.enable = true;
   };
 
   # SSH configuration
   services.openssh = {
     enable = true;
     settings = {
-      PermitRootLogin = "yes";  # For initial setup only
-      PasswordAuthentication = true;  # Temporary for initial setup
+      PermitRootLogin = "no";
+      PasswordAuthentication = false;
     };
   };
 
