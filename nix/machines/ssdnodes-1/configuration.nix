@@ -8,6 +8,7 @@
       (modulesPath + "/profiles/qemu-guest.nix")
       disko.nixosModules.disko
       ./disk-config.nix
+      ./tailscale-exit-node.nix
       ../_common/base/default.nix
       ../_common/dev.nix
       ../_common/services/kubernetes.nix
