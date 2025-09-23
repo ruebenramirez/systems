@@ -344,7 +344,6 @@ exec dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
 exec gnome-keyring-daemon --start --daemonize --components=secrets
 exec_always systemctl --user restart kanshi &
 exec_always /home/rramirez/bin/setup-swayidle &
-exec_always rm /tmp/display-gamma-cache &
 
 #
 # includes:
