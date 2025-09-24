@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+ssh raspberry-pi -C "sudo zfs list -t snapshot tankbak/data"
