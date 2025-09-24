@@ -83,6 +83,8 @@ in
   # use Fish shell
   users.defaultUserShell = pkgs.fish;
   programs.fish.enable = true;
+  # disable long man cache build times when using fish shell
+  documentation.man.generateCaches = false;
 
   # tailscale everywhere by default
   services.tailscale.enable = true;
