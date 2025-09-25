@@ -33,7 +33,12 @@
 
   time.timeZone = "America/Chicago";
 
-  nix.settings.trusted-users = [ "rramirez" ];
+  nix.settings = {
+    trusted-users = [ "rramirez" ];
+
+    # Set the download buffer size to 500 MB
+    download-buffer-size = 524288000;
+  };
 
   # remove the annoying experimental warnings
   nix.extraOptions = ''
