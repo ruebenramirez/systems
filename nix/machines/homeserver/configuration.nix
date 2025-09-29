@@ -3,7 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
-    ./save-power-amd.nix
+    #./save-power-amd.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix
     ../_common/amd-gpu.nix
