@@ -10,7 +10,7 @@ MACHINES=(
     "homeserver:homeserver"
     "ssdnodes-1:ssdnodes-1"
     "driver:driver"
-    "raspberry-pi:raspberry-pi"
+    #"raspberry-pi:raspberry-pi"
     "xps17:xps17"
 )
 

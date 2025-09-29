@@ -3,6 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ./zfs-backups.nix
     ../_common/nvidia-graphics.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix

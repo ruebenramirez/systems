@@ -5,7 +5,6 @@
 {
   imports = [
     ../_common/base/default.nix
-    ./zfs-backups.nix
   ];
 
   time.timeZone = "America/Chicago";
@@ -59,9 +58,6 @@
     kernelPackages = pkgs.linuxPackages_rpi4;
     kernelModules = [ "zfs" ];
     initrd.kernelModules = [ "zfs" ];
-
-    # import tankbak zpool at boot for homeserver syncoid snapshot replication
-    zfs.extraPools = [ "tankbak" ];
   };
 
   networking = {

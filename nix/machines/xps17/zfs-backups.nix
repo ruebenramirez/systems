@@ -3,6 +3,8 @@
 {
   # sync snapshots from homeserver to tankbak zpool (on driver while testing initial setup)
   environment.systemPackages = with pkgs; [ sanoid ];
+
+  # import tankbak zpool at boot for homeserver syncoid snapshot replication
   boot.zfs.extraPools = [ "tankbak" ];
 
   services.syncoid = {
