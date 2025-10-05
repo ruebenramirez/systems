@@ -86,9 +86,6 @@ in
   # disable long man cache build times when using fish shell
   documentation.man.generateCaches = false;
 
-  # tailscale everywhere by default
-  services.tailscale.enable = true;
-
   # part of gnupg reqs
   services.pcscd.enable = true;
   # Some programs need SUID wrappers, can be configured further or are
