@@ -2,8 +2,6 @@
 # You should see changes to the status bar after saving this script.
 # If not, do "killall swaybar" and $mod+Shift+c to reload the configuration.
 
-vpn_connection=$(~/bin/display-vpn-connection)
-
 wifi_network=$(~/bin/display-connected-wifi-network)
 
 # Produces "21 days", for example
@@ -26,7 +24,6 @@ sound_device=$(~/bin/sound-output-device-name.sh)
 # like 2018-10-06 and the time (e.g., 14:01)
 date_formatted=$(date "+%b %F %a @ %H:%M")
 
+
 # swaybar text displayed
-echo -e "VPN" $vpn_connection "|" "net" $wifi_network "|" disk used: $disk_space_used "|" uptime: $uptime_formatted ↑ "|" $battery_status 🔋 $power_remaining "|" load: $current_load "|" "\U0001F3B5" $volume $sound_device "|" $date_formatted
-
-
+echo -e "net" $wifi_network "|" disk used: $disk_space_used "|" uptime: $uptime_formatted ↑ "|" $battery_status 🔋 $power_remaining "|" load: $current_load "|" "\U0001F3B5" $volume $sound_device "|" $date_formatted
