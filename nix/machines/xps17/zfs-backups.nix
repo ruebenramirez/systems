@@ -13,7 +13,7 @@
     commonArgs = [ "--compress=lzo" ];
     commands = {
       "backup-tank-data" = {
-        source = "rramirez@100.101.12.57:tank/data";
+        source = "rramirez@192.168.1.155:tank/data";
         target = "tankbak/data";
         extraArgs = [ "--delete-target-snapshots" "--sshoption=StrictHostKeyChecking=no" ];
         sshKey = "/persist/secrets/syncoid-replication/id_ed25519_nop";
