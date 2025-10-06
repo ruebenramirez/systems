@@ -21,10 +21,11 @@ in
   # Ensure the service is not masked
   systemd.services.docker.unitConfig.AssertPathExists = "/run/booted-system";
 
-  boot.kernel.sysctl = {
-    "net.ipv4.ip_forward" = 1;
-    "net.ipv6.conf.all.forwarding" = 1;
-  };
+  # TODO: resolve conflict with wireguard configuration
+  # boot.kernel.sysctl = {
+  #   "net.ipv4.ip_forward" = 1;
+  #   "net.ipv6.conf.all.forwarding" = 1;
+  # };
   networking.firewall.trustedInterfaces = [ "docker0" ];
 
   environment.systemPackages = with pkgs; [

@@ -3,6 +3,7 @@
 {
   imports = [
     ./hardware-configuration.nix
+    ./wireguard-client.nix
     #./save-power-amd.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix

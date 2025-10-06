@@ -14,6 +14,7 @@
       ../_common/rust-dev.nix
       ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
+      ./wireguard-client.nix
       # disable syncoid on driver
       # ./zfs-backups.nix
     ];

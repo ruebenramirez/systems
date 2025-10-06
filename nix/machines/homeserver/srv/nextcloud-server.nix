@@ -5,7 +5,7 @@
   services.nextcloud = {
     enable = true;
     package = pkgs.nextcloud31;  # Latest stable version as of 2025
-    hostName = "100.101.12.57:8884";  # Changed from hostname to IP address
+    hostName = "10.100.0.2:8884";  # Changed from hostname to IP address
     https = false;  # Disable HTTPS for HTTP-only on port 8884
     maxUploadSize = "16G";
 
@@ -69,14 +69,14 @@
       mail_sendmailmode = "smtp";
       # Trusted domains configuration for IP access
       trusted_domains = [
-        "100.101.12.57:8884"
+        "10.100.0.2:8884"
         "localhost"
       ];
       trusted_proxies = [ "127.0.0.1" "::1" ];
 
       # Overwrite settings for custom port handling
       "overwrite.cli.url" = "http://100.101.12.57:8884/";
-      overwritehost = "100.101.12.57:8884";
+      overwritehost = "10.100.0.2:8884";
       overwriteprotocol = "http";
     };
   };
@@ -100,14 +100,14 @@
           port = 8884;
         }
         {
-          addr = "100.101.12.57";  # Explicitly bind to the target IP
+          addr = "10.100.0.2";  # Explicitly bind to the target IP
           port = 8884;
         }
       ];
       # Additional server names for IP-based access
       serverAliases = [
-        "100.101.12.57"
-        "100.101.12.57:8884"
+        "10.100.0.2"
+        "10.100.0.2:8884"
       ];
       # Note: .well-known locations are automatically configured by the Nextcloud module
     };

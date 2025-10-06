@@ -4,6 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ./zfs-backups.nix
+    ./wireguard-client.nix
     ../_common/nvidia-graphics.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix
