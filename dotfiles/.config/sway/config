@@ -338,8 +338,6 @@ exec_always ~/bin/sway-clamshell-init
 
 #
 # Start Applications at login:
-exec swaymsg syncthingtray &
-exec swaymsg blueman-applet &
 exec dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
 exec gnome-keyring-daemon --start --daemonize --components=secrets
 exec_always systemctl --user restart kanshi &
