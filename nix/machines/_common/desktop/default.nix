@@ -76,10 +76,10 @@ in
     ffmpeg
 
     # media editing
-    drawio # sketch draw and diagram
-    obs-studio # screen recording
-    gimp-with-plugins
-    inkscape-with-extensions
+    # drawio # sketch draw and diagram
+    # obs-studio # screen recording
+    # gimp-with-plugins
+    # inkscape-with-extensions
 
     # Network and VPN
     tailscale
