@@ -20,6 +20,9 @@
       # Client's WireGuard IP address
       ips = [ "10.100.0.2/24" ];
 
+      # UDP port for WireGuard to listen on
+      listenPort = 51820;
+
       # Path to private key file
       # Generate with: wg genkey > /root/wireguard-keys/wg0-privatekey
       privateKeyFile = "/root/wireguard-keys/wg0-privatekey";
@@ -44,14 +47,20 @@
           # Keep connection alive through NAT
           persistentKeepalive = 25;
         }
+        # driver thinkpad peer
+        {
+          publicKey = "Iu1NvarZUT5xnx5pzFB2IzWC/RpML+JTLLvPj2VbkiM=";
+          allowedIPs = [ "10.100.0.3/32" ];
+          persistentKeepalive = 25;
+        }
       ];
     };
   };
 
-  # Optional: Open WireGuard port if this client also accepts incoming connections
-  # networking.firewall = {
-  #   allowedUDPPorts = [ 51820 ];
-  # };
+  # Open WireGuard port to accept incoming connections
+  networking.firewall = {
+    allowedUDPPorts = [ 51820 ];
+  };
 
   # Optional: Adjust firewall reverse path filtering if needed
   networking.firewall.checkReversePath = "loose";
