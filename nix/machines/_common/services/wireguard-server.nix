@@ -108,7 +108,7 @@
 
     # Optional: Allow loose reverse path filtering for WireGuard
     # Uncomment if you experience routing issues
-    # checkReversePath = "loose";
+    checkReversePath = "loose";
   };
 }
 
