@@ -91,6 +91,12 @@
           allowedIPs = [ "10.100.0.7/32" ];
           persistentKeepalive = 25;
         }
+        # driver thinkpad peer (non-flake managed client)
+        {
+          publicKey = "Uon+vjG4E1qneSXer1eDIvjv7sW+8OBJuuYWHbO62FY=";
+          allowedIPs = [ "10.100.0.8/32" ];
+          persistentKeepalive = 25;
+        }
 
         # Example mobile client peer (uncomment and modify as needed)
         # {
