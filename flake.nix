@@ -18,169 +18,168 @@
     nixos-hardware
   }@inputs:
 
-    let
-      # List of supported systems
-      supportedSystems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        "armv7l-linux"
-        "armv6l-linux"
-      ];
+  let
+    # List of supported systems
+    supportedSystems = [
+      "x86_64-linux"
+      "aarch64-linux"
+      "armv7l-linux"
+      "armv6l-linux"
+    ];
 
-      # Helper function to create attribute sets for each system
-      forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
+    # Helper function to create attribute sets for each system
+    forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-      # Import overlays
-      # overlays = [
-      #   (import ./overlays/tailscale.nix)
-      # ];
+    # Import overlays
+    # overlays = [
+    #   (import ./overlays/tailscale.nix)
+    # ];
 
-      # Create nixpkgs for each system
-      nixpkgsFor = forAllSystems (system: import nixpkgs {
-        inherit system;
-        config.allowUnfree = true;
-        # overlays = overlays;
-      });
+    # Create nixpkgs for each system
+    nixpkgsFor = forAllSystems (system: import nixpkgs {
+      inherit system;
+      config.allowUnfree = true;
+      # overlays = overlays;
+    });
 
-      # Create unstable for each system
-      unstableFor = forAllSystems (system: import nixpkgs-unstable {
-        inherit system;
-        config.allowUnfree = true;
-      });
+    # Create unstable for each system
+    unstableFor = forAllSystems (system: import nixpkgs-unstable {
+      inherit system;
+      config.allowUnfree = true;
+    });
 
-    in {
-
-      # VM image configurations
-      packages = forAllSystems (system: {
-        vm-base-qcow = nixos-generators.nixosGenerate {
-          system = system;
-          specialArgs = {
-            pkgs-unstable = unstableFor.${system};
-          };
-          modules = [
-            ./nix/machines/_common/base/default.nix
-            ./nix/machines/_common/vm-base.nix
-            {
-              networking.hostName = "nixos-vm";
-              # Override for image building
-              virtualisation.diskSize = 10 * 1024; # 10GB
-            }
-          ];
-          format = "qcow";
+  in {
+    # VM image configurations
+    packages = forAllSystems (system: {
+      vm-base-qcow = nixos-generators.nixosGenerate {
+        system = system;
+        specialArgs = {
+          pkgs-unstable = unstableFor.${system};
         };
+        modules = [
+          ./nix/machines/_common/base/default.nix
+          ./nix/machines/_common/vm-base.nix
+          {
+            networking.hostName = "nixos-vm";
+            # Override for image building
+            virtualisation.diskSize = 10 * 1024; # 10GB
+          }
+        ];
+        format = "qcow";
+      };
 
-        vm-development-qcow = nixos-generators.nixosGenerate {
-          system = system;
-          specialArgs = {
-            pkgs-unstable = unstableFor.${system};
-          };
-          modules = [
-            ./nix/machines/_common/base/default.nix
-            ./nix/machines/_common/vm-base.nix
-            {
-              networking.hostName = "development-vm";
-              virtualisation.diskSize = 20 * 1024; # 20GB
-
-              # Development-specific packages
-              environment.systemPackages = with nixpkgsFor.${system}; [
-                vim
-                git
-                nodejs
-                python3
-              ];
-            }
-          ];
-          format = "qcow";
+      vm-development-qcow = nixos-generators.nixosGenerate {
+        system = system;
+        specialArgs = {
+          pkgs-unstable = unstableFor.${system};
         };
-      });
+        modules = [
+          ./nix/machines/_common/base/default.nix
+          ./nix/machines/_common/vm-base.nix
+          {
+            networking.hostName = "development-vm";
+            virtualisation.diskSize = 20 * 1024; # 20GB
+
+            # Development-specific packages
+            environment.systemPackages = with nixpkgsFor.${system}; [
+              vim
+              git
+              nodejs
+              python3
+            ];
+          }
+        ];
+        format = "qcow";
+      };
+    });
 
 
-      nixosConfigurations = {
+    nixosConfigurations = {
 
-        "homeserver" = nixpkgs.lib.nixosSystem {
-          modules = [
-            ./nix/machines/homeserver/configuration.nix
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-              # Pass unstable packages via _module.args instead of specialArgs
-              _module.args = {
-                pkgs-unstable = unstableFor."x86_64-linux";
-              };
-            }
-          ];
+      "homeserver" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/homeserver/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs
+          {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            # Pass unstable packages via _module.args instead of specialArgs
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
+      "driver" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/driver/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs
+          {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            # Pass unstable packages via _module.args instead of specialArgs
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
+      "x220" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/x220/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs
+          {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
+      "xps17" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/xps17/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs
+          {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
+      "ssdnodes-1" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/ssdnodes-1/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs
+          {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+        specialArgs = {
+          inherit disko;
         };
+      };
 
-        "driver" = nixpkgs.lib.nixosSystem {
-          modules = [
-            ./nix/machines/driver/configuration.nix
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-              # Pass unstable packages via _module.args instead of specialArgs
-              _module.args = {
-                pkgs-unstable = unstableFor."x86_64-linux";
-              };
-            }
-          ];
-        };
-
-        "x220" = nixpkgs.lib.nixosSystem {
-          modules = [
-            ./nix/machines/x220/configuration.nix
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-              _module.args = {
-                pkgs-unstable = unstableFor."x86_64-linux";
-              };
-            }
-          ];
-        };
-
-        "xps17" = nixpkgs.lib.nixosSystem {
-          modules = [
-            ./nix/machines/xps17/configuration.nix
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-              _module.args = {
-                pkgs-unstable = unstableFor."x86_64-linux";
-              };
-            }
-          ];
-        };
-
-        "ssdnodes-1" = nixpkgs.lib.nixosSystem {
-          modules = [
-            ./nix/machines/ssdnodes-1/configuration.nix
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-              _module.args = {
-                pkgs-unstable = unstableFor."x86_64-linux";
-              };
-            }
-          ];
-          specialArgs = {
-            inherit disko;
-          };
-        };
-
-        "raspberry-pi" = nixpkgs.lib.nixosSystem {
-          modules = [
-            nixos-hardware.nixosModules.raspberry-pi-4
-            "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-            ./nix/machines/raspberry-pi/configuration.nix
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."aarch64-linux";
-              _module.args = {
-                pkgs-unstable = unstableFor."aarch64-linux";
-              };
-            }
-          ];
-        };
+      "raspberry-pi" = nixpkgs.lib.nixosSystem {
+        modules = [
+          nixos-hardware.nixosModules.raspberry-pi-4
+          "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+          ./nix/machines/raspberry-pi/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs
+          {
+            nixpkgs.pkgs = nixpkgsFor."aarch64-linux";
+            _module.args = {
+              pkgs-unstable = unstableFor."aarch64-linux";
+            };
+          }
+        ];
+      };
     };
   };
 }
