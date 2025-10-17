@@ -47,10 +47,63 @@
           # Keep connection alive through NAT
           persistentKeepalive = 25;
         }
-        # driver thinkpad peer
+        # rueben-tablet
         {
-          publicKey = "Iu1NvarZUT5xnx5pzFB2IzWC/RpML+JTLLvPj2VbkiM=";
-          allowedIPs = [ "10.100.0.3/32" ];
+          publicKey = "cBuVlcnqaG3RR/x41CgXMfWYon/ZaTtrYKw0sbILmjs=";
+          allowedIPs = [ "10.100.0.9/32" ];
+          persistentKeepalive = 25;
+        }
+        # download server wireguard peer configuration
+        #   mullvad generated this priv/pub keypair and IP address
+        {
+          publicKey = "4zjTZcpC/6cMaqAQPIwOJctZGF6+rixMzOBS6HW9B1Y=";
+          allowedIPs = [ "10.68.29.189/32" ];
+          persistentKeepalive = 25;
+        }
+        # gl.inet travel router
+        {
+          publicKey = "2tdNHRdU6/QQyuwW8gnGjJsxsyLuOEYGZE3D90niOg4=";
+          allowedIPs = [ "10.100.0.10/32" ];
+          persistentKeepalive = 25;
+        }
+        # driver wireguard peer configuration
+        #   mullvad generated this priv/pub keypair and IP address
+        {
+          publicKey = "AMg/JU3QGUC/DXQorXG2PDBf5iuTFmIxvlPxyp5HuSg=";
+          allowedIPs = [ "10.69.137.165/32" ];
+          persistentKeepalive = 25;
+        }
+        # rueben phone wireguard peer configuration
+        #   mullvad generated this priv/pub keypair and IP address
+        {
+          publicKey = "zAiA1+I9EkDdkRmtygzI/A7XaVoX2ZWB4nfrog9gVFw=";
+          allowedIPs = [ "10.75.40.234/32" ];
+          persistentKeepalive = 25;
+        }
+        # monica phone wireguard peer configuration
+        #   mullvad generated this priv/pub keypair and IP address
+        {
+          publicKey = "qpVKvBNmPJ77UrnHyW77Bd0NoLMPqHgR27OPE+al3xQ=";
+          allowedIPs = [ "10.71.234.205/32" ];
+          persistentKeepalive = 25;
+        }
+        # monica laptop wireguard peer configuration
+        #  mullvad wireguard generated this priv/pub keypair and IP address
+        {
+          publicKey = "4WVHjD+sjHhO5x2MXTRTKeAY/YcyB9ZTevZ+iTkw/gM=";
+          allowedIPs = [ "10.65.96.166/32" ];
+          persistentKeepalive = 25;
+        }
+        # Carolyn laptop wireguard peer configuration
+        {
+          publicKey = "Yz4YVwBt83PjvROhuQsiFOB2ndDyST2hOKPeeKfAnzo=";
+          allowedIPs = [ "10.100.0.11/32" ];
+          persistentKeepalive = 25;
+        }
+        # Carolyn phone wireguard peer configuration
+        {
+          publicKey = "M7ArIQ+ZemuXXtvTkg7piAUeMRzWYQ2XAkBa6Ov7mlo=";
+          allowedIPs = [ "10.100.0.12/32" ];
           persistentKeepalive = 25;
         }
       ];

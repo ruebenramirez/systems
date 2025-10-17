@@ -61,40 +61,51 @@
           allowedIPs = [ "10.100.0.2/32" ];
           persistentKeepalive = 25;
         }
-        # driver thinkpad peer
-        {
-          publicKey = "Iu1NvarZUT5xnx5pzFB2IzWC/RpML+JTLLvPj2VbkiM=";
-          allowedIPs = [ "10.100.0.3/32" ];
-          persistentKeepalive = 25;
-        }
-        # rueben grapheneos peer
-        {
-          publicKey = "G+znZR5wVM22Mmx9yD1XgpxSuocNA2yjNKdF+43mmXU=";
-          allowedIPs = [ "10.100.0.4/32" ];
-          persistentKeepalive = 25;
-        }
-        # monica iphone peer
-        {
-          publicKey = "2kbycJ2WOMyvdylMoQyXZA1l4Uj5cw28GEMv7cHaaEI=";
-          allowedIPs = [ "10.100.0.5/32" ];
-          persistentKeepalive = 25;
-        }
-        # monica laptop peer
-        {
-          publicKey = "f1Dj2C/Uw6+rMohdCfR1S2U/foVc6vna/AcHFn8tZyQ=";
-          allowedIPs = [ "10.100.0.6/32" ];
-          persistentKeepalive = 25;
-        }
         # xps17 laptop peer
         {
           publicKey = "ICH2ILISYcMJvVmC+eB0kkEZdOqQ69oLE0kGBEZrfX0=";
           allowedIPs = [ "10.100.0.7/32" ];
           persistentKeepalive = 25;
         }
-        # driver thinkpad peer (non-flake managed client)
+        # # download server wireguard peer configuration
+        # #   wireguard generated this priv/pub keypair and IP address
+        # {
+        #   publicKey = "";
+        #   allowedIPs = [ "" ];
+        #   persistentKeepalive = 25;
+        # }
+        # driver wireguard peer configuration
+        #   wireguard generated this priv/pub keypair and IP address
         {
-          publicKey = "Uon+vjG4E1qneSXer1eDIvjv7sW+8OBJuuYWHbO62FY=";
-          allowedIPs = [ "10.100.0.8/32" ];
+          publicKey = "AMg/JU3QGUC/DXQorXG2PDBf5iuTFmIxvlPxyp5HuSg=";
+          allowedIPs = [ "10.69.137.165/32" ];
+          persistentKeepalive = 25;
+        }
+        # rueben-tablet
+        {
+          publicKey = "cBuVlcnqaG3RR/x41CgXMfWYon/ZaTtrYKw0sbILmjs=";
+          allowedIPs = [ "10.100.0.9/32" ];
+          persistentKeepalive = 25;
+        }
+        # rueben phone wireguard peer configuration
+        #   wireguard generated this priv/pub keypair and IP address
+        {
+          publicKey = "zAiA1+I9EkDdkRmtygzI/A7XaVoX2ZWB4nfrog9gVFw=";
+          allowedIPs = [ "10.75.40.234/32" ];
+          persistentKeepalive = 25;
+        }
+        # monica phone wireguard peer configuration
+        #   wireguard generated this priv/pub keypair and IP address
+        {
+          publicKey = "qpVKvBNmPJ77UrnHyW77Bd0NoLMPqHgR27OPE+al3xQ=";
+          allowedIPs = [ "10.71.234.205/32" ];
+          persistentKeepalive = 25;
+        }
+        # monica laptop wireguard peer configuration
+        #   wireguard generated this priv/pub keypair and IP address
+        {
+          publicKey = "4WVHjD+sjHhO5x2MXTRTKeAY/YcyB9ZTevZ+iTkw/gM=";
+          allowedIPs = [ "10.65.96.166/32" ];
           persistentKeepalive = 25;
         }
 
