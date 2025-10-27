@@ -14,9 +14,6 @@
       ../_common/rust-dev.nix
       ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
-      ./wireguard-client.nix
-      # disable syncoid on driver
-      # ./zfs-backups.nix
     ];
 
   # Set your time zone.
@@ -64,8 +61,18 @@
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "adbusers" "audio" "docker" "networkmanager" "sound" "wheel" "ydotool" ];
-    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
+    extraGroups = [
+      "adbusers"
+      "audio"
+      "docker"
+      "networkmanager"
+      "sound"
+      "wheel"
+      "ydotool"
+    ];
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea"
+    ];
   };
   security.sudo.extraRules = [
     {
@@ -79,28 +86,9 @@
     }
   ];
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment = {
-    systemPackages = with pkgs; [
-      awscli2
-      gh
-      glab
-      ticker # stocks
-      newsboat
-      icdiff
-      nixpkgs-review
-
-      # hardware key
-      gnupg
-      pcsclite
-      pinentry
-    ];
-
-    etc."wpa_supplicant.conf" = {
-      source = "/persist/etc/wpa_supplicant.conf";
-      mode = "symlink";
-    };
+  environment.etc."wpa_supplicant.conf" = {
+    source = "/persist/etc/wpa_supplicant.conf";
+    mode = "symlink";
   };
 
   # Enable the OpenSSH daemon.
@@ -119,17 +107,6 @@
     ];
   };
 
-  # part of gnupg reqs
-  services.pcscd.enable = true;
-  # Some programs need SUID wrappers, can be configured further or are
-  # started in user sessions.
-  # programs.mtr.enable = true;
-  programs.gnupg.agent = {
-    enable = true;
-    # pinentryFlavor = "tty";
-    # Make pinentry across multiple terminal windows, seamlessly
-    enableSSHSupport = true;
-  };
 
   programs.ssh = {
     # Fix timeout from client side
@@ -142,7 +119,9 @@
   };
   # List services that you want to enable:
   # Open ports in the firewall.
-  networking.firewall.allowedTCPPorts = [ 1313 ];
+  networking.firewall.allowedTCPPorts = [
+    1313  # hugo blog dev
+  ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;

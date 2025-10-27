@@ -8,10 +8,12 @@ in
 
   imports = [
     ./editor.nix
+    ./gpg.nix
     ./tmux.nix
   ];
 
   environment.systemPackages = with pkgs; [
+    awscli2
     bc
     bchunk
     black # python linter
@@ -24,11 +26,14 @@ in
     file
     fish # Fish shell
     fzf # fuzzy finder - supports ctrl-r for fish shell
+    gh
     git
     git-lfs
+    glab
     gnumake
     grc
     htop # system resource monitoring tool
+    icdiff
     imagemagick
     iotop # disk io performance monitor tool
     pkgs-unstable.jujutsu
@@ -44,6 +49,7 @@ in
     ncdu
     nethogs # network traffic monitoring tool
     nixpkgs-fmt
+    nixpkgs-review
     nmap
     openssl
     p7zip
@@ -52,8 +58,8 @@ in
     pigz
     powertop # power management profiling tool
     qrtool # generate qr code images on the command line
-    ripgrep-all
     rclone
+    ripgrep-all
     rtorrent
     shellcheck
     silver-searcher
@@ -66,10 +72,6 @@ in
     uutils-coreutils-noprefix
     wget
     yt-dlp # download youtube video/audio
-    # hardware key
-    gnupg
-    pcsclite
-    pinentry
 
     # zfs sanoid/syncoid backup related
     lzop

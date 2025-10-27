@@ -5,16 +5,12 @@ let
 in
 {
   environment.systemPackages = with pkgs; [
-    lutris
-
     # wine related
     wine
     wine64
     winetricks
     winePackages.fonts
     wineWowPackages.stable
-
-
   ];
 
   programs.steam = {
