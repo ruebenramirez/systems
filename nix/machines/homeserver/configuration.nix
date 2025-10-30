@@ -2,15 +2,17 @@
 
 {
   imports = [
-    ./hardware-configuration.nix
-    ./wireguard-client.nix
-    #./save-power-amd.nix
+    ../_common/amd-gpu.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix
-    ../_common/amd-gpu.nix
     ../_common/dev.nix
-    ../_common/services/syncthing-remote-admin.nix
     ../_common/services/kubernetes.nix
+    ../_common/services/syncthing-remote-admin.nix
+    ./hardware-configuration.nix
+    ./wireguard.nix
+
+    # TODO: fine tune for better performance
+    #./save-power-amd.nix
 
     # virtualization services
     ../_common/services/virtualization-amd.nix
@@ -20,16 +22,16 @@
     # homeserver services
     ./srv/audiobookshelf.nix
     ./srv/freshrss.nix
-    ./srv/postgresql.nix
-    ./srv/redis.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
-    ./srv/cifs-samba-shares.nix
     ./srv/nextcloud-server.nix
+    ./srv/cifs-samba-shares.nix
+    ./srv/postgresql.nix
+    ./srv/redis.nix
 
     # networking
-    ./srv/firewall.nix
     ./srv/cloudflared-reverse-proxy.nix
+    ./srv/firewall.nix
   ];
 
   time.timeZone = "America/Chicago";

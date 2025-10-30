@@ -47,12 +47,12 @@
           # Keep connection alive through NAT
           persistentKeepalive = 25;
         }
-        # rueben-tablet
-        {
-          publicKey = "cBuVlcnqaG3RR/x41CgXMfWYon/ZaTtrYKw0sbILmjs=";
-          allowedIPs = [ "10.100.0.9/32" ];
-          persistentKeepalive = 25;
-        }
+        # # rueben-tablet
+        # {
+        #   publicKey = "cBuVlcnqaG3RR/x41CgXMfWYon/ZaTtrYKw0sbILmjs=";
+        #   allowedIPs = [ "10.100.0.9/32" ];
+        #   persistentKeepalive = 25;
+        # }
         # download server wireguard peer configuration
         #   mullvad generated this priv/pub keypair and IP address
         {
