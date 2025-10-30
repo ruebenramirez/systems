@@ -81,6 +81,12 @@
           allowedIPs = [ "10.69.137.165/32" ];
           persistentKeepalive = 25;
         }
+        # rueben driver laptop
+        {
+          publicKey = "yWc7u+dPTlrDZX3/czS4+b6dI14eGGzvcLEbp1FGGy8=";
+          allowedIPs = [ "10.100.0.8/32" ];
+          persistentKeepalive = 25;
+        }
         # rueben-tablet
         {
           publicKey = "cBuVlcnqaG3RR/x41CgXMfWYon/ZaTtrYKw0sbILmjs=";
