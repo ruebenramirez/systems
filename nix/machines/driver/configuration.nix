@@ -14,6 +14,7 @@
       ../_common/rust-dev.nix
       ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
+      ./wg.nix
     ];
 
   # Set your time zone.
@@ -33,18 +34,31 @@
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
 
+
+
   networking = {
     hostName = "driver";
     hostId = "6f602d2b";
 
-    # Networking patch for Tailscale exit node usage
-    # Remove warning from tailscale:
-    #  Strict reverse path filtering breaks Tailscale exit node use
-    #    and some subnet routing setups
-    firewall.checkReversePath = "loose";
-    # tailscale exit node usage on ipv6
-    nftables.enable = true;
-    networkmanager.enable = true;
+    # disable NetworkManager
+    networkmanager.enable = false;
+    wireless.enable = true;
+
+    # use systemd.networkd full stop
+    useNetworkd = true;
+
+    # The global useDHCP flag is deprecated, therefore explicitly set to false here.
+    # Per-interface useDHCP will be mandatory in the future, so this generated config
+    # replicates the default behaviour.
+    useDHCP = false;
+
+    # Make sure that dhcpcd doesnt timeout when interfaces are down
+    # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
+    dhcpcd.wait = "if-carrier-up";
+    interfaces.wlp2s0.useDHCP = true;
+
+    # Leave commented until tether is needed
+    #interfaces.enp1s0f0.useDHCP = true;
   };
 
   programs.nm-applet.enable = true;
@@ -65,7 +79,6 @@
       "adbusers"
       "audio"
       "docker"
-      "networkmanager"
       "sound"
       "wheel"
       "ydotool"
