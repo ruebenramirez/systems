@@ -26,4 +26,4 @@ date_formatted=$(date "+%b %F %a @ %H:%M")
 
 
 # swaybar text displayed
-echo -e "net" $wifi_network "|" disk used: $disk_space_used "|" uptime: $uptime_formatted ↑ "| BAT" $battery_status $power_remaining "|" load: $current_load "|" "\U0001F3B5" $volume $sound_device "|" $date_formatted
+echo -e "net" $wifi_network "|" disk used: $disk_space_used "|" uptime: $uptime_formatted ↑ "| BAT" $battery_status $power_remaining "|" load: $current_load "| Vol." $volume $sound_device "|" $date_formatted
