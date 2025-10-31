@@ -99,4 +99,6 @@ in
     # Make pinentry across multiple terminal windows, seamlessly
     enableSSHSupport = true;
   };
+
+  programs.mosh.enable = true;
 }

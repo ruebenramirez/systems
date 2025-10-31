@@ -147,5 +147,4 @@ in
     YDOTOOL_SOCKET = "/run/ydotoold/socket";
   };
 
-
 }
