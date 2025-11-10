@@ -12,7 +12,7 @@
       ../_common/base/default.nix
       ../_common/dev.nix
       ../_common/services/kubernetes.nix
-      ../_common/services/wireguard-server.nix
+      ./wg.nix
     ];
 
   # Set your time zone.
