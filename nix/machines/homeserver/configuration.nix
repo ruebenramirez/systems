@@ -9,7 +9,7 @@
     ../_common/services/kubernetes.nix
     ../_common/services/syncthing-remote-admin.nix
     ./hardware-configuration.nix
-    ./wireguard.nix
+    ./wg.nix
 
     # TODO: fine tune for better performance
     #./save-power-amd.nix
