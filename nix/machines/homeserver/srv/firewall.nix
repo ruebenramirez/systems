@@ -7,6 +7,8 @@
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   networking.firewall.allowedTCPPorts = [
+    80
+    443
     139
     445
     8089
