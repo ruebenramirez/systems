@@ -57,8 +57,11 @@
     dhcpcd.wait = "if-carrier-up";
     interfaces.wlp2s0.useDHCP = true;
 
-    # Leave commented until tether is needed
-    #interfaces.enp1s0f0.useDHCP = true;
+    # 1g gigabyte ethernet (built-into laptop)
+    # interfaces.enp1s0f0.useDHCP = true;
+
+    # 2.5g Ethernet usb-c dongle
+    # interfaces.enp102s0f3u1.useDHCP = true;
   };
 
   programs.nm-applet.enable = true;
