@@ -41,14 +41,7 @@
       inherit
         calendar
         contacts
-        mail
-        files_mindmap
-        gpoddersync
-        maps
-        nextpod
-        onlyoffice
-        spreed
-        whiteboard;
+        mail;
     };
 
     # Performance and security settings
