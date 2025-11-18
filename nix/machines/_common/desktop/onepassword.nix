@@ -1,8 +1,4 @@
 { config, pkgs, ... }:
-
-let
-
-in
 {
   # 1password password manager and deps
 
