@@ -61,7 +61,9 @@
     # interfaces.enp1s0f0.useDHCP = true;
 
     # 2.5g Ethernet usb-c dongle
-    # interfaces.enp102s0f3u1.useDHCP = true;
+    #interfaces.enp102s0f3u1.useDHCP = true;
+    #interfaces.enp100s0f3u2.useDHCP = true;
+
   };
 
   programs.nm-applet.enable = true;
@@ -181,6 +183,7 @@
 
   # if laptop lid closes
   services.logind.lidSwitch = "suspend-then-hibernate";
+  #services.logind.lidSwitch = "ignore";
   services.logind.lidSwitchDocked = "ignore"; # clamshell mode
 
   services.cron = {
