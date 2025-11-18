@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+pushd /home/rramirez/.wine_nfsmw/drive_c/Program\ Files/NFS\ Most\ Wanted/ &&
+WINEPREFIX=~/.wine_nfsmw wine speed.exe &&
+popd
