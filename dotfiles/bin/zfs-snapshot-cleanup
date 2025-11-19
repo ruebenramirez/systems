@@ -2,4 +2,4 @@
 
 set -x
 
-sudo bash -c 'for snapshot in $(zfs list -H -t snapshot -o name); do zfs destroy "$snapshot"; done'
+sudo bash -c 'for snapshot in $(zfs list -H -t snapshot -o name | grep zroot); do zfs destroy "$snapshot"; done'
