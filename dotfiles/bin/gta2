@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+pushd ~/.wine_gta2/drive_c/Program\ Files/Rockstar\ Games/GTA2 &&
+    WINEPREFIX=~/.wine_gta2/ wine gta2\ manager.exe &&
+popd
