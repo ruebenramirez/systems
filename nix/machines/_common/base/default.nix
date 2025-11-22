@@ -71,6 +71,7 @@ in
     usbutils # contains lsusb tool
     uutils-coreutils-noprefix
     wget
+    yazi
     yt-dlp # download youtube video/audio
 
     # zfs sanoid/syncoid backup related
