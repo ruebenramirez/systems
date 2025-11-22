@@ -72,6 +72,7 @@ in
     uutils-coreutils-noprefix
     wget
     yazi
+    zoxide
     yt-dlp # download youtube video/audio
 
     # zfs sanoid/syncoid backup related

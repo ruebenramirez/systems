@@ -1,23 +1,13 @@
-if status --is-interactive
+if status is-interactive
     set -lx SHELL fish
     keychain -q --eval ~/.ssh/id_ed25519 | source
-end
-
-
-# Nix on Debian
-if test -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-    fenv source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-end
-# End Nix on Debian
-
-if status --is-interactive
-  eval (direnv hook fish)
+    eval (direnv hook fish)
+    zoxide init fish | source
 end
 
 if test -d $HOME/.cargo/bin
     fish_add_path $HOME/.cargo/bin
 end
-
 
 set -gx EDITOR vim
 set -x TMUX_TMPDIR /tmp
