@@ -32,6 +32,7 @@ alias celar="clear"
 alias cleawr="clear"
 alias cleargs="clear && gs"
 alias tre="tree"
+alias les="less"
 
 # make me a sandwhich https://xkcd.com/149/
 alias htop="sudo htop"
