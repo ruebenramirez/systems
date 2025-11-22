@@ -1,5 +1,4 @@
 { config, pkgs, pkgs-unstable, ... }:
-
 {
   environment.systemPackages = with pkgs; [
     # Core development tools
@@ -47,6 +46,7 @@
           vim-commentary
           vim-tmux-navigator
           vim-oscyank
+          yazi-nvim
 
           # Additional utilities
           tagbar
@@ -208,6 +208,14 @@
             },
           },
         }
+
+        -- ========================================
+        -- Yazi CONFIGURATION
+        -- ========================================
+        vim.keymap.set("n", "<leader>-", function()
+          -- require("yazi").yazi()
+          require('yazi').yazi({open_for_directories = true})
+        end)
 
         -- ========================================
         -- TELESCOPE CONFIGURATION
