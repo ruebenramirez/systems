@@ -9,9 +9,8 @@ set -e
 MACHINES=(
     "homeserver:homeserver"
     "ssdnodes-1:ssdnodes-1"
-    "driver:driver"
-    #"raspberry-pi:raspberry-pi"
     "xps17:xps17"
+    "driver:driver"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
