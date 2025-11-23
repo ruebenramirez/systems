@@ -25,6 +25,7 @@ in
     dmidecode # reads info from connected hardware
     file
     fish # Fish shell
+    fishPlugins.z
     fzf # fuzzy finder - supports ctrl-r for fish shell
     gh
     git
