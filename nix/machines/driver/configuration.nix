@@ -184,7 +184,7 @@
   # if laptop lid closes
   services.logind.lidSwitch = "suspend-then-hibernate";
   #services.logind.lidSwitch = "ignore";
-  services.logind.lidSwitchDocked = "ignore"; # clamshell mode
+  #services.logind.lidSwitchDocked = "ignore"; # clamshell mode
 
   services.cron = {
     enable = true;
