@@ -202,3 +202,8 @@ function jj
         command jj $argv
     end
 end
+
+function mynet
+    set -l network $argv[1]
+    nix-shell -p python3 --run "~/bin/configure-network.py $network"
+end
