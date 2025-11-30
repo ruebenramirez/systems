@@ -205,5 +205,5 @@ end
 
 function mynet
     set -l network $argv[1]
-    nix-shell -p python3 --run "~/bin/configure-network.py $network"
+    ~/bin/configure-network.sh $network
 end
