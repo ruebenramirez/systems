@@ -4,4 +4,4 @@ set -e -x
 
 FLAKE_DIR="$HOME/code/systems/"
 cd "$FLAKE_DIR"
-sudo nixos-rebuild switch --upgrade --flake "$FLAKE_DIR#$(hostname)" --show-trace
+sudo nixos-rebuild switch --upgrade --offline --flake "$FLAKE_DIR#$(hostname)" --show-trace
