@@ -19,4 +19,11 @@
           configDir = "/home/rramirez/.config/syncthing";   # Folder for Syncthing's settings and keys
       };
   };
+  networking.firewall.allowedTCPPorts = [
+    22000 # sync
+  ];
+  networking.firewall.allowedUDPPorts = [
+    21027 # LAN discovery
+    22000 # sync
+  ];
 }
