@@ -6,4 +6,5 @@
 # ignore nix build artifacts
 result/**
 result
-
+.stfolder/**
+.stignore
