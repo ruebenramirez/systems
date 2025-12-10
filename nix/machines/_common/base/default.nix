@@ -72,7 +72,7 @@ in
     usbutils # contains lsusb tool
     uutils-coreutils-noprefix
     wget
-    yazi
+    yazi # file browser
     zoxide
     yt-dlp # download youtube video/audio
 
@@ -81,6 +81,13 @@ in
     mbuffer
     pv
     sanoid
+
+    # Network and VPN
+    tailscale
+    wireguard-tools
+
+    # dev related
+    nerdctl
   ];
 
   programs.direnv.enable = true;

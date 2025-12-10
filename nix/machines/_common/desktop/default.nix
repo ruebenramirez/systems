@@ -14,15 +14,15 @@ in
 
   # install Desktop packages
   environment.systemPackages = with pkgs; [
+    aerc
     arandr # ui xrandr tool for interacting the multimonitors
     autorandr # cli xrandr tool for saving/load profiles
     cheese # webcam camera tool
-    aerc
-    finamp #jellyfin client
+    finamp #jellyfin music client
     libreoffice
-    obsidian # notes
     remmina  # best RDP client
-    timer
+    thunderbird
+    timer # fancy js cli timer
     viewnior # image viewer
     ydotool
 
@@ -32,26 +32,22 @@ in
     wezterm
 
     # file browser and google drive integration
-    nautilus # file browser
     insync
     insync-nautilus
     insync-emblem-icons
 
-    # core behind the scenes tools
+    # auth-related desktop backend services
     acpi
     libnotify
     pmutils
     polkit
     polkit_gnome
-
-    # mounting filesystems
     exfat
     ntfs3g
     udiskie # automount attached usb disks
 
     # books and whitepapers related
     calibre # manage ebooks
-    foliate # ebook reader
     koreader
     mupdf # pdf viewer with vim keybindings
 
@@ -82,10 +78,6 @@ in
     # gimp-with-plugins
     # inkscape-with-extensions
 
-    # Network and VPN
-    tailscale
-    wireguard-tools
-
     # screenshot ands ocr screenshot deps
     tesseract
     imagemagick
@@ -93,11 +85,6 @@ in
     slurp
     ocrmypdf
     satty
-
-    # dev related
-    vscode.fhs # VSCode editor with unmanaged plugin controls
-    nerdctl
-
   ];
 
 
@@ -107,7 +94,6 @@ in
 
   # Enable touchpad support (enabled default in most desktopManager).
   services.libinput.enable = true;
-
 
   # light is a backlight management utility
   programs.light.enable = true;

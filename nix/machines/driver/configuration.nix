@@ -33,9 +33,6 @@
   boot.supportedFilesystems = [ "ntfs" ];
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
-
-
-
   networking = {
     hostName = "driver";
     hostId = "6f602d2b";
@@ -156,7 +153,6 @@
     };
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
-
 
   # firmware update
   services.fwupd.enable = true;
