@@ -24,7 +24,6 @@
     ./srv/freshrss.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
-    ./srv/nextcloud-server.nix
     ./srv/cifs-samba-shares.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
