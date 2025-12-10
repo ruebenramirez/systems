@@ -4,7 +4,6 @@
   imports = [
     ../_common/amd-gpu.nix
     ../_common/base/default.nix
-    ../_common/desktop/default.nix
     ../_common/dev.nix
     ../_common/services/kubernetes.nix
     ../_common/services/syncthing-remote-admin.nix
