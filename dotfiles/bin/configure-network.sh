@@ -12,17 +12,12 @@ configure_network() {
 
   local wpa_src="/persist/etc/wpa_supplicant/${mode}-wpa_supplicant.conf"
   local wpa_dst="/persist/etc/wpa_supplicant.conf"
-  local wg_src="/persist/etc/wireguard/wg0-wgnet/${mode}-wgnet.conf"
-  local wg_dst="/persist/etc/wireguard/wg0-wgnet.conf"
 
   echo "Setting wpa_supplicant config to $wpa_src"
   sudo ln -sf "$wpa_src" "$wpa_dst"
 
   echo "Restarting wpa_supplicant.service"
   sudo systemctl restart wpa_supplicant.service
-
-  echo "Setting wireguard config to $wg_src"
-  sudo ln -sf "$wg_src" "$wg_dst"
 
   echo "Restarting wireguard interfaces"
   sudo systemctl restart wg-quick-wg0.service
@@ -32,8 +27,7 @@ configure_network() {
 }
 
 show_wireguard_connections() {
-  sleep 4
-  sudo wg show
+  sudo watch wg show
 }
 
 main() {
