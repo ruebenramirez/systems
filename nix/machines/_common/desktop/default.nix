@@ -110,6 +110,10 @@ in
     wlr.enable = true;
     extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   };
+  xdg.mime.enable = true;
+  xdg.mime.defaultApplications = {
+    "text/plain" = "nvim.desktop";
+  };
 
   services.udisks2 = {
     enable = true;
