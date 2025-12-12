@@ -151,8 +151,8 @@
       autoprune = true;
       hourly = 0;
       daily = 7; # keeps 7 daily backups
-      weekly = 4; # keeps 4 weekly backups
-      monthly = 2; # keeps 2 monthly backups
+      weekly = 2; # keeps 4 weekly backups
+      monthly = 0; # keeps 2 monthly backups
       yearly = 0;
     };
   };
