@@ -13,6 +13,9 @@
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
 
+  # Import zpool from 2nd onboard nvme
+  boot.zfs.extraPools = [ "devpool" ];
+
   fileSystems."/" =
     { device = "zroot/local/root";
       fsType = "zfs";
