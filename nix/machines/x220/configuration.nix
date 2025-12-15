@@ -83,7 +83,7 @@ in
       # hardware key
       gnupg
       pcsclite
-      pinentry
+      pinentry-curses
       tailscale # VPN
       fprintd # fingerprint reader
     ];

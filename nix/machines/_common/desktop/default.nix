@@ -34,7 +34,6 @@ in
     # file browser and google drive integration
     insync
     insync-nautilus
-    insync-emblem-icons
 
     # auth-related desktop backend services
     acpi
@@ -61,7 +60,7 @@ in
     # web browsers
     brave
     firefox
-    tor-browser-bundle-bin
+    tor-browser
     ungoogled-chromium
 
     # media players

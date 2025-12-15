@@ -5,7 +5,7 @@
     kanshi
     light
     mako
-    rofi-wayland
+    rofi
     swayidle
     wdisplays
     wl-clipboard
@@ -56,15 +56,20 @@
       }
 
       profile xps17_desk {
-        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 640,0 scale 2.00
+        output "Sharp Corporation 0x1517 Unknown" disable
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.10
       }
 
-      profile xps17_three_monitor_desk {
-        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 640,0 scale 2.00
-        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.10
-        output "GWD ARZOPA 0x70320205" mode 2560x1600 position 0,1200 scale 1.20
-      }
+      # profile xps17_desk {
+      #   output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 640,0 scale 2.00
+      #   output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.10
+      # }
+
+      # profile xps17_three_monitor_desk {
+      #   output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 640,0 scale 2.00
+      #   output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.10
+      #   output "GWD ARZOPA 0x70320205" mode 2560x1600 position 0,1200 scale 1.20
+      # }
     '';
     mode="0644";
   };

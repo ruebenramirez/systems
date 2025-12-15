@@ -13,7 +13,7 @@ in
     enable32Bit = true;
     extraPackages = with pkgs; [
       # VA-API support for AMD GPUs
-      vaapiVdpau
+      libva-vdpau-driver
       libvdpau-va-gl
       # OpenCL support for AMD GPUs (required for tone mapping and subtitle burn-in)
       rocmPackages.clr.icd

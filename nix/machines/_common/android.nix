@@ -11,7 +11,6 @@ in
     android-tools
     android-studio
     android-studio-tools
-    android-udev-rules
     android-file-transfer
   ];
 

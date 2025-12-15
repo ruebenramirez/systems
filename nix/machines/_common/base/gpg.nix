@@ -7,7 +7,7 @@
       # hardware key
       gnupg
       pcsclite
-      pinentry
+      pinentry-curses
     ];
   };
 
