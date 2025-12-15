@@ -22,6 +22,9 @@ in
       set -g status-bg colour40
       setw -g window-status-current-style bg=colour40
 
+      set -g @plugin 'tmux-plugins/tmux-yank'
+      set -g @override_copy_command 'osc-copy'
+
       # navigate next and prev tmux tabs
       bind -n S-left  prev
       bind -n S-right next
