@@ -23,7 +23,6 @@ limit = 0
   absorb = ["A"]
   split = ["s"]
   undo = ["u"]
-  evolog = ["v"]
   revset = ["L"]
   exec_jj = [":"]
   exec_shell = ["$"]
