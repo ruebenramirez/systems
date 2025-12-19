@@ -5,6 +5,7 @@
 {
   imports = [
     ../_common/base/default.nix
+    ./zfs-backups.nix
   ];
 
   time.timeZone = "America/Chicago";

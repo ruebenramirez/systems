@@ -11,6 +11,7 @@ MACHINES=(
     "ssdnodes-1:ssdnodes-1"
     "xps17:xps17"
     "driver:driver"
+    "raspberry-pi:raspberry-pi"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
