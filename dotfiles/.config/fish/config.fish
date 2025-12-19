@@ -207,3 +207,15 @@ function mynet
     set -l network $argv[1]
     ~/bin/configure-network.sh $network
 end
+
+function mullvad-disable
+    sudo systemctl stop wg-quick-wg1.service
+    sudo systemctl restart wg-quick-wg0.service
+    sudo watch -c "wg show"
+end
+
+function mullvad-enable
+    sudo systemctl restart wg-quick-wg1.service
+    sudo systemctl restart wg-quick-wg0.service
+    sudo watch -c "wg show"
+end
