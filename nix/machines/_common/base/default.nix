@@ -10,6 +10,7 @@ in
     ./editor.nix
     ./gpg.nix
     ./tmux.nix
+    ./yubikey.nix
   ];
 
   environment.systemPackages = with pkgs; [
