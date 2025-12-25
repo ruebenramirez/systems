@@ -20,6 +20,7 @@
 
     # homeserver services
     ./srv/audiobookshelf.nix
+    ./srv/filebrowser.nix
     ./srv/freshrss.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
