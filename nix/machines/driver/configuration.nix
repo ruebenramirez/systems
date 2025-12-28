@@ -15,6 +15,7 @@
       ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
       ./wg.nix
+      ./mtp-storage-access.nix
     ];
 
   # Set your time zone.
