@@ -56,7 +56,8 @@
       }
 
       profile xps17_desk {
-        output "Sharp Corporation 0x1517 Unknown" disable
+        output "Sharp Corporation 0x1517 Unknown" mode 3840x2400@60Hz position 0,0 scale 2.00
+        # LG monitor positioned to the right of the laptop display
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.10
       }
 
