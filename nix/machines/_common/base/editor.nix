@@ -14,7 +14,6 @@
 
   environment.variables = {
     EDITOR = "nvim";
-    TERM = "xterm-256color";
   };
 
   programs.neovim = {

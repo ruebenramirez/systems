@@ -54,7 +54,6 @@ in
     nixpkgs-review
     nmap
     openssl
-    oscclip
     p7zip
     parted # manage disk partitions
     pciutils # contains the lspci tool
