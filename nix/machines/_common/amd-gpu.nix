@@ -1,7 +1,6 @@
 { config, pkgs, ... }:
 
 {
-
   environment.systemPackages = with pkgs; [
     nvtopPackages.amd
     vulkan-tools

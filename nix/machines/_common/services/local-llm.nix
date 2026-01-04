@@ -10,7 +10,7 @@ in
   ];
 
   services.ollama = {
-    acceleration = "cuda";
+    acceleration = "rocm"; # default to rocm (((((((((and override on nvidia machines)
     enable = true;
     host = "0.0.0.0";
     package = pkgs-unstable.ollama;

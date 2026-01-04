@@ -6,6 +6,7 @@
       ../_common/android.nix
       ../_common/dev.nix
       ../_common/amd-gpu.nix
+      ../_common/services/local-llm.nix
       ../_common/base/default.nix
       ../_common/build-machine.nix
       ../_common/desktop/default.nix
@@ -82,7 +83,9 @@
       "adbusers"
       "audio"
       "docker"
+      "renderer"
       "sound"
+      "video"
       "wheel"
       "ydotool"
     ];
