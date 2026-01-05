@@ -50,6 +50,7 @@ in
     mosh
     ncdu
     nethogs # network traffic monitoring tool
+    nettools
     nixpkgs-fmt
     nixpkgs-review
     nmap
