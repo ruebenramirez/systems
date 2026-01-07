@@ -4,9 +4,7 @@
   imports =
     [
       ../_common/android.nix
-      ../_common/dev.nix
       ../_common/amd-gpu.nix
-      ../_common/services/local-llm.nix
       ../_common/base/default.nix
       ../_common/build-machine.nix
       ../_common/desktop/default.nix
@@ -14,9 +12,9 @@
       ../_common/gaming.nix
       ../_common/rust-dev.nix
       ../_common/services/syncthing-local-admin-only.nix
-      ./hardware-configuration.nix
       ./wg.nix
       ./mtp-storage-access.nix
+      ./hardware-configuration.nix
     ];
 
   # Set your time zone.
