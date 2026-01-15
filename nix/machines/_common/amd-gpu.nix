@@ -1,26 +1,24 @@
 { config, pkgs, ... }:
-
 {
   environment.systemPackages = with pkgs; [
     (btop.override { rocmSupport = true; })
+    amdgpu_top
+    clinfo
+    libva-utils
     nvtopPackages.amd
-    vulkan-tools
+    rocmPackages.rocminfo
     vulkan-loader
+    vulkan-tools
     vulkan-validation-layers
   ];
-
 
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      mesa
       libva
-      libva-utils
+      libvdpau-va-gl
+      rocmPackages.clr.icd
+      vaapiVdpau
     ];
   };
-
-  environment.variables = {
-    LIBVA_DRIVER_NAME = "radeonsi";
-  };
-
 }

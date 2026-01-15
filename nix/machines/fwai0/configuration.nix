@@ -5,7 +5,7 @@
     [
       ../_common/dev.nix
       ../_common/amd-gpu.nix
-      ../_common/services/local-llm.nix
+      ../_common/services/local-llm-AMD.nix
       ../_common/base/default.nix
       ../_common/rust-dev.nix
       ./hardware-configuration.nix
@@ -147,8 +147,6 @@
       "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
     ];
   };
-
-
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

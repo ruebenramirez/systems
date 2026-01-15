@@ -5,7 +5,7 @@
     ./hardware-configuration.nix
     ./wg.nix
     ../_common/nvidia-graphics.nix
-    ../_common/services/local-llm.nix
+    ../_common/services/local-llm-Nvidia.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix
     ../_common/fingerprint-reader.nix
@@ -140,12 +140,6 @@
       "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
     ];
   };
-
-  # override the rocm acceleration default in ollama
-  services.ollama = {
-    acceleration = lib.mkForce "cuda";
-  };
-
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions
