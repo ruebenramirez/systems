@@ -2,6 +2,7 @@
 
 {
   environment.systemPackages = with pkgs; [
+    (btop.override { cudaSupport = true; })
     nvtopPackages.full
     vulkan-tools
     vulkan-loader

@@ -18,7 +18,6 @@ in
     bc
     bchunk
     black # python linter
-    btop
     cmake
     ctags
     difftastic
