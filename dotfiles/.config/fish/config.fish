@@ -1,6 +1,8 @@
 if status is-interactive
     set -lx SHELL fish
-    keychain -q --eval ~/.ssh/id_ed25519 | source
+    if test -f ~/.ssh/id_ed25519
+        keychain -q --eval ~/.ssh/id_ed25519 | source
+    end
     eval (direnv hook fish)
     zoxide init fish | source
 end
