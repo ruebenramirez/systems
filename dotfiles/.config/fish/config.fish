@@ -221,3 +221,11 @@ function mullvad-enable
     sudo systemctl restart wg-quick-wg0.service
     sudo watch -c "wg show"
 end
+
+function dush
+    if test (count $argv) -gt 0
+        du -sh $argv | sort -h
+    else
+        du -h * | sort -h
+    end
+end
