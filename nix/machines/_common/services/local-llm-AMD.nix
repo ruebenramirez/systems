@@ -17,7 +17,7 @@
       OLLAMA_FLASH_ATTENTION = "1";
       OLLAMA_KV_CACHE_TYPE = "q4_0";
       OLLAMA_NUM_PARALLEL = "4";
-      OLLAMA_MAX_LOADED_MODELS = "3";
+      OLLAMA_MAX_LOADED_MODELS = "2";
       OLLAMA_KEEP_ALIVE = "-1";
       OLLAMA_NOPREFIX = "1";
       OLLAMA_MAX_QUEUE = "512";
@@ -29,6 +29,8 @@
     group = "ollama";
     extraGroups = [ "video" "render" ];
   };
+  users.groups.ollama = {};
+
 
   # allow services access to GPU memory info
   systemd.services.ollama.serviceConfig = {

@@ -11,6 +11,7 @@
       ../_common/gaming.nix
       ../_common/gpu-amd.nix
       ../_common/rust-dev.nix
+      ../_common/services/local-llm-AMD.nix
       ../_common/services/syncthing-local-admin-only.nix
       ./wg.nix
       ./mtp-storage-access.nix

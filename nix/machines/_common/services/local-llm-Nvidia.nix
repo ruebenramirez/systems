@@ -10,6 +10,8 @@
     host = "0.0.0.0";
     package = pkgs-unstable.ollama;
   };
+  users.groups.ollama = {};
+
 
   users.users.ollama = {
     isSystemUser = true;
