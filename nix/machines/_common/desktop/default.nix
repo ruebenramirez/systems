@@ -61,7 +61,7 @@ in
     brave
     firefox
     tor-browser
-    ungoogled-chromium
+    #ungoogled-chromium
 
     # media players
     cmus
