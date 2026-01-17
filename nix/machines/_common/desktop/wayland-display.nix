@@ -32,31 +32,23 @@
   environment.etc."kanshi/config" = {
     text = ''
       profile thinkpad_undocked {
-        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,0
-      }
-
-      profile thinkpad_display_glasses {
-        output "California Institute of Technology 0x1404 Unknown" disable
-        output "CVT VITURE 0x88888800" {
-          mode 1920x1200
-          position 0,0
-          scale 1.00
-        }
+        output "Lenovo Group Limited 0x403A Unknown" mode 1920x1200 position 0,0
       }
 
       profile thinkpad_desk {
-        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,960 scale 1.00
+        output "Lenovo Group Limited 0x403A Unknown" mode 1920x1200 position 0,960 scale 1.00
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 1921,0 scale 1.10
       }
 
       profile thinkpad_three_monitor_desk {
-        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 214,0 scale 1.00
+        output "Lenovo Group Limited 0x403A Unknown" mode 1920x1200 position 214,0 scale 1.00
         output "GWD ARZOPA 0x70320205" mode 2560x1600 position 0,1200 scale 1.20
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2134,0 scale 1.10
       }
 
+
       profile thinkpad_external_usbc_monitor_left {
-        output "California Institute of Technology 0x1404 Unknown" mode 1920x1200 position 0,0
+        output "Lenovo Group Limited 0x403A Unknown" mode 1920x1200 position 0,0
         output "GWD ARZOPA 0x70320205" mode 2560x1600 position 1920,0 scale 1.20
       }
 
@@ -66,20 +58,8 @@
 
       profile xps17_desk {
         output "Sharp Corporation 0x1517 Unknown" mode 3840x2400@60Hz position 0,0 scale 2.00
-        # LG monitor positioned to the right of the laptop display
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.10
       }
-
-      # profile xps17_desk {
-      #   output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 640,0 scale 2.00
-      #   output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.10
-      # }
-
-      # profile xps17_three_monitor_desk {
-      #   output "Sharp Corporation 0x1517 Unknown" mode 3840x2400 position 640,0 scale 2.00
-      #   output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2560,0 scale 1.10
-      #   output "GWD ARZOPA 0x70320205" mode 2560x1600 position 0,1200 scale 1.20
-      # }
     '';
     mode="0644";
   };
