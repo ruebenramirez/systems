@@ -18,7 +18,7 @@
       libva
       libvdpau-va-gl
       rocmPackages.clr.icd
-      vaapiVdpau
+      libvdpau-va-gl
     ];
   };
 }

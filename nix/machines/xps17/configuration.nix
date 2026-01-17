@@ -4,7 +4,7 @@
   imports = [
     ./hardware-configuration.nix
     ./wg.nix
-    ../_common/nvidia-graphics.nix
+    ../_common/gpu-nvidia.nix
     ../_common/services/local-llm-Nvidia.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix

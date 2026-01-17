@@ -4,12 +4,12 @@
   imports =
     [
       ../_common/android.nix
-      ../_common/amd-gpu.nix
       ../_common/base/default.nix
       ../_common/build-machine.nix
       ../_common/desktop/default.nix
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
+      ../_common/gpu-amd.nix
       ../_common/rust-dev.nix
       ../_common/services/syncthing-local-admin-only.nix
       ./wg.nix
