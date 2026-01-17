@@ -181,9 +181,9 @@
   # Validate status: `sudo tlp-stat -b`
 
   # if laptop lid closes
-  services.logind.lidSwitch = "suspend-then-hibernate";
-  #services.logind.lidSwitch = "ignore"; #clamshell w/out power
-  services.logind.lidSwitchDocked = "ignore"; # clamshell w/ power
+  services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
+  #services.logind.settings.Login.HandleLidSwitch = "ignore";       # clamshell w/out power
+  services.logind.settings.Login.HandleLidSwitchDocked = "ignore";  # clamshell w/ power
 
   services.cron = {
     enable = true;
