@@ -13,9 +13,9 @@
       ../_common/rust-dev.nix
       ../_common/services/local-llm-AMD.nix
       ../_common/services/syncthing-local-admin-only.nix
-      ./wg.nix
-      ./mtp-storage-access.nix
       ./hardware-configuration.nix
+      ./mtp-storage-access.nix
+      ./wg.nix
     ];
 
   # Set your time zone.
