@@ -71,7 +71,7 @@ include /etc/sway/config-vars.d/*
 # Read `man 5 sway-input` for more information about this section.
 
 input "type:keyboard" {
-    xkb_options caps:swapescape,altwin:swap_alt_win
+    xkb_options caps:swapescape,altwin:swap_alt_win,compose:ralt
     repeat_delay 220
     repeat_rate 60
 }
