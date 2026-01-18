@@ -2,8 +2,10 @@
 
 TIMEOUT=15
 
+user_id=1000
+
 disable_thinkpad_keyboard() {
-    export SWAYSOCK="/run/user/$(id -u)/sway-ipc.$(id -u).$(pgrep -x sway).sock"
+    export SWAYSOCK="/run/user/$user_id/sway-ipc.$user_id.$(pgrep -x sway).sock"
     swaymsg input "1:1:AT_Translated_Set_2_keyboard" events disabled
     echo "thinkpad keyboard disabled"
 }
@@ -16,7 +18,7 @@ timeout() {
 }
 
 enable_thinkpad_keyboard() {
-    export SWAYSOCK="/run/user/$(id -u)/sway-ipc.$(id -u).$(pgrep -x sway).sock"
+    export SWAYSOCK="/run/user/$user_id/sway-ipc.$user_id.$(pgrep -x sway).sock"
     swaymsg input "1:1:AT_Translated_Set_2_keyboard" events enabled
     echo "thinkpad keyboard disabled"
 }

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
+user_id=1000
+
 # Set environment for Sway
-export SWAYSOCK="/run/user/$(id -u)/sway-ipc.$(id -u).$(pgrep -x sway).sock"
+export SWAYSOCK="/run/user/$user_id/sway-ipc.$user_id.$(pgrep -x sway).sock"
 
 # Log the action
 echo "$(date): Enabling laptop keyboard - Flow84@Lofree disconnected" >> /tmp/keyboard-toggle.log
