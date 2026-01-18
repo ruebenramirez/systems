@@ -349,6 +349,33 @@ bindswitch --reload --locked lid:off output $laptop_display enable
 # Handle reload case - check lid state on startup/reload
 exec_always ~/bin/sway-clamshell-init
 
+
+# --- Workspace Assignments ---
+
+# Alacritty (using the --class defined in the script)
+assign [app_id="stats"]       workspace 1
+assign [app_id="notes"]       workspace 3
+assign [app_id="workstation"] workspace 4
+
+# GUI Apps
+assign [app_id="1Password"]   workspace 7
+assign [app_id="thunderbird"] workspace 8
+assign [app_id="firefox"]     workspace 9
+assign [app_id="Signal"]      workspace 10
+
+# --- Advanced Firefox Rule for Workspace 10 ---
+# Since both Firefox windows have the same app_id, we tell Sway to move
+# the one containing "Cheogram" in the title to workspace 10.
+for_window [app_id="firefox" title=".*Cheogram.*"] move to workspace 10
+
+# --- Window Behavior ---
+for_window [workspace=10] layout splith
+
+# --- Launch Autostart ---
+exec ~/.config/sway/scripts/autostart.sh
+
+
+
 #
 # Start Applications at login:
 exec dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
