@@ -2,7 +2,7 @@
 
 {
   imports = [
-    ../_common/amd-gpu.nix
+    ../_common/gpu-amd.nix
     ../_common/base/default.nix
     ../_common/dev.nix
     ../_common/services/kubernetes.nix
