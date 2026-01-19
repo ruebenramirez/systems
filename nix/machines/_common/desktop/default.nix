@@ -18,7 +18,6 @@ in
     arandr # ui xrandr tool for interacting the multimonitors
     autorandr # cli xrandr tool for saving/load profiles
     cheese # webcam camera tool
-    finamp #jellyfin music client
     libreoffice
     remmina  # best RDP client
     thunderbird
