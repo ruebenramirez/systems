@@ -2,16 +2,16 @@
 
 {
   imports = [
-    ./hardware-configuration.nix
-    ./wg.nix
-    ../_common/gpu-nvidia.nix
-    ../_common/services/local-llm-Nvidia.nix
     ../_common/base/default.nix
     ../_common/desktop/default.nix
     ../_common/fingerprint-reader.nix
     ../_common/gaming.nix
+    ../_common/gpu-nvidia.nix
     ../_common/services/kubernetes.nix
     ../_common/services/syncthing-remote-admin.nix
+    ./hardware-configuration.nix
+    ./services/local-llm-Nvidia.nix
+    ./wg.nix
   ];
 
   time.timeZone = "America/Chicago";
