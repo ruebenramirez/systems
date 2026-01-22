@@ -3,12 +3,12 @@
 {
   imports =
     [
-      ../_common/dev.nix
-      ../_common/amd-gpu.nix
-      ../_common/services/local-llm-AMD.nix
+      ../_common/gpu-amd.nix
       ../_common/base/default.nix
+      ../_common/dev.nix
       ../_common/rust-dev.nix
       ./hardware-configuration.nix
+      ./services/local-llm-framework-desktop.nix
       ./wg.nix
     ];
 
@@ -72,7 +72,6 @@
       "sound"
       "video"
       "wheel"
-      "ydotool"
     ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea"

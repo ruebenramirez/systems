@@ -7,10 +7,11 @@ set -e
 
 # Your machines - edit this list
 MACHINES=(
-    "homeserver:homeserver"
-    "ssdnodes-1:ssdnodes-1"
     "xps17:xps17"
+    "fwai0:fwai0"
+    "homeserver:homeserver"
     "driver:driver"
+    "ssdnodes-1:ssdnodes-1"
     "raspberry-pi:raspberry-pi"
 )
 
