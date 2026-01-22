@@ -54,7 +54,6 @@ in
     element-desktop #matrix chat desktop client
     signal-desktop # signal chat app
     slack # work chat app
-    zoom-us # meeting software
 
     # web browsers
     brave
