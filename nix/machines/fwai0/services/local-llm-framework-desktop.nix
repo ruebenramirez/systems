@@ -26,6 +26,9 @@
       OLLAMA_CONTEXT_LENGTH = "32768";
     };
   };
+  networking.firewall.allowedTCPPorts = [
+    11434 # ollama
+  ];
 
   users.users.ollama = {
     isSystemUser = true;
