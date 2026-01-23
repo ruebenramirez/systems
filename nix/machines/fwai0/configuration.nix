@@ -7,9 +7,9 @@
       ../_common/base/default.nix
       ../_common/dev.nix
       ../_common/rust-dev.nix
+      ../_common/wg-client.nix
       ./hardware-configuration.nix
       ./services/local-llm-framework-desktop.nix
-      ./wg.nix
     ];
 
   # Set your time zone.

@@ -7,8 +7,8 @@
     ../_common/dev.nix
     ../_common/services/kubernetes.nix
     ../_common/services/syncthing-remote-admin.nix
+    ../_common/wg-client.nix
     ./hardware-configuration.nix
-    ./wg.nix
 
     # TODO: fine tune for better performance
     #./save-power-amd.nix

@@ -9,9 +9,9 @@
     ../_common/gpu-nvidia.nix
     ../_common/services/kubernetes.nix
     ../_common/services/syncthing-remote-admin.nix
+    ../_common/wg-client.nix
     ./hardware-configuration.nix
     ./services/local-llm-Nvidia.nix
-    ./wg.nix
   ];
 
   time.timeZone = "America/Chicago";
