@@ -17,7 +17,6 @@ in
     awscli2
     bc
     bchunk
-    btop
     black # python linter
     cmake
     ctags
