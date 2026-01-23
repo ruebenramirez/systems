@@ -1,52 +1,44 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-set -x
+set -e
 
-# update the nix flake
-#sudo nix flake update
+VM_NAME="dev-vm-xps"
+IMAGE_DEST="/devpool/VMs/images/${VM_NAME}.qcow2"
 
-# destroy the existing VM
-sudo virsh destroy development-vm
-sudo virsh undefine development-vm --remove-all-storage --nvram
+echo "--- Updating Flake ---"
+nix flake update
 
-# build the image
-sudo nix build .#vm-development-qcow
+echo "--- Building VM Image ---"
+nix build .#dev-vm-qcow --out-link result-vm
 
-# copy the image into place on tank storage
-sudo cp result/nixos.qcow2 /tank/VMs/images/development-vm.qcow2
+# # Remove existing VM if it exists (Optional: check first)
+# if sudo virsh dominfo "$VM_NAME" >/dev/null 2>&1; then
+#     sudo virsh destroy "$VM_NAME" || true
+#     sudo virsh undefine "$VM_NAME" --remove-all-storage --snapshots-metadata --nvram
+# fi
 
-# Create and start VM
-# sudo virt-install \
-#       --name=development-vm \
-#       --memory=4096 \
-#       --vcpus=2 \
-#       --disk path=/tank/VMs/images/development-vm.qcow2,device=disk,bus=virtio \
-#       --os-variant=generic \
-#       --boot uefi \
-#       --nographics \
-#       --console pty,target_type=virtio \
-#       --network bridge=virbr0,model=virtio \
-#       --import \
-#       --memorybacking=source.type=memfd,access.mode=shared \
-#       --filesystem=/tank/vm-storage/,vm-shared,driver.type=virtiofs \
-#       --cloud-init user-data=user-data.yml
+echo "--- Deploying Image to Storage ---"
+# Copy out of Nix store to destination
+sudo rm -f "$IMAGE_DEST"
+sudo cp ./result-vm/nixos.qcow2 "$IMAGE_DEST"
+sudo chmod 660 "$IMAGE_DEST"
+
+# Expand to 200GB ceiling (instant on ZFS)
+sudo qemu-img resize "$IMAGE_DEST" 200G
+
+echo "--- Provisioning VM ---"
 sudo virt-install \
-      --name=development-vm \
-      --memory=4096 \
-      --vcpus=2 \
-      --disk path=/tank/VMs/images/development-vm.qcow2,device=disk,bus=virtio \
-      --os-variant=generic \
-      --boot uefi \
-      --nographics \
-      --console pty,target_type=virtio \
-      --network bridge=virbr0,model=virtio \
-      --import
+  --name="$VM_NAME" \
+  --memory=8192 \
+  --vcpus=4 \
+  --disk path="$IMAGE_DEST",device=disk,bus=virtio \
+  --os-variant=nixos-unstable \
+  --boot uefi \
+  --network bridge=virbr0,model=virtio \
+  --graphics none \
+  --noautoconsole \
+  --import
 
-# TODO find the mac address
-VM_MAC_ADDRESS=$(sudo virsh domiflist development-vm | tail -n 2 | cut -w -f 6)
-echo "VM MAC: $VM_MAC_ADDRESS"
 
-# TODO: find the IP address
-VM_IP_ADDRESS=$(ip neigh | grep "$VM_MAC_ADDRESS" | cut -w -f 1)
-# TODO: output the IP Address
-echo "IP: $VM_IP_ADDRESS"
+echo "Connect with: ssh rramirez@$dev-vm-xps"

@@ -8,6 +8,7 @@ set -e
 # Your machines - edit this list
 MACHINES=(
     "xps17:xps17"
+    "dev-vm-xps:dev-vm-xps"
     "fwai0:fwai0"
     "homeserver:homeserver"
     "driver:driver"

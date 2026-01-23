@@ -1,4 +1,4 @@
-{ config, pkgs, pkgs-unstable, ... }:
+{ config, lib, pkgs, pkgs-unstable, ... }:
 {
   # Enable KVM kernel modules
   boot.kernelModules = [ "kvm-intel" "tun" ];
@@ -46,6 +46,8 @@
     # Allow libvirt bridge traffic
     trustedInterfaces = [ "virbr0" ];
   };
+  system.nssModules = [ pkgs.libvirt ];
+  system.nssDatabases.hosts = lib.mkForce [ "files" "libvirt" "dns" "myhostname" ];
 
   # Enable default libvirt network
   systemd.services.libvirtd.postStart = ''

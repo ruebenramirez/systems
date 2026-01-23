@@ -1,6 +1,5 @@
 {
   nixConfig = {
-
     download-buffer-size = 500000000; # 500MB
   };
 
@@ -54,60 +53,46 @@
     });
 
   in {
+
     # VM image configurations
     packages = forAllSystems (system: {
-      vm-base-qcow = nixos-generators.nixosGenerate {
-        system = system;
-        specialArgs = {
-          pkgs-unstable = unstableFor.${system};
-        };
-        modules = [
-          ./nix/machines/_common/base/default.nix
-          ./nix/machines/_common/vm-base.nix
-          {
-            networking.hostName = "nixos-vm";
-            # Override for image building
-            virtualisation.diskSize = 10 * 1024; # 10GB
-          }
-        ];
+      dev-vm-qcow = nixos-generators.nixosGenerate {
+        system = "x86_64-linux";
         format = "qcow";
-      };
+        specialArgs = { pkgs-unstable = unstableFor.${system}; };
 
-      vm-development-qcow = nixos-generators.nixosGenerate {
-        system = system;
-        specialArgs = {
-          pkgs-unstable = unstableFor.${system};
-        };
         modules = [
-          ./nix/machines/_common/base/default.nix
-          ./nix/machines/_common/vm-base.nix
-          {
-            networking.hostName = "development-vm";
-            virtualisation.diskSize = 20 * 1024; # 20GB
+          ./nix/machines/dev-vm-xps/configuration.nix
+          ({ config, lib, pkgs, modulesPath, ... }: {
+            nixpkgs.config.allowUnfree = true;
 
-            # Development-specific packages
-            environment.systemPackages = with nixpkgsFor.${system}; [
-              vim
-              git
-              nodejs
-              python3
-            ];
-          }
+            # Use the built-in image builder with UEFI support
+            system.build.qcow = lib.mkForce (
+              import "${modulesPath}/../lib/make-disk-image.nix" {
+                inherit lib config pkgs;
+                format = "qcow2";
+                partitionTableType = "efi"; # Creates the ESP partition /boot needs
+                installBootLoader = true;   # Runs systemd-boot installation
+                diskSize = "auto";          # Prevents the 200GB I/O hang
+                additionalSpace = "4G";
+                memSize = 8192;             # Required RAM for your large closure
+              }
+            );
+
+            boot.growPartition = true;
+          })
         ];
-        format = "qcow";
       };
     });
 
-
+    # active machines
     nixosConfigurations = {
 
-      "homeserver" = nixpkgs.lib.nixosSystem {
+      "dev-vm-xps" = nixpkgs.lib.nixosSystem {
         modules = [
-          ./nix/machines/homeserver/configuration.nix
-          nixpkgs.nixosModules.readOnlyPkgs
-          {
+          ./nix/machines/dev-vm-xps/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs {
             nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-            # Pass unstable packages via _module.args instead of specialArgs
             _module.args = {
               pkgs-unstable = unstableFor."x86_64-linux";
             };
@@ -118,10 +103,20 @@
       "driver" = nixpkgs.lib.nixosSystem {
         modules = [
           ./nix/machines/driver/configuration.nix
-          nixpkgs.nixosModules.readOnlyPkgs
-          {
+          nixpkgs.nixosModules.readOnlyPkgs {
             nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-            # Pass unstable packages via _module.args instead of specialArgs
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
+      "homeserver" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/homeserver/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
             _module.args = {
               pkgs-unstable = unstableFor."x86_64-linux";
             };
@@ -132,22 +127,7 @@
       "fwai0" = nixpkgs.lib.nixosSystem {
         modules = [
           ./nix/machines/fwai0/configuration.nix
-          nixpkgs.nixosModules.readOnlyPkgs
-          {
-            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-            # Pass unstable packages via _module.args instead of specialArgs
-            _module.args = {
-              pkgs-unstable = unstableFor."x86_64-linux";
-            };
-          }
-        ];
-      };
-
-      "x220" = nixpkgs.lib.nixosSystem {
-        modules = [
-          ./nix/machines/x220/configuration.nix
-          nixpkgs.nixosModules.readOnlyPkgs
-          {
+          nixpkgs.nixosModules.readOnlyPkgs {
             nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
             _module.args = {
               pkgs-unstable = unstableFor."x86_64-linux";
@@ -156,14 +136,15 @@
         ];
       };
 
-      "xps17" = nixpkgs.lib.nixosSystem {
+      "raspberry-pi" = nixpkgs.lib.nixosSystem {
         modules = [
-          ./nix/machines/xps17/configuration.nix
-          nixpkgs.nixosModules.readOnlyPkgs
-          {
-            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+          nixos-hardware.nixosModules.raspberry-pi-4
+          "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
+          ./nix/machines/raspberry-pi/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs {
+            nixpkgs.pkgs = nixpkgsFor."aarch64-linux";
             _module.args = {
-              pkgs-unstable = unstableFor."x86_64-linux";
+              pkgs-unstable = unstableFor."aarch64-linux";
             };
           }
         ];
@@ -172,8 +153,7 @@
       "ssdnodes-1" = nixpkgs.lib.nixosSystem {
         modules = [
           ./nix/machines/ssdnodes-1/configuration.nix
-          nixpkgs.nixosModules.readOnlyPkgs
-          {
+          nixpkgs.nixosModules.readOnlyPkgs {
             nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
             _module.args = {
               pkgs-unstable = unstableFor."x86_64-linux";
@@ -185,20 +165,30 @@
         };
       };
 
-      "raspberry-pi" = nixpkgs.lib.nixosSystem {
+      "x220" = nixpkgs.lib.nixosSystem {
         modules = [
-          nixos-hardware.nixosModules.raspberry-pi-4
-          "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
-          ./nix/machines/raspberry-pi/configuration.nix
-          nixpkgs.nixosModules.readOnlyPkgs
-          {
-            nixpkgs.pkgs = nixpkgsFor."aarch64-linux";
+          ./nix/machines/x220/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
             _module.args = {
-              pkgs-unstable = unstableFor."aarch64-linux";
+              pkgs-unstable = unstableFor."x86_64-linux";
             };
           }
         ];
       };
+
+      "xps17" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/xps17/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
     };
   };
 }
