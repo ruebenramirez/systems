@@ -2,9 +2,9 @@
 
 {
   imports = [
-    ../_common/gpu-amd.nix
     ../_common/base/default.nix
     ../_common/dev.nix
+    ../_common/gpu-amd.nix
     ../_common/services/kubernetes.nix
     ../_common/services/syncthing-remote-admin.nix
     ../_common/wg-client.nix
