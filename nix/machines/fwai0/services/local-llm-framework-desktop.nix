@@ -48,4 +48,12 @@
     port = 8888;
     package = pkgs-unstable.open-webui;
   };
+
+
+
+  environment.systemPackages = with pkgs; [
+    llama-cpp-rocm # model file manipulation
+    #llama-cpp-vulkan
+    python3Packages.huggingface-hub # for huggingface-cli
+  ];
 }
