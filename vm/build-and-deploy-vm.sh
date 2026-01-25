@@ -1,36 +1,76 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-set -e
+# Default values
+DISK_SIZE="200"
+MEMORY="512"
 
-VM_NAME="dev-vm-xps"
+# Usage information
+usage() {
+    echo "Usage: $0 [OPTIONS] <vm-name>"
+    echo ""
+    echo "Options:"
+    echo "  --size    Disk size in GB. Default: 200"
+    echo "  --memory  Memory in MB. Default: 512"
+    exit 1
+}
+
+# Parse flags
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --size)
+            DISK_SIZE="$2"
+            if ! [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
+                echo "Error: --size requires a numeric value."
+                exit 1
+            fi
+            shift 2
+            ;;
+        --memory)
+            MEMORY="$2"
+            if ! [[ "$MEMORY" =~ ^[0-9]+$ ]]; then
+                echo "Error: --memory requires a numeric value."
+                exit 1
+            fi
+            shift 2
+            ;;
+        -*)
+            echo "Unknown option: $1"
+            usage
+            ;;
+        *)
+            break # Stop parsing flags; the rest is the VM name
+            ;;
+    esac
+done
+
+# Check if VM name is provided after flags
+if [ $# -eq 0 ]; then
+    echo "Error: No VM name provided."
+    usage
+fi
+
+VM_NAME="$1"
 IMAGE_DEST="/devpool/VMs/images/${VM_NAME}.qcow2"
 
 echo "--- Updating Flake ---"
 nix flake update
 
-echo "--- Building VM Image ---"
-nix build .#dev-vm-qcow --out-link result-vm
-
-# # Remove existing VM if it exists (Optional: check first)
-# if sudo virsh dominfo "$VM_NAME" >/dev/null 2>&1; then
-#     sudo virsh destroy "$VM_NAME" || true
-#     sudo virsh undefine "$VM_NAME" --remove-all-storage --snapshots-metadata --nvram
-# fi
+echo "--- Building VM Image for target: .#${VM_NAME}-image ---"
+nix build ".#${VM_NAME}-image" --out-link "result-${VM_NAME}"
 
 echo "--- Deploying Image to Storage ---"
-# Copy out of Nix store to destination
 sudo rm -f "$IMAGE_DEST"
-sudo cp ./result-vm/nixos.qcow2 "$IMAGE_DEST"
+sudo cp "./result-${VM_NAME}/nixos.qcow2" "$IMAGE_DEST"
 sudo chmod 660 "$IMAGE_DEST"
 
-# Expand to 200GB ceiling (instant on ZFS)
-sudo qemu-img resize "$IMAGE_DEST" 200G
+echo "--- Resizing Image to ${DISK_SIZE}G ---"
+sudo qemu-img resize "$IMAGE_DEST" "${DISK_SIZE}G"
 
-echo "--- Provisioning VM ---"
+echo "--- Provisioning VM: $VM_NAME (${MEMORY}MB RAM) ---"
 sudo virt-install \
   --name="$VM_NAME" \
-  --memory=8192 \
+  --memory="$MEMORY" \
   --vcpus=4 \
   --disk path="$IMAGE_DEST",device=disk,bus=virtio \
   --os-variant=nixos-unstable \
@@ -40,5 +80,5 @@ sudo virt-install \
   --noautoconsole \
   --import
 
-
-echo "Connect with: ssh rramirez@$dev-vm-xps"
+echo "--- Deployment Complete ---"
+echo "Connect with: ssh rramirez@$VM_NAME"
