@@ -56,11 +56,12 @@
 
     # VM image configurations
     packages = forAllSystems (system: {
-      dev-vm-qcow = nixos-generators.nixosGenerate {
+
+
+      dev-vm-xps-image = nixos-generators.nixosGenerate {
         system = "x86_64-linux";
         format = "qcow";
         specialArgs = { pkgs-unstable = unstableFor.${system}; };
-
         modules = [
           ./nix/machines/dev-vm-xps/configuration.nix
           ({ config, lib, pkgs, modulesPath, ... }: {
@@ -78,12 +79,42 @@
                 memSize = 8192;             # Required RAM for your large closure
               }
             );
-
             boot.growPartition = true;
           })
         ];
       };
+
+
+      download-vm-xps-image = nixos-generators.nixosGenerate {
+        system = "x86_64-linux";
+        format = "qcow";
+        specialArgs = { pkgs-unstable = unstableFor.${system}; };
+        modules = [
+          ./nix/machines/download-vm-xps/configuration.nix
+          ({ config, lib, pkgs, modulesPath, ... }: {
+            nixpkgs.config.allowUnfree = true;
+            # Use the built-in image builder with UEFI support
+            system.build.qcow = lib.mkForce (
+              import "${modulesPath}/../lib/make-disk-image.nix" {
+                inherit lib config pkgs;
+                format = "qcow2";
+                partitionTableType = "efi";
+                installBootLoader = true;
+                diskSize = "auto";
+                additionalSpace = "4G";
+                memSize = 512;
+              }
+            );
+            boot.growPartition = true;
+          })
+        ];
+      };
+
+
     });
+
+
+
 
     # active machines
     nixosConfigurations = {
