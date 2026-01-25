@@ -16,11 +16,11 @@
   };
 
   fileSystems."/" = {
-    device = "/dev/vda2";
+    device = lib.mkForce "/dev/vda2";
     fsType = "ext4";
   };
   fileSystems."/boot" = {
-    device = "/dev/vda1";
+    device = lib.mkForce "/dev/vda1";
     fsType = "vfat";
   };
 

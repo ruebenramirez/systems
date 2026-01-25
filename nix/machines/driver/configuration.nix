@@ -40,11 +40,8 @@
     hostName = "driver";
     hostId = "6f602d2b";
 
-    # disable NetworkManager
     networkmanager.enable = false;
     wireless.enable = true;
-
-    # use systemd.networkd full stop
     useNetworkd = true;
 
     # The global useDHCP flag is deprecated, therefore explicitly set to false here.

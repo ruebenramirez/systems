@@ -17,11 +17,11 @@
   };
 
   fileSystems."/" = {
-    device = "/dev/vda2";
+    device = lib.mkForce "/dev/vda2";
     fsType = "ext4"; # This is the default for nixos-generators QCOW2 images
   };
   fileSystems."/boot" = {
-    device = "/dev/vda1";
+    device = lib.mkForce "/dev/vda1";
     fsType = "vfat";
   };
 
