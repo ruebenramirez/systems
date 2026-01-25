@@ -7,10 +7,10 @@
     ../_common/fingerprint-reader.nix
     ../_common/gaming.nix
     ../_common/gpu-nvidia.nix
+    ../_common/home-vpn-client.nix
     ../_common/services/kubernetes.nix
     ../_common/services/syncthing-remote-admin.nix
     ../_common/services/virtualization-intel.nix
-    ../_common/wg-client.nix
     ./hardware-configuration.nix
     ./services/local-llm-Nvidia.nix
   ];

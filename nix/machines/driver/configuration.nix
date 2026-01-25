@@ -11,12 +11,13 @@
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
       ../_common/gpu-amd.nix
+      ../_common/home-vpn-client.nix
+      ../_common/mullvad-client.nix
       ../_common/rust-dev.nix
       ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
       ./services/local-llm-AMD.nix
-      ./wg.nix
     ];
 
   # Set your time zone.

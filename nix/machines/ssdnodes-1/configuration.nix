@@ -11,7 +11,7 @@
       ./tailscale-exit-node.nix
       ../_common/base/default.nix
       ../_common/services/kubernetes.nix
-      ./wg.nix
+      ../_common/home-vpn-client.nix
     ];
 
   # Set your time zone.
