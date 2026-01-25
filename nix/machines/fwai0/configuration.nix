@@ -3,9 +3,9 @@
 {
   imports =
     [
-      ../_common/gpu-amd.nix
       ../_common/base/default.nix
       ../_common/dev.nix
+      ../_common/gpu-amd.nix
       ../_common/home-vpn-client.nix
       ../_common/rust-dev.nix
       ./hardware-configuration.nix
