@@ -10,12 +10,8 @@
     ../_common/services/syncthing-remote-admin.nix
     ./hardware-configuration.nix
 
-    # TODO: fine tune for better performance
-    #./save-power-amd.nix
-
     # virtualization services
     ../_common/services/virtualization-amd.nix
-    ../_common/services/vm-scripts.nix
     ../_common/services/vm-storage.nix
 
     # homeserver services
@@ -37,9 +33,6 @@
 
   nix.settings = {
     trusted-users = [ "rramirez" ];
-
-    # Set the download buffer size to 500 MB
-    download-buffer-size = 524288000;
   };
 
   # remove the annoying experimental warnings
@@ -50,7 +43,6 @@
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.supportedFilesystems = [ "ntfs" ];
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   networking = {
