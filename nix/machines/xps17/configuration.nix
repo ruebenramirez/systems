@@ -33,14 +33,25 @@
     hostName = "xps17";
     hostId = "6f602d2c";
 
-    # Networking patch for Tailscale exit node usage
-    # Remove warning from tailscale:
-    #  Strict reverse path filtering breaks Tailscale exit node use
-    #    and some subnet routing setups
+    networkmanager.enable = false;
+    wireless.enable = false;
     firewall.checkReversePath = "loose";
-    # tailscale exit node usage on ipv6
     nftables.enable = true;
-    networkmanager.enable = true;
+
+    useNetworkd = true;
+
+    # The global useDHCP flag is deprecated, therefore explicitly set to false here.
+    # Per-interface useDHCP will be mandatory in the future, so this generated config
+    # replicates the default behaviour.
+    useDHCP = false;
+
+    # Make sure that dhcpcd doesnt timeout when interfaces are down
+    # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
+    dhcpcd.wait = "if-carrier-up";
+
+    # 2.5g Ethernet usb-c dongle
+    interfaces.enp0s13f0u4.useDHCP = true;
+
   };
 
   # DNS services
