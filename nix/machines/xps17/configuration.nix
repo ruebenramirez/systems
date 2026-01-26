@@ -49,9 +49,10 @@
     # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
     dhcpcd.wait = "if-carrier-up";
 
-    # 2.5g Ethernet usb-c dongle
-    interfaces.enp0s13f0u4.useDHCP = true;
-
+    # 2.5g Ethernet usb-c dongle as bridge to physical network
+    bridges."br0".interfaces = [ "enp0s13f0u4" ];
+    interfaces.enp0s13f0u4.useDHCP = false;
+    interfaces.br0.useDHCP = true;
   };
 
   # DNS services
