@@ -75,7 +75,7 @@ sudo virt-install \
   --disk path="$IMAGE_DEST",device=disk,bus=virtio \
   --os-variant=nixos-unstable \
   --boot uefi \
-  --network bridge=virbr0,model=virtio \
+  --network bridge=br0,model=virtio \
   --graphics none \
   --noautoconsole \
   --import

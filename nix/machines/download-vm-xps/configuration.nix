@@ -33,9 +33,11 @@
 
   networking = {
     hostName = "download-vm-xps";
-    firewall.checkReversePath = "loose";
+    useNetworkd = true;
+    interfaces.enp1s0.useDHCP = true;
     nftables.enable = true;
-    useDHCP = true;
+    useDHCP = false;
+    firewall.checkReversePath = "loose";
   };
 
   # Enable QEMU guest agent
