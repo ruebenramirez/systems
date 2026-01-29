@@ -18,12 +18,12 @@
       OLLAMA_NUM_PARALLEL = "4";
 
       # Memory Management (128GB GTT Optimization)
-      OLLAMA_NUM_CTX = "32768";         # 32k context window
+      OLLAMA_NUM_CTX = "64000";
       OLLAMA_MAX_LOADED_MODELS = "3";
       OLLAMA_KEEP_ALIVE = "-1";
       OLLAMA_NOPREFIX = "1";
       OLLAMA_MAX_QUEUE = "512";
-      OLLAMA_CONTEXT_LENGTH = "32768";
+      OLLAMA_CONTEXT_LENGTH = "64000";
     };
   };
   networking.firewall.allowedTCPPorts = [
