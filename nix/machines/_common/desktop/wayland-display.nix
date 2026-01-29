@@ -52,6 +52,11 @@
         output "GWD ARZOPA 0x70320205" mode 2560x1600 position 1920,0 scale 1.20
       }
 
+      profile thinkpad_xreal_display_glasses {
+        output "Lenovo Group Limited 0x403A Unknown" disable
+        output "Nreal XREAL 1S Unknown" mode 3840x1200 position 0,0
+      }
+
       profile xps17_undocked {
         output "Sharp Corporation 0x1517 Unknown" mode 3840x2400@60Hz position 0,0 scale 2.00
       }
