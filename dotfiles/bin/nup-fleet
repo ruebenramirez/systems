@@ -13,7 +13,7 @@ MACHINES=(
     "homeserver:homeserver"
     "driver:driver"
     "ssdnodes-1:ssdnodes-1"
-    "raspberry-pi:raspberry-pi"
+    "pi-syncoid-target:pi-syncoid-target"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"

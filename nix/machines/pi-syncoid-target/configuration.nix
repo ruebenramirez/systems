@@ -63,7 +63,7 @@
   };
 
   networking = {
-    hostName = "raspberry-pi";
+    hostName = "pi-syncoid-target";
     hostId = "42eb57a2";  # Generate a unique 8-char hex ID
 
     networkmanager.enable = true;
