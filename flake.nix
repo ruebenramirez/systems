@@ -111,6 +111,33 @@
       };
 
 
+      openclaw-vm-image = nixos-generators.nixosGenerate {
+        system = "x86_64-linux";
+        format = "qcow";
+        specialArgs = { pkgs-unstable = unstableFor.${system}; };
+        modules = [
+          ./nix/machines/openclaw-vm-xps/configuration.nix
+          ({ config, lib, pkgs, modulesPath, ... }: {
+            nixpkgs.config.allowUnfree = true;
+
+            # Use the built-in image builder with UEFI support
+            system.build.qcow = lib.mkForce (
+              import "${modulesPath}/../lib/make-disk-image.nix" {
+                inherit lib config pkgs;
+                format = "qcow2";
+                partitionTableType = "efi"; # Creates the ESP partition /boot needs
+                installBootLoader = true;   # Runs systemd-boot installation
+                diskSize = "auto";          # Prevents the 200GB I/O hang
+                additionalSpace = "4G";
+                memSize = 8192;             # Required RAM for your large closure
+              }
+            );
+            boot.growPartition = true;
+          })
+        ];
+      };
+
+
     });
 
 
@@ -158,6 +185,18 @@
       "fwai0" = nixpkgs.lib.nixosSystem {
         modules = [
           ./nix/machines/fwai0/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
+      "openclaw-vm" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/openclaw-vm/configuration.nix
           nixpkgs.nixosModules.readOnlyPkgs {
             nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
             _module.args = {
