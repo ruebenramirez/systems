@@ -4,24 +4,26 @@ set -euo pipefail
 # Default values
 DISK_SIZE="200"
 MEMORY="512"
+VCPUS="2"
 
 # Usage information
 usage() {
     echo "Usage: $0 [OPTIONS] <vm-name>"
     echo ""
     echo "Options:"
-    echo "  --size    Disk size in GB. Default: 200"
-    echo "  --memory  Memory in MB. Default: 512"
+    echo "  --disk-size  Disk size in GB. Default: 200"
+    echo "  --memory     Memory in MB. Default: 512"
+    echo "  --vcpus      Number of vCPUs. Default: 2"
     exit 1
 }
 
 # Parse flags
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --size)
+        --disk-size)
             DISK_SIZE="$2"
             if ! [[ "$DISK_SIZE" =~ ^[0-9]+$ ]]; then
-                echo "Error: --size requires a numeric value."
+                echo "Error: --disk-size requires a numeric value."
                 exit 1
             fi
             shift 2
@@ -30,6 +32,14 @@ while [[ $# -gt 0 ]]; do
             MEMORY="$2"
             if ! [[ "$MEMORY" =~ ^[0-9]+$ ]]; then
                 echo "Error: --memory requires a numeric value."
+                exit 1
+            fi
+            shift 2
+            ;;
+        --vcpus)
+            VCPUS="$2"
+            if ! [[ "$VCPUS" =~ ^[0-9]+$ ]]; then
+                echo "Error: --vcpus requires a numeric value."
                 exit 1
             fi
             shift 2
@@ -67,11 +77,11 @@ sudo chmod 660 "$IMAGE_DEST"
 echo "--- Resizing Image to ${DISK_SIZE}G ---"
 sudo qemu-img resize "$IMAGE_DEST" "${DISK_SIZE}G"
 
-echo "--- Provisioning VM: $VM_NAME (${MEMORY}MB RAM) ---"
+echo "--- Provisioning VM: $VM_NAME (${MEMORY}MB RAM, ${VCPUS} vCPUs) ---"
 sudo virt-install \
   --name="$VM_NAME" \
   --memory="$MEMORY" \
-  --vcpus=4 \
+  --vcpus="$VCPUS" \
   --disk path="$IMAGE_DEST",device=disk,bus=virtio \
   --os-variant=nixos-unstable \
   --boot uefi \
