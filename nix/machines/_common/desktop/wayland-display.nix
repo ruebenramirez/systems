@@ -46,15 +46,15 @@
         output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2134,0 scale 1.10
       }
 
-
       profile thinkpad_external_usbc_monitor_left {
         output "Lenovo Group Limited 0x403A Unknown" mode 1920x1200 position 0,0
         output "GWD ARZOPA 0x70320205" mode 2560x1600 position 1920,0 scale 1.20
       }
 
-      profile thinkpad_xreal_display_glasses {
+      profile thinkpad_xreal_virtual_display {
         output "Lenovo Group Limited 0x403A Unknown" disable
-        output "Nreal XREAL 1S Unknown" mode 3840x1200 position 0,0
+        output "Nreal XREAL 1S Unknown" mode 1920x1200@120Hz position 0,0
+        #output "Nreal XREAL 1S Unknown" mode 3840x1080 position 0,0
       }
 
       profile xps17_undocked {
