@@ -35,6 +35,11 @@
           cmp-path
           cmp-buffer  # Added for buffer completions
 
+          # genAI stuffs
+          aider-nvim # https://github.com/joshuavial/aider.nvim/
+          gen-nvim # https://github.com/David-Kunz/gen.nvim/
+          plenary-nvim
+
           # Navigation and search
           telescope-nvim
           telescope-manix
@@ -156,6 +161,28 @@
         " LUA CONFIGURATION
         " ========================================
         lua << EOF
+
+        -- ========================================
+        -- GEN.NVIM CONFIGURATION (Remote Ollama)
+        -- ========================================
+        require('gen').setup({
+            model = "glm-4.7-flash:q4_K_M", -- Your specific model
+            host = "10.100.0.31",          -- Your remote server IP
+            port = "11434",                -- Default Ollama port
+            display_mode = "float",
+            show_prompt = true,
+            show_model = true,
+            no_auto_close = false,
+            -- We remove the 'init' function because Ollama is remote
+            debug = false
+        })
+
+        -- Keymaps for Gen
+        vim.keymap.set({ 'n', 'v' }, '<leader>gg', ':Gen<CR>', { desc = "Gen Menu" })
+        vim.keymap.set({ 'n', 'v' }, '<leader>ge', ':Gen Chat<CR>', { desc = "Gen Chat" })
+
+
+
         -- Set leader key early
         vim.g.mapleader = ' '
         vim.g.maplocalleader = ' '
@@ -492,7 +519,8 @@
         })
 
         EOF
-      '';
+      ''; # end of customRC var
+
     };
   };
 }
