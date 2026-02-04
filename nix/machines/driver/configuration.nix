@@ -18,7 +18,7 @@
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
       ./services/local-llm-AMD.nix
-      ./lofree-keyboard-udev-disable-thinkpad-keyboard.nix
+      ./udev-rules/lofree-keyboard-udev-disable-thinkpad-keyboard.nix
     ];
 
   # Set your time zone.
