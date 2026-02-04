@@ -31,8 +31,8 @@ configure_network() {
   echo "Setting wpa_supplicant config to $wpa_src"
   sudo ln -sf "$wpa_src" "$wpa_dst"
 
-  local wg0_src="/persist/etc/wireguard/wgnet/wg0-wgnet-${mode}.conf"
-  local wg0_dst="/persist/etc/wireguard/wg0-wgnet.conf"
+  local wg0_src="/persist/etc/wireguard/wgnet/jellinet-${mode}.conf"
+  local wg0_dst="/persist/etc/wireguard/wgnet-home.conf"
 
   echo "Setting wg0 config to $wpa_src"
   sudo ln -sf "$wg0_src" "$wg0_dst"
