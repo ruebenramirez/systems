@@ -19,6 +19,7 @@
       ./mtp-storage-access.nix
       ./services/local-llm-AMD.nix
       ./udev-rules/lofree-keyboard-udev-disable-thinkpad-keyboard.nix
+      ./udev-rules/xreal-udev-unplug-restart-kanshi.nix
     ];
 
   # Set your time zone.
