@@ -57,6 +57,7 @@ alias tls="tmux ls"
 alias tad="tmux a -d"
 alias k="kubectl"
 alias repomix="nix-shell -p nodejs --run 'npx repomix --stdout --copy'"
+alias cal="cal --monday --week --year --iso"
 
 if command -v git &>/dev/null
     alias gg="git grep"
