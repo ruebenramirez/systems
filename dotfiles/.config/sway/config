@@ -360,14 +360,12 @@ assign [app_id="workstation"] workspace 4
 # GUI Apps
 assign [app_id="1Password"]   workspace 7
 assign [app_id="thunderbird"] workspace 8
-assign [app_id="firefox"]     workspace 9
+assign [app_id="brave-browser"]     workspace 9
 assign [app_id="Signal"]      workspace 10
 
-# --- Advanced Firefox Rule for Workspace 10 ---
-# Since both Firefox windows have the same app_id, we tell Sway to move
-# the one containing "Cheogram" in the title to workspace 10.
-for_window [app_id="firefox" title=".*Cheogram.*"] move to workspace 10
-
+# Cheogram (Brave App Mode)
+# When Brave runs in --app mode, it uses a unique app_id based on the URL
+assign [app_id="brave-app.cheogram.com__-Default"] workspace 10
 # --- Window Behavior ---
 for_window [workspace=10] layout splith
 
