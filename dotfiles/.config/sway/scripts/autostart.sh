@@ -12,8 +12,8 @@ launch_terminal() {
     fi
 }
 
-# 1: btop (Uncomment if you want it active)
-# launch_terminal 1 "stats" "btop"
+# 1: btop
+#launch_terminal 1 "stats" "btop"
 
 # 3: Notes session
 launch_terminal 3 "notes" "cd ~/notes"
@@ -27,24 +27,14 @@ pgrep -x 1password > /dev/null || swaymsg "workspace 7; exec 1password"
 # 8: Thunderbird
 pgrep -x thunderbird > /dev/null || swaymsg "workspace 8; exec thunderbird"
 
-# 9: Brave (Homepage)
-# Launching the main browser instance
-if ! pgrep -x brave > /dev/null; then
-    swaymsg "workspace 9; exec brave"
-    sleep 1
-fi
+# 9: Firefox (Homepage)
+swaymsg "workspace 9; exec firefox"
 
 # 10: Cheogram and Signal
+# We launch Cheogram in a new Firefox window
 swaymsg "workspace 10"
-# Use --app for Cheogram to give it a unique window class
-if ! pgrep -f "app.cheogram.com" > /dev/null; then
-    exec brave --app=https://app.cheogram.com &
-fi
-
-if ! pgrep -x signal-desktop > /dev/null; then
-    exec signal-desktop &
-fi
-
+exec firefox --new-window https://app.cheogram.com &
+exec signal-desktop &
 sleep 2
 
 # Return to Workspace 9
