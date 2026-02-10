@@ -158,6 +158,18 @@
         ];
       };
 
+      "download-vm-xps" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/download-vm-xps/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
       "driver" = nixpkgs.lib.nixosSystem {
         modules = [
           ./nix/machines/driver/configuration.nix

@@ -15,6 +15,7 @@ MACHINES=(
     "ssdnodes-1:ssdnodes-1"
     "pi-syncoid-target:pi-syncoid-target"
     "openclaw-vm:openclaw-vm"
+    "download-vm-xps:download-vm-xps"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
