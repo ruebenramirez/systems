@@ -8,7 +8,7 @@
       ../_common/build-machine.nix
       ../_common/desktop/default.nix
       ../_common/dev.nix
-      ../_common/fingerprint-reader.nix
+      #../_common/fingerprint-reader.nix
       ../_common/gaming.nix
       ../_common/gpu-amd.nix
       ../_common/home-vpn-client.nix
