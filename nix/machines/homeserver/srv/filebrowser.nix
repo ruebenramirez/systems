@@ -24,8 +24,9 @@
   };
   systemd.services.filebrowser.serviceConfig = {
     UMask = lib.mkForce "0002"; # Files created will be 664, Dirs 775 (Group Writable)
+    StateDirectoryMode = lib.mkForce "0770";
   };
-
-#   # Open the port in the firewall if needed
-#   networking.firewall.allowedTCPPorts = [ 8888 ];
+  systemd.tmpfiles.rules = [
+    "z /tank/Shares 0770 filebrowser users - -"
+  ];
 }
