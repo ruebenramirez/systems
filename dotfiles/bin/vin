@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-ssh xps17-proxy -t 'cd ~/notes/ && tmux new-session -A -s notes'
+tmux new-session -A -s notes -c ~/notes/ "direnv exec . yazi"
