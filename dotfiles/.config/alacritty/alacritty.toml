@@ -5,7 +5,7 @@ TERM = "xterm-256color"
 osc52 = "CopyPaste"
 
 [font]
-size = 14
+size = 24
 
 [font.bold]
 family = "SauceCodePro Nerd Font"
