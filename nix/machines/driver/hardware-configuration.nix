@@ -22,9 +22,9 @@
 
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
-  boot.kernelPackages = pkgs.linuxPackages_latest;    # likely v6.18
-  boot.zfs.package = pkgs.zfs_2_4;                    # zfs 2.4 supports kernel v6.18
-
+  #boot.kernelPackages = pkgs.linuxPackages_latest;
+  boot.kernelPackages = pkgs.linuxPackages_6_18;
+  boot.zfs.package = pkgs.zfs_2_4;
 
   fileSystems."/" =
     { device = "zroot/local/root";
