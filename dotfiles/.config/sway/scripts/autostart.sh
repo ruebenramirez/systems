@@ -13,13 +13,13 @@ launch_terminal() {
 }
 
 # 1: btop
-#launch_terminal 1 "stats" "btop"
+launch_terminal 1 "stats" "btop"
 
 # 3: Notes session
 launch_terminal 3 "notes" "cd ~/notes"
 
 # 4: Workstation SSH
-launch_terminal 4 "workstation" "ssh xps17-proxy"
+launch_terminal 4 "workstation" "hostname -f"
 
 # 7: 1Password
 pgrep -x 1password > /dev/null || swaymsg "workspace 7; exec 1password"
@@ -31,7 +31,6 @@ pgrep -x thunderbird > /dev/null || swaymsg "workspace 8; exec thunderbird"
 swaymsg "workspace 9; exec firefox"
 
 # 10: Cheogram and Signal
-# We launch Cheogram in a new Firefox window
 swaymsg "workspace 10"
 exec firefox --new-window https://app.cheogram.com &
 exec signal-desktop &
