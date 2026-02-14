@@ -8,7 +8,7 @@
       ../_common/build-machine.nix
       ../_common/desktop/default.nix
       ../_common/dev.nix
-      #../_common/fingerprint-reader.nix
+      ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
       ../_common/gpu-amd.nix
       ../_common/home-vpn-client.nix
@@ -183,8 +183,10 @@
 
   # if laptop lid closes
   services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
-  #services.logind.settings.Login.HandleLidSwitch = "ignore";       # clamshell w/out power
-  services.logind.settings.Login.HandleLidSwitchDocked = "ignore";  # clamshell w/ power
+  # clamshell w/out power
+  #services.logind.settings.Login.HandleLidSwitch = "ignore";
+  # clamshell w/ power
+  #services.logind.settings.Login.HandleLidSwitchDocked = "ignore";
 
   services.cron = {
     enable = true;
