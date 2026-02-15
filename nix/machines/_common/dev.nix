@@ -6,6 +6,9 @@
 
     # agentic dev workflow tools
     aider-chat-full
+    claude-code
+    claude-code-router
+    claude-monitor
     crush
     opencode
   ];
