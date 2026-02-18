@@ -4,7 +4,7 @@
   imports = [
     ../_common/base/default.nix
     ../_common/desktop/default.nix
-    ../_common/fingerprint-reader.nix
+    #../_common/fingerprint-reader.nix
     ../_common/gaming.nix
     ../_common/gpu-nvidia.nix
     ../_common/home-vpn-client.nix
