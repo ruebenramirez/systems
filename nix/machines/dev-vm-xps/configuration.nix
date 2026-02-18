@@ -42,6 +42,10 @@
     firewall.checkReversePath = "loose";
   };
 
+  networking.firewall.allowedTCPPorts = [
+    5173
+    8000
+  ];
   # Enable QEMU guest agent
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
