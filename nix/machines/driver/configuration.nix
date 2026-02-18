@@ -12,7 +12,7 @@
       ../_common/gaming.nix
       ../_common/gpu-amd.nix
       ../_common/home-vpn-client.nix
-      ../_common/mullvad-client.nix
+      #../_common/mullvad-client.nix
       ../_common/rust-dev.nix
       ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
