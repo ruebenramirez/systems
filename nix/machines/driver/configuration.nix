@@ -17,7 +17,7 @@
       ../_common/services/syncthing-local-admin-only.nix
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
-      ./services/local-llm-AMD.nix
+      #./services/local-llm-AMD.nix
       ./udev-rules/lofree-keyboard-udev-disable-thinkpad-keyboard.nix
       ./udev-rules/xreal-udev-unplug-restart-kanshi.nix
     ];
