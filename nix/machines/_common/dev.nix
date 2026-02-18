@@ -10,6 +10,7 @@
     claude-code-router
     claude-monitor
     crush
+    gemini-cli
     opencode
   ];
 }
