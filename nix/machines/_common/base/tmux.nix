@@ -18,7 +18,8 @@ in
     extraConfig = ''
       set -g set-clipboard on
       set -g allow-passthrough on
-      set -g default-terminal "tmux-256color"
+      #set -g default-terminal "tmux-256color"
+      set -g default-terminal "xterm-256color"
       set -g status-bg colour40
       setw -g window-status-current-style bg=colour40
 
