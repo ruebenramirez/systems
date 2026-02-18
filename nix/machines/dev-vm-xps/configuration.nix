@@ -5,6 +5,7 @@
     ../_common/dev.nix
     ../_common/home-vpn-client.nix
     ../_common/rust-dev.nix
+    ../_common/services/kubernetes.nix
   ];
 
   # Boot configuration
