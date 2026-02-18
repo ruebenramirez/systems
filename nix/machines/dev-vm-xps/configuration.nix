@@ -16,6 +16,7 @@
     "net.ipv4.ip_forward" = 1;
     "net.ipv6.conf.all.forwarding" = 1;
   };
+  boot.kernelParams = [ "console=ttyS0,115200n8" "console=tty1" ];
 
   fileSystems."/" = {
     device = lib.mkForce "/dev/vda2";
@@ -46,6 +47,12 @@
     5173
     8000
   ];
+
+  systemd.services."serial-getty@ttyS0" = {
+    enable = true;
+    wantedBy = [ "multi-user.target" ];
+  };
+
   # Enable QEMU guest agent
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
