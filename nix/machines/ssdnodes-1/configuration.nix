@@ -12,6 +12,12 @@
       ../_common/base/default.nix
       ../_common/services/kubernetes.nix
       ../_common/home-vpn-client.nix
+
+      # Matrix Synapse
+      ./srv/postgresql.nix
+      ./srv/nginx.nix
+      ./srv/matrix-synapse.nix
+      ./srv/firewall.nix
     ];
 
   # Set your time zone.
