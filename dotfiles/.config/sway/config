@@ -360,12 +360,10 @@ assign [app_id="workstation"] workspace 4
 # GUI Apps
 assign [app_id="1Password"]   workspace 7
 assign [app_id="thunderbird"] workspace 8
+assign [app_id="brave"]     workspace 9
 assign [app_id="firefox"]     workspace 9
 assign [app_id="Signal"]      workspace 10
 
-# --- Advanced Firefox Rule for Workspace 10 ---
-# Since both Firefox windows have the same app_id, we tell Sway to move
-# the one containing "Cheogram" in the title to workspace 10.
 for_window [app_id="firefox" title=".*Cheogram.*"] move to workspace 10
 
 # --- Window Behavior ---

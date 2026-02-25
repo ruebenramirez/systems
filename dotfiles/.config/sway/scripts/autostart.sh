@@ -16,7 +16,7 @@ launch_terminal() {
 launch_terminal 1 "stats" "btop"
 
 # 3: Notes session
-launch_terminal 3 "notes" "cd ~/notes"
+launch_terminal 3 "notes" "~/bin/vin"
 
 # 4: Workstation SSH
 launch_terminal 4 "workstation" "hostname -f"
