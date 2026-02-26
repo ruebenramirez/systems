@@ -165,8 +165,13 @@
         -- ========================================
         -- This overrides the default clipboard provider to wrap the OSC 52
         -- sequence in a Tmux passthrough sequence.
+        -- OSC52 is one-way (can't read from local clipboard), so we store
+        -- content locally for vim-internal paste operations.
         -- ========================================
+        local clipboard_content = {}
+
         local function osc52_copy(lines)
+            clipboard_content = lines  -- Store for paste operations
             local content = table.concat(lines, "\n")
             local base64 = vim.base64.encode(content)
             local seq = string.format("\27]52;c;%s\7", base64)
@@ -176,6 +181,7 @@
             end
             vim.fn.chansend(vim.v.stderr, seq)
         end
+
         vim.g.clipboard = {
             name = 'osc52-mosh',
             copy = {
@@ -183,8 +189,8 @@
                 ['*'] = osc52_copy,
             },
             paste = {
-                ['+'] = function() return {} end,
-                ['*'] = function() return {} end,
+                ['+'] = function() return clipboard_content end,
+                ['*'] = function() return clipboard_content end,
             },
         }
 
