@@ -163,6 +163,33 @@
         lua << EOF
 
         -- ========================================
+        -- This overrides the default clipboard provider to wrap the OSC 52
+        -- sequence in a Tmux passthrough sequence.
+        -- ========================================
+        local function osc52_copy(lines)
+            local content = table.concat(lines, "\n")
+            local base64 = vim.base64.encode(content)
+            local seq = string.format("\27]52;c;%s\7", base64)
+            if vim.env.TMUX then
+                -- Double the escapes inside the Tmux wrap
+                seq = string.format("\27Ptmux;\27%s\27\\", seq:gsub("\27", "\27\27"))
+            end
+            vim.fn.chansend(vim.v.stderr, seq)
+        end
+        vim.g.clipboard = {
+            name = 'osc52-mosh',
+            copy = {
+                ['+'] = osc52_copy,
+                ['*'] = osc52_copy,
+            },
+            paste = {
+                ['+'] = function() return {} end,
+                ['*'] = function() return {} end,
+            },
+        }
+
+
+        -- ========================================
         -- GEN.NVIM CONFIGURATION (Remote Ollama)
         -- ========================================
         require('gen').setup({
