@@ -22,6 +22,7 @@
     ./srv/smb-shares.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
+    ./srv/stalwart.nix
 
     # networking
     ./srv/cloudflared-reverse-proxy.nix
