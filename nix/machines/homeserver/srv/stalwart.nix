@@ -148,15 +148,20 @@
       # correct TOML nested table [queue.route.ses]; the latter produces the
       # literal-key form ["queue.route.ses"] which Stalwart's parser rejects.
       #
-      # SES on port 587 uses STARTTLS, so tls.implicit = false.
+      # SES on port 587 uses STARTTLS. DANE and MTA-STS are disabled to
+      # avoid validation conflicts with AWS certificates.
       # Credentials sourced from systemd LoadCredential= at runtime.
       # -----------------------------------------------------------------------
       queue.route.ses = {
-        type         = "relay";
-        address      = "email-smtp.us-east-1.amazonaws.com";
-        port         = 587;
-        protocol     = "smtp";
-        tls.implicit = false;
+        type     = "relay";
+        address  = "email-smtp.us-east-2.amazonaws.com";
+        port     = 587;
+        protocol = "smtp";
+        tls = {
+          implicit = false;
+          dane     = "disable";
+          mta-sts  = "disable";
+        };
         auth = {
           username = "%{file:/run/credentials/stalwart-mail.service/ses_username}%";
           secret   = "%{file:/run/credentials/stalwart-mail.service/ses_password}%";
@@ -248,4 +253,3 @@
     "f /persist/secrets/cloudflare-token           0600 root          root          -"
   ];
 }
-
