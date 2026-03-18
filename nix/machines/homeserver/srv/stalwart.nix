@@ -94,6 +94,20 @@
       };
 
       # -----------------------------------------------------------------------
+      # Disable Local DKIM Signing
+      # AWS SES handles DKIM signing natively via Easy DKIM. SES strictly
+      # rejects messages that arrive with existing DKIM-Signature headers.
+      # -----------------------------------------------------------------------
+      auth.dkim.sign = false;
+      report.dkim.sign = false;
+      report.dsn.sign = false;
+      report.dmarc.sign = false;
+      report.dmarc.aggregate.sign = false;
+      report.spf.sign = false;
+      report.tls.aggregate.sign = false;
+      sieve.trusted.sign = false;
+
+      # -----------------------------------------------------------------------
       # Listeners
       # Each listener requires an explicit `protocol` field.
       # `bind` must be a list.
