@@ -165,9 +165,14 @@
   services.tlp = {
     enable = true;
     settings = {
-      # Optimize for performance while on AC.
-      CPU_SCALING_GOVERNOR_ON_AC = "performance";
-      CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+      # # Optimize for performance while on AC.
+      # CPU_SCALING_GOVERNOR_ON_AC = "performance";
+      # CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+
+      # Optimize for battery while on AC.
+      #   (run laptop frequently on external battery packs)
+      CPU_SCALING_GOVERNOR_ON_AC = "powersave";
+      CPU_ENERGY_PERF_POLICY_ON_AC = "power";
 
       # Optimize for battery runtime while on battery.
       CPU_SCALING_GOVERNOR_ON_BAT = "powersave";
