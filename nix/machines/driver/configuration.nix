@@ -165,9 +165,9 @@
   services.tlp = {
     enable = true;
     settings = {
-      # # Optimize for performance while on AC.
-      # CPU_SCALING_GOVERNOR_ON_AC = "performance";
-      # CPU_ENERGY_PERF_POLICY_ON_AC = "performance";
+      # disable boost to save external usb-c pd battery bank power
+      CPU_BOOST_ON_AC = 0;
+      CPU_BOOST_ON_BAT = 0;
 
       # Optimize for battery while on AC.
       #   (run laptop frequently on external battery packs)
