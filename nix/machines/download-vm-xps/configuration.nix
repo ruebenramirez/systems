@@ -37,7 +37,12 @@
     interfaces.enp1s0.useDHCP = true;
     nftables.enable = true;
     useDHCP = false;
-    firewall.checkReversePath = "loose";
+    firewall = {
+      enable = true;
+      checkReversePath = "loose";
+      allowedTCPPorts = [ 49164 ];
+      allowedUDPPorts = [ 6881 ]; # DHT needs UDP!
+    };
   };
 
   # Enable QEMU guest agent
