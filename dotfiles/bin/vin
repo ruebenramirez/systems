@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-ssh -t xps17 "tmux new-session -A -s notes -c ~/notes/ \"direnv exec . nvim \""
+#ssh -t xps17 "tmux new-session -A -s notes -c ~/notes/ \"direnv exec . nvim \""
+mosh xps17 -- tmux new-session -A -s notes -c ~/notes/ "direnv exec . nvim"
