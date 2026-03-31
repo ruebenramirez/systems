@@ -10,8 +10,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
-  #boot.kernelPackages = pkgs.linuxPackages_latest;
-  boot.kernelPackages = pkgs.linuxPackages_6_18;
+  boot.kernelPackages = pkgs.linuxPackages_6_19;
   boot.zfs.package = pkgs.zfs_2_4;                    # zfs 2.4 supports kernel v6.18
   boot.initrd.availableKernelModules = [
     "nvme"
