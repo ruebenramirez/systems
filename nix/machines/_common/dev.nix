@@ -1,6 +1,6 @@
 { config, pkgs, pkgs-unstable, ... }:
 {
-  environment.systemPackages = with pkgs-unstable; [
+  environment.systemPackages = with pkgs; [
     harlequin # SQL TUI
     hugo
 
@@ -10,7 +10,7 @@
     claude-code-router
     claude-monitor
     crush
-    gemini-cli
+    pkgs-unstable.gemini-cli
     opencode
   ];
 }
