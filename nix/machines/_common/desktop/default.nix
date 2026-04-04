@@ -19,6 +19,7 @@ in
     autorandr # cli xrandr tool for saving/load profiles
     cheese # webcam camera tool
     libreoffice
+    obsidian
     remmina  # best RDP client
     thunderbird
     timer # fancy js cli timer
