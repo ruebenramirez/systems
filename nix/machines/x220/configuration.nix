@@ -11,6 +11,7 @@ in
     [
       ./hardware-configuration.nix
       ../_common/base/default.nix
+      ../_common/desktop/default.nix
     ];
 
   # Set your time zone.
@@ -26,7 +27,6 @@ in
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.supportedFilesystems = [ "ntfs" ];
   boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
 
   networking = {
@@ -174,8 +174,8 @@ in
   # Validate status: `sudo tlp-stat -b`
 
   # if laptop lid closes
-  services.logind.settings.Login.HandleLidSwitch = "ignore";        # clamshell w/out power
-  services.logind.settings.Login.HandleLidSwitchDocked = "ignore";  # clamshell w/ power
+  #services.logind.settings.Login.HandleLidSwitch = "ignore";        # clamshell w/out power
+  #services.logind.settings.Login.HandleLidSwitchDocked = "ignore";  # clamshell w/ power
 
 
   services.cron = {
@@ -194,5 +194,5 @@ in
   # this value at the release version of the first install of this system.
   # Before changing this value read the documentation for this option
   # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "23.11"; # Did you read the comment?
+  system.stateVersion = "25.11"; # Did you read the comment?
 }
