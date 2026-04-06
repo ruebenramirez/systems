@@ -12,6 +12,7 @@ in
       ./hardware-configuration.nix
       ../_common/base/default.nix
       ../_common/desktop/default.nix
+      ../_common/home-vpn-client.nix
     ];
 
   # Set your time zone.

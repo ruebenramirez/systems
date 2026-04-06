@@ -16,6 +16,7 @@ MACHINES=(
     "pi-syncoid-target:pi-syncoid-target"
     "openclaw-vm:openclaw-vm"
     "download-vm-xps:download-vm-xps"
+    "x220:x220"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
