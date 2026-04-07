@@ -30,9 +30,9 @@ pgrep -x thunderbird > /dev/null || swaymsg "workspace 8; exec thunderbird"
 # 9: Firefox (Homepage)
 swaymsg "workspace 9; exec firefox"
 
-# 10: Cheogram and Signal
+# 10: Google Messages and Signal
 swaymsg "workspace 10"
-exec firefox --new-window https://app.cheogram.com &
+exec firefox --new-window https://messages.google.com/web &
 exec signal-desktop &
 sleep 2
 
