@@ -7,16 +7,16 @@ set -e
 
 # Your machines - edit this list
 MACHINES=(
-    "xps17:xps17"
-    "dev-vm-xps:dev-vm-xps"
-    "fwai0:fwai0"
-    "homeserver:homeserver"
-    "driver:driver"
+    "xps17-lan:xps17"
+    "dev-vm-xps-lan:dev-vm-xps"
+    "fwai0-lan:fwai0"
+    "homeserver-lan:homeserver"
+    "driver-lan:driver"
     "ssdnodes-1:ssdnodes-1"
-    "pi-syncoid-target:pi-syncoid-target"
-    "openclaw-vm:openclaw-vm"
-    "download-vm-xps:download-vm-xps"
-    "x220:x220"
+    "pi-syncoid-target-lan:pi-syncoid-target"
+    "openclaw-vm-lan:openclaw-vm"
+    "download-vm-xps-lan:download-vm-xps"
+    #"x220-lan:x220"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
