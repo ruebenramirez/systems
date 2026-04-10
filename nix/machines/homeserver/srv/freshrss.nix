@@ -1,6 +1,10 @@
 { config, pkgs, pkgs-unstable, ... }:
 
 {
+
+  # Grant Nginx access to read the certificate owned by the shared group
+  users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
+
   services.freshrss = {
     enable = true;
     baseUrl = "https://freshrss.rueb.dev";
@@ -14,15 +18,21 @@
 
   services.nginx = {
     enable = true;
-    virtualHosts = {
-      "freshrss.rueb.dev" = {
-        listen = pkgs.lib.mkForce [{
-          addr = "127.0.0.1";
-          port = 8080;
-        }];
-      };
+
+    # Recommended default settings
+    recommendedProxySettings = true;
+    recommendedTlsSettings = true;
+    recommendedOptimisation = true;
+    recommendedGzipSettings = true;
+
+    virtualHosts."freshrss.rueb.dev" = {
+      forceSSL = true;
+
+      # Use the wildcard cert defined in acme-wildcard.nix
+      useACMEHost = "rueb.dev";
+
+      # Notice there is no proxyPass or locations block here.
+      # The services.freshrss module injects the necessary PHP-FPM locations automatically.
     };
   };
-
-  networking.firewall.allowedTCPPorts = [ 8080 ];
 }

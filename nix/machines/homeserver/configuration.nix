@@ -19,6 +19,7 @@
     ./srv/cloudflared-reverse-proxy.nix
     ./srv/filebrowser.nix
     ./srv/firewall.nix
+    ./srv/forgejo-reverse-proxy.nix
     ./srv/freshrss.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
