@@ -1,25 +1,8 @@
 { config, pkgs, ... }:
 
 {
-  # ---------------------------------------------------------------------------
-  # TLS: Wildcard certificate for *.rueb.dev via Cloudflare DNS-01 challenge.
-  # Requires a Cloudflare API token with Zone:Zone:Read + Zone:DNS:Edit scope
-  # stored at the path below. The stalwart-mail group assignment allows
-  # Stalwart to read the issued cert and key without running as root.
-  # ---------------------------------------------------------------------------
-  security.acme = {
-    acceptTerms = true;
-    defaults.email = "postmaster@rueb.dev";
-
-    certs."rueb.dev" = {
-      domain = "*.rueb.dev";
-      dnsProvider = "cloudflare";
-      credentialFiles = {
-        CLOUDFLARE_DNS_API_TOKEN_FILE = "/persist/secrets/cloudflare-token";
-      };
-      group = "stalwart-mail";
-    };
-  };
+  # Grant Stalwart access to read the certificate owned by the shared group
+  users.users.stalwart-mail.extraGroups = [ "ruebdev-wildcard-tls" ];
 
   # ---------------------------------------------------------------------------
   # Stalwart Mail Server
@@ -33,27 +16,6 @@
 
     # ---------------------------------------------------------------------------
     # Secrets via systemd LoadCredential=
-    #
-    # The NixOS stalwart-mail module maps this attrset directly to systemd's
-    # LoadCredential= directives. Each secret is copied into a tmpfs-backed
-    # path at runtime:
-    #
-    #   /run/credentials/stalwart-mail.service/<key>
-    #
-    # Pre-deployment: populate source files before first nixos-rebuild switch:
-    #
-    #   printf 'YOUR_ADMIN_PASSWORD'   > /persist/secrets/stalwart-admin-password
-    #   printf 'YOUR_SMTP2GO_USERNAME' > /persist/secrets/smtp2go_username
-    #   printf 'YOUR_SMTP2GO_PASSWORD' > /persist/secrets/smtp2go_password
-    #
-    #   chmod 600 /persist/secrets/stalwart-admin-password \
-    #             /persist/secrets/smtp2go_username \
-    #             /persist/secrets/smtp2go_password
-    #
-    #   chown stalwart-mail:stalwart-mail \
-    #             /persist/secrets/stalwart-admin-password \
-    #             /persist/secrets/smtp2go_username \
-    #             /persist/secrets/smtp2go_password
     # ---------------------------------------------------------------------------
     credentials = {
       stalwart_admin_password = "/persist/secrets/stalwart-admin-password";
@@ -72,7 +34,7 @@
         secret = "%{file:/run/credentials/stalwart-mail.service/stalwart_admin_password}%";
       };
 
-      # TLS: reference the wildcard cert issued by security.acme above.
+      # TLS: reference the wildcard cert issued by security.acme
       certificate.main = {
         cert        = "%{file:/var/lib/acme/rueb.dev/cert.pem}%";
         private-key = "%{file:/var/lib/acme/rueb.dev/key.pem}%";
@@ -140,9 +102,6 @@
 
       # -----------------------------------------------------------------------
       # Outbound relay: SMTP2GO
-      #
-      # SMTP2GO supports ports 2525, 8025, 587, 80, and 25.
-      # DANE and MTA-STS are disabled to avoid validation conflicts.
       # -----------------------------------------------------------------------
       queue.route.smtp2go = {
         type     = "relay";

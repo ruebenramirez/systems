@@ -14,20 +14,20 @@
     ../_common/services/vm-storage.nix
 
     # homeserver services
+    ./srv/acme-wildcard.nix
     ./srv/audiobookshelf.nix
+    ./srv/cloudflared-reverse-proxy.nix
     ./srv/filebrowser.nix
+    ./srv/firewall.nix
     ./srv/freshrss.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
     ./srv/kavita.nix
-    ./srv/smb-shares.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
+    ./srv/smb-shares.nix
     ./srv/stalwart.nix
 
-    # networking
-    ./srv/cloudflared-reverse-proxy.nix
-    ./srv/firewall.nix
   ];
 
   time.timeZone = "America/Chicago";

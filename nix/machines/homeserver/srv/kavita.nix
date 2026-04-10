@@ -1,6 +1,9 @@
 { config, pkgs, lib, ... }:
 
 {
+  # Grant Nginx access to read the certificate owned by the shared group
+  users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
+
   services.kavita = {
     enable = true;
 
@@ -18,22 +21,6 @@
     };
   };
 
-  # Wildcard ACME configuration
-  security.acme = {
-    acceptTerms = true;
-    defaults.email = "postmaster@rueb.dev";
-
-    certs."rueb.dev" = {
-      domain = "*.rueb.dev";
-      dnsProvider = "cloudflare";
-      credentialFiles = {
-        CLOUDFLARE_DNS_API_TOKEN_FILE = "/persist/secrets/cloudflare-token";
-      };
-      # Assign the certificate group to nginx
-      group = "nginx";
-    };
-  };
-
   services.nginx = {
     enable = true;
 
@@ -45,7 +32,8 @@
 
     virtualHosts."ebooks.rueb.dev" = {
       forceSSL = true;
-      # Use the wildcard cert defined above
+
+      # Use the wildcard cert defined in acme-wildcard.nix
       useACMEHost = "rueb.dev";
 
       locations."/" = {
