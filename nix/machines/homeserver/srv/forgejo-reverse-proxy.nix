@@ -2,7 +2,7 @@
 
 {
   # Grant Nginx access to read the certificate owned by the shared group
-  #users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
+  users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
 
   services.nginx = {
     enable = true;
