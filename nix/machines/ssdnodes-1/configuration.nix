@@ -12,6 +12,8 @@
       ../_common/base/default.nix
       ../_common/services/kubernetes.nix
       ../_common/home-vpn-client.nix
+      ./srv/monicaandrueben.com-reverse-proxy.nix
+      ./srv/monicarosephotography.com-reverse-proxy.nix
     ];
 
   # Set your time zone.
