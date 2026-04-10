@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, pkgs-unstable, lib, ... }:
 
 {
   # Grant Nginx access to read the certificate owned by the shared group
@@ -19,6 +19,7 @@
       IpAddresses = "127.0.0.1";
       Port = 5000;
     };
+    package = pkgs-unstable.kavita;
   };
 
   services.nginx = {
