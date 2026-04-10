@@ -19,6 +19,7 @@
     ./srv/freshrss.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
+    ./srv/kavita.nix
     ./srv/smb-shares.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
