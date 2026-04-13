@@ -1,5 +1,6 @@
 { config, pkgs, pkgs-unstable, ... }:
 {
+
   services.ollama = {
     enable = true;
     acceleration = "vulkan";
@@ -43,16 +44,6 @@
     AmbientCapabilities = [ "CAP_PERFMON" "CAP_SYS_PTRACE" ];
     CapabilityBoundingSet = [ "CAP_PERFMON" "CAP_SYS_PTRACE" ];
   };
-
-  services.open-webui = {
-    enable = true;
-    host = "0.0.0.0";
-    openFirewall = true;
-    port = 8888;
-    package = pkgs-unstable.open-webui;
-  };
-
-
 
   environment.systemPackages = with pkgs; [
     llama-cpp-rocm # model file manipulation

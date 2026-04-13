@@ -15,6 +15,7 @@
 
     # homeserver services
     ./srv/acme-wildcard.nix
+    ./srv/openwebui.nix
     ./srv/audiobookshelf.nix
     ./srv/cloudflared-reverse-proxy.nix
     ./srv/filebrowser.nix
