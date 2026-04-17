@@ -15,7 +15,6 @@
 
     # homeserver services
     ./srv/acme-wildcard.nix
-    ./srv/openwebui.nix
     ./srv/audiobookshelf.nix
     ./srv/cloudflared-reverse-proxy.nix
     ./srv/filebrowser.nix
@@ -25,6 +24,7 @@
     ./srv/immich.nix
     ./srv/jellyfin.nix
     ./srv/kavita.nix
+    ./srv/openwebui.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
     ./srv/smb-shares.nix
