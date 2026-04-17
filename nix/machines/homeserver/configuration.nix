@@ -24,6 +24,7 @@
     ./srv/immich.nix
     ./srv/jellyfin.nix
     ./srv/kavita.nix
+    ./srv/mail-sync.nix
     ./srv/openwebui.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
