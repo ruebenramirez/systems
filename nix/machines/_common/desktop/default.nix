@@ -21,7 +21,6 @@ in
     libreoffice
     obsidian
     remmina  # best RDP client
-    thunderbird
     timer # fancy js cli timer
     viewnior # image viewer
     ydotool
@@ -85,7 +84,6 @@ in
     satty
   ];
 
-
   fonts.packages = with pkgs; [
     nerd-fonts.sauce-code-pro
   ];
@@ -95,7 +93,6 @@ in
 
   # light is a backlight management utility
   programs.light.enable = true;
-
 
   # sway window management on wayland (replacing i3)
   programs.sway = {
@@ -121,7 +118,6 @@ in
   programs.ydotool = {
     enable = true;
   };
-
   # Tell ydotool where the socket for the daemon is
   environment.variables = {
     YDOTOOL_SOCKET = "/run/ydotoold/socket";
