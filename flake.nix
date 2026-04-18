@@ -11,6 +11,10 @@
     nixos-generators.url = "github:nix-community/nixos-generators";
     nixos-generators.inputs.nixpkgs.follows = "nixpkgs";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
+    roundcube-ident-switch-src = {
+      url = "github:Gecka-Apps/roundcube-ident_switch/5.0.2";
+      flake = false;
+    };
   };
 
   outputs = {
@@ -19,7 +23,8 @@
     nixpkgs-unstable,
     disko,
     nixos-generators,
-    nixos-hardware
+    nixos-hardware,
+    roundcube-ident-switch-src
   }@inputs:
 
   let
@@ -183,6 +188,7 @@
       };
 
       "homeserver" = nixpkgs.lib.nixosSystem {
+        specialArgs = { inherit roundcube-ident-switch-src; };
         modules = [
           ./nix/machines/homeserver/configuration.nix
           nixpkgs.nixosModules.readOnlyPkgs {

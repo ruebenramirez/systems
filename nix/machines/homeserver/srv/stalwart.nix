@@ -12,6 +12,7 @@
 
     # openFirewall opens: 25, 465, 587, 993.
     # Port 8081 (management) is intentionally excluded — bound to 127.0.0.1 only.
+    # Note: Port 4190 is NOT opened by default by openFirewall = true.
     openFirewall = true;
 
     # ---------------------------------------------------------------------------
@@ -93,6 +94,13 @@
           tls.implicit = true;
         };
 
+        # --- MANAGESIEVE LISTENER ---
+        sieve = {
+          bind         = [ "[::]:4190" ];
+          protocol     = "managesieve";
+          tls.implicit = false; # Matches tls:// in Roundcube config
+        };
+
         # Admin UI — restricted to loopback only.
         management = {
           bind     = [ "127.0.0.1:8081" ];
@@ -151,6 +159,11 @@
 
     };
   };
+
+  # ---------------------------------------------------------------------------
+  # Firewall: Open ManageSieve port
+  # ---------------------------------------------------------------------------
+  networking.firewall.allowedTCPPorts = [ 4190 ];
 
   # ---------------------------------------------------------------------------
   # systemd service hardening override.
