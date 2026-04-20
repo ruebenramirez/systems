@@ -9,8 +9,8 @@
       root = "/tank/Shares";
 
       # Network settings
-      address = "10.100.0.2"; # Listen on all interfaces
-      port = 8888;         # Change this to your preferred port
+      address = "127.0.0.1"; # Listen on all interfaces
+      port = 13388;         # Change this to your preferred port
 
       # Path for the database and configuration (defaults to /var/lib/filebrowser)
       # The module creates this directory automatically.
@@ -29,4 +29,29 @@
   systemd.tmpfiles.rules = [
     "z /tank/Shares 0770 filebrowser users - -"
   ];
+
+  # Grant Nginx access to read the certificate owned by the shared group
+  users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
+
+  services.nginx = {
+    enable = true;
+
+    # Recommended default settings
+    recommendedProxySettings = true;
+    recommendedTlsSettings = true;
+    recommendedOptimisation = true;
+    recommendedGzipSettings = true;
+
+    virtualHosts."files.rueb.dev" = {
+      forceSSL = true;
+
+      # Use the wildcard cert defined in acme-wildcard.nix
+      useACMEHost = "rueb.dev";
+
+      locations."/" = {
+        proxyPass = "http://127.0.0.1:13388";
+        proxyWebsockets = true;
+      };
+    };
+  };
 }
