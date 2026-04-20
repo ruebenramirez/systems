@@ -62,6 +62,7 @@
       report.dsn.sign = false;
       report.dmarc.sign = false;
       report.dmarc.aggregate.sign = false;
+      report.dmarc.aggregate.enable = false;
       report.spf.sign = false;
       report.tls.aggregate.sign = false;
       sieve.trusted.sign = false;
