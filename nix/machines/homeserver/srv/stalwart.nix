@@ -1,8 +1,8 @@
 { config, pkgs, ... }:
 
 {
-  # Grant Stalwart access to read the certificate owned by the shared group
-  users.users.stalwart-mail.extraGroups = [ "ruebdev-wildcard-tls" ];
+  # Grant Stalwart access to read the certificates owned by the shared groups
+  users.users.stalwart-mail.extraGroups = ["ruebdev-wildcard-tls"];
 
   # ---------------------------------------------------------------------------
   # Stalwart Mail Server
@@ -35,14 +35,19 @@
         secret = "%{file:/run/credentials/stalwart-mail.service/stalwart_admin_password}%";
       };
 
-      # TLS: reference the wildcard cert issued by security.acme
-      certificate.main = {
+      # TLS: Server Name Indication (SNI) setup for multiple domains
+      certificate."rueb-dev" = {
         cert        = "%{file:/var/lib/acme/rueb.dev/cert.pem}%";
         private-key = "%{file:/var/lib/acme/rueb.dev/key.pem}%";
       };
 
+      certificate."monicaandrueben-com" = {
+        cert        = "%{file:/var/lib/acme/monicaandrueben.com/cert.pem}%";
+        private-key = "%{file:/var/lib/acme/monicaandrueben.com/key.pem}%";
+      };
+
       server.tls = {
-        certificate = "main";
+        certificate = [ "rueb-dev" "monicaandrueben-com" ];
         enable      = true;
         implicit    = false; # overridden per-listener below
         version     = "TLSv1.2";

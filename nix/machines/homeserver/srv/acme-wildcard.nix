@@ -22,5 +22,13 @@
       };
       group = "ruebdev-wildcard-tls";
     };
+    certs."monicaandrueben.com" = {
+      domain = "*.monicaandrueben.com";
+      dnsProvider = "cloudflare";
+      credentialFiles = {
+        CLOUDFLARE_DNS_API_TOKEN_FILE = "/persist/secrets/cloudflare-token";
+      };
+      group = "ruebdev-wildcard-tls";
+    };
   };
 }
