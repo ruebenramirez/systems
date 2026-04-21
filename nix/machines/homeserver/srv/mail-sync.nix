@@ -58,7 +58,7 @@ in
 
   # cleanup imapsync logs older than 5 days
   systemd.tmpfiles.rules = [
-    "d /var/lib/mailsync/LOG_imapsync 0700 mailsync mailsync 5d"
+    "d /var/lib/mailsync/LOG_imapsync 0700 mailsync mailsync 2d"
   ];
 
   systemd.services.gmail-to-stalwart-sync = {
