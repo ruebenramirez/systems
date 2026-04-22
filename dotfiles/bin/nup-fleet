@@ -14,7 +14,6 @@ MACHINES=(
     "driver-lan:driver"
     "ssdnodes-1:ssdnodes-1"
     "pi-syncoid-target-lan:pi-syncoid-target"
-    "openclaw-vm-lan:openclaw-vm"
     "download-vm-xps-lan:download-vm-xps"
     #"x220-lan:x220"
 )
