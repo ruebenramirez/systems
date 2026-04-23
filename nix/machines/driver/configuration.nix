@@ -16,7 +16,6 @@
       ../_common/rust-dev.nix
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
-      ./services/local-llm-AMD.nix
       ./udev-rules/lofree-keyboard-udev-disable-thinkpad-keyboard.nix
       ./udev-rules/xreal-udev-unplug-restart-kanshi.nix
     ];
@@ -36,6 +35,14 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" ];
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
+  # Explicitly define the resume device for hibernation
+  boot.resumeDevice = "/dev/disk/by-uuid/dd258b4f-cfdc-42ed-a5d2-da51f590073a";
+
+  # ZFS hibernation configuration
+  boot.zfs.allowHibernation = true;
+  boot.zfs.forceImportRoot = false;
+  boot.zfs.forceImportAll = false;
 
   networking = {
     hostName = "driver";
@@ -186,20 +193,14 @@
   # Validate status: `sudo tlp-stat -b`
 
   # if laptop lid closes
-  services.logind.settings.Login.HandleLidSwitch = "suspend-then-hibernate";
-  # clamshell w/out power
-  #services.logind.settings.Login.HandleLidSwitch = "ignore";
-  # clamshell w/ power
-  #services.logind.settings.Login.HandleLidSwitchDocked = "ignore";
+  services.logind.settings.Login.HandleLidSwitch = "hibernate";
+  services.logind.settings.Login.HandleLidSwitchDocked = "hibernate";
 
-  services.cron = {
-    enable = true;
-    # Clean up nixOS generations
-    # NOTE: Still requires a nix-rebuild switch to update grub
-    # List generations: nix-env --list-generations -p /nix/var/nix/profiles/system
-    systemCronJobs = [
-      "0 1 * * * root nix-env --delete-generations +10 -p /nix/var/nix/profiles/system 2>&1 | logger -t generations-cleanup"
-    ];
+  # Native NixOS Garbage Collection
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
   };
 
   # This value determines the NixOS release from which the default
