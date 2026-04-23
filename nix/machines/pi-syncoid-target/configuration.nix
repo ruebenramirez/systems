@@ -60,6 +60,9 @@
     kernelPackages = pkgs.linuxPackages_rpi4;
     kernelModules = [ "zfs" ];
     initrd.kernelModules = [ "zfs" ];
+    kernel.sysctl = {
+      "vm.mmap_rnd_bits" = 24;
+    };
   };
 
   networking = {
