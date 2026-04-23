@@ -32,6 +32,10 @@
 
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
+
+  # Limit the number of generations kept in /boot to prevent partition exhaustion
+  boot.loader.systemd-boot.configurationLimit = 10;
+
   boot.loader.efi.canTouchEfiVariables = true;
   boot.supportedFilesystems = [ "ntfs" ];
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
