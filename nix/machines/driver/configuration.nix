@@ -193,8 +193,8 @@
       START_CHARGE_THRESH_BAT0 = 40; # 40 and bellow it starts to charge
       STOP_CHARGE_THRESH_BAT0 = 80; # 80 and above it stops charging
     };
+    # Validate status: `sudo tlp-stat -b`
   };
-  # Validate status: `sudo tlp-stat -b`
 
   # if laptop lid closes
   services.logind.settings.Login.HandleLidSwitch = "hibernate";
