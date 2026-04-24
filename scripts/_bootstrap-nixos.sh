@@ -7,10 +7,10 @@
 #   - ZFS Datasets for NixOS (https://grahamc.com/blog/nixos-on-zfs)
 #   - NixOS Manual (https://nixos.org/nixos/manual/)
 #
-# It expects the name of the block device (e.g. 'sda') to partition
+# It expects the name of the block device (e.g. 'nvme0n1') to partition
 # and install NixOS on.
 #
-# Example: `setup.sh sda`
+# Example: `setup.sh nvme0n1`
 #
 
 set -euo pipefail
@@ -31,6 +31,11 @@ function cleanup {
   umount /zroot
   sleep 5
   zpool destroy zroot
+  sleep 5
+  swapoff -a
+  vgchange -an cryptvg
+  sleep 2
+  cryptsetup close cryptroot
 }
 
 function err {
@@ -61,7 +66,7 @@ function is_ssd {
 export DISK=$1
 
 if ! [[ -v DISK ]]; then
-    err "Missing argument. Expected block device name, e.g. 'sda'"
+    err "Missing argument. Expected block device name, e.g. 'nvme0n1'"
     exit 1
 fi
 
@@ -76,6 +81,16 @@ if [[ "$EUID" > 0 ]]; then
     err "Must run as root"
     exit 1
 fi
+
+# Handle partition naming schemes (nvme0n1p1 vs sda1)
+if [[ "$DISK" == *"nvme"* ]] || [[ "$DISK" == *"mmcblk"* ]]; then
+    PART_SUFFIX="p"
+else
+    PART_SUFFIX=""
+fi
+
+export DISK_PART_BOOT="${DISK_PATH}${PART_SUFFIX}1"
+export DISK_PART_LUKS="${DISK_PATH}${PART_SUFFIX}2"
 
 export ZFS_POOL="zroot"
 
@@ -93,21 +108,44 @@ export ZFS_BLANK_SNAPSHOT="${ZFS_DS_ROOT}@blank"
 
 ################################################################################
 
-info "Running the UEFI (GPT) partitioning and formatting directions from the NixOS manual ..."
-parted "$DISK_PATH" -- mklabel gpt
-parted "$DISK_PATH" -- mkpart primary 512MiB -32GB
-parted "$DISK_PATH" -- mkpart swap linux-swap -32GB 100%
-parted "$DISK_PATH" -- mkpart ESP fat32 1MiB 512MiB
-parted "$DISK_PATH" -- set 3 boot on
-export DISK_PART_ROOT="${DISK_PATH}p1"
-export DISK_PART_SWAP="${DISK_PATH}p2"
-export DISK_PART_BOOT="${DISK_PATH}p3"
+info "Running the UEFI (GPT) partitioning directions ..."
+parted -s "$DISK_PATH" -- mklabel gpt
+parted -s "$DISK_PATH" -- mkpart ESP fat32 1MiB 512MiB
+parted -s "$DISK_PATH" -- set 1 boot on
+parted -s "$DISK_PATH" -- mkpart primary 512MiB 100%
 
 info "Formatting boot partition ..."
 mkfs.fat -F 32 -n boot "$DISK_PART_BOOT"
 
-info "Creating '$ZFS_POOL' ZFS pool for '$DISK_PART_ROOT' ..."
-zpool create -f "$ZFS_POOL" "$DISK_PART_ROOT"
+info "Setting up LUKS2 encryption on $DISK_PART_LUKS"
+info "You will be prompted to set a recovery password first."
+cryptsetup luksFormat --type luks2 "$DISK_PART_LUKS"
+
+info "Opening LUKS container ..."
+cryptsetup open "$DISK_PART_LUKS" cryptroot
+
+info "Enrolling YubiKey 1 (FIDO2) ..."
+echo -e "${BLUE_BG}Please plug in your FIRST YubiKey and press Enter.${COLOR_RESET}"
+read -r
+systemd-cryptenroll --fido2-device=auto --fido2-with-user-presence=true "$DISK_PART_LUKS"
+
+info "Enrolling YubiKey 2 (FIDO2) ..."
+echo -e "${BLUE_BG}Please unplug the first YubiKey, plug in your SECOND YubiKey, and press Enter.${COLOR_RESET}"
+read -r
+systemd-cryptenroll --fido2-device=auto --fido2-with-user-presence=true "$DISK_PART_LUKS"
+
+info "Setting up LVM inside LUKS container for Swap and ZFS ..."
+pvcreate /dev/mapper/cryptroot
+vgcreate cryptvg /dev/mapper/cryptroot
+lvcreate -L 32G -n swap cryptvg
+lvcreate -l 100%FREE -n zfs cryptvg
+
+info "Formatting and enabling encrypted swap partition ..."
+mkswap -L swap /dev/cryptvg/swap
+swapon /dev/cryptvg/swap
+
+info "Creating '$ZFS_POOL' ZFS pool for root ..."
+zpool create -f "$ZFS_POOL" /dev/cryptvg/zfs
 
 info "Enabling compression for '$ZFS_POOL' ZFS pool ..."
 zfs set compression=on "$ZFS_POOL"
@@ -137,7 +175,7 @@ info "Mounting '$ZFS_DS_ROOT' to /mnt ..."
 mount -t zfs "$ZFS_DS_ROOT" /mnt
 
 info "Mounting '$DISK_PART_BOOT' to /mnt/boot ..."
-mkdir /mnt/boot
+mkdir -p /mnt/boot
 mount -t vfat "$DISK_PART_BOOT" /mnt/boot
 
 info "Creating '$ZFS_DS_NIX' ZFS dataset ..."
@@ -147,21 +185,21 @@ info "Disabling access time setting for '$ZFS_DS_NIX' ZFS dataset ..."
 zfs set atime=off "$ZFS_DS_NIX"
 
 info "Mounting '$ZFS_DS_NIX' to /mnt/nix ..."
-mkdir /mnt/nix
+mkdir -p /mnt/nix
 mount -t zfs "$ZFS_DS_NIX" /mnt/nix
 
 info "Creating '$ZFS_DS_HOME' ZFS dataset ..."
 zfs create -p -o mountpoint=legacy "$ZFS_DS_HOME"
 
 info "Mounting '$ZFS_DS_HOME' to /mnt/home ..."
-mkdir /mnt/home
+mkdir -p /mnt/home
 mount -t zfs "$ZFS_DS_HOME" /mnt/home
 
 info "Creating '$ZFS_DS_PERSIST' ZFS dataset ..."
 zfs create -p -o mountpoint=legacy "$ZFS_DS_PERSIST"
 
 info "Mounting '$ZFS_DS_PERSIST' to /mnt/persist ..."
-mkdir /mnt/persist
+mkdir -p /mnt/persist
 mount -t zfs "$ZFS_DS_PERSIST" /mnt/persist
 
 info "Permit ZFS auto-snapshots on ${ZFS_SAFE}/* datasets ..."
@@ -170,10 +208,6 @@ zfs set com.sun:auto-snapshot=true "$ZFS_DS_PERSIST"
 
 info "Creating persistent directory for host SSH keys ..."
 mkdir -p /mnt/persist/etc/ssh
-
-info "Enabling swap partiion on '$DISK_PART_SWAP' ..."
-mkswap -L swap $DISK_PART_SWAP
-swapon $DISK_PART_SWAP
 
 # Generate the hardware-configuration.nix
 # Copy this file out to nixosConfigurations if hardware is new
