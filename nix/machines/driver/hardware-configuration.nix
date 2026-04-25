@@ -11,8 +11,13 @@
   boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "thunderbolt" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ "amdgpu" ];
 
+  # Allow the AMD GPU to access up to 24GB of system RAM (leave 8GB for OS)
   boot.kernelParams = [
-    "resume=/dev/disk/by-uuid/dd258b4f-cfdc-42ed-a5d2-da51f590073a"
+    "amd_iommu=off"
+    "amdgpu.gttsize=24576"
+    "ttm.pages_limit=6291456"
+    "ttm.page_pool_size=6291456"
+    "amdgpu.sg_display=0"
   ];
 
   boot.kernelModules = [ "kvm-amd" ];
