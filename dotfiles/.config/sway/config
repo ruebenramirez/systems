@@ -77,7 +77,7 @@ input "type:keyboard" {
 }
 
 input "type:touchpad" {
-    events disabled
+    #events disabled
     natural_scroll enabled
     click_method clickfinger
     pointer_accel .4
@@ -286,15 +286,15 @@ input "1390:388:IST_TrackBall_Mouse" {
 #
 # Scratchpad:
 #
-    # Sway has a "scratchpad", which is a bag of holding for windows.
-    # You can send windows there and get them back later.
+# Sway has a "scratchpad", which is a bag of holding for windows.
+# You can send windows there and get them back later.
 
-    # Move the currently focused window to the scratchpad
-    bindsym $mod+Shift+minus move scratchpad
+# Move the currently focused window to the scratchpad
+bindsym $mod+Shift+minus move scratchpad
 
-    # Show the next scratchpad window or hide the focused scratchpad window.
-    # If there are multiple scratchpad windows, this command cycles through them.
-    bindsym $mod+minus scratchpad show
+# Show the next scratchpad window or hide the focused scratchpad window.
+# If there are multiple scratchpad windows, this command cycles through them.
+bindsym $mod+minus scratchpad show
 #
 # Resizing containers:
 #
@@ -346,8 +346,9 @@ set $laptop_display eDP-1
 bindswitch --reload --locked lid:on output $laptop_display disable
 bindswitch --reload --locked lid:off output $laptop_display enable
 
-# Handle reload case - check lid state on startup/reload
-exec_always ~/bin/sway-clamshell-init
+# WIP: disabling to check hibernate conflict
+# # Handle reload case - check lid state on startup/reload
+# exec_always ~/bin/sway-clamshell-init
 
 
 # --- Workspace Assignments ---
