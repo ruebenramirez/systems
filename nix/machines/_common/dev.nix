@@ -11,6 +11,6 @@
     claude-monitor
     crush
     pkgs-unstable.gemini-cli
-    opencode
+    pkgs-unstable.opencode
   ];
 }
