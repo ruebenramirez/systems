@@ -24,15 +24,16 @@ launch_terminal 4 "workstation" "hostname -f"
 # 7: 1Password
 pgrep -x 1password > /dev/null || swaymsg "workspace 7; exec 1password"
 
-# 8: Thunderbird
-pgrep -x thunderbird > /dev/null || swaymsg "workspace 8; exec thunderbird"
+# 8: Webmail (Brave)
+swaymsg "workspace 8"
+exec brave --app=https://webmail.rueb.dev &
 
-# 9: Firefox (Homepage)
-swaymsg "workspace 9; exec firefox"
+# 9: Brave (Homepage)
+swaymsg "workspace 9; exec brave"
 
 # 10: Google Messages and Signal
 swaymsg "workspace 10"
-exec firefox --new-window https://messages.google.com/web &
+exec brave --app=https://messages.google.com/web &
 exec signal-desktop &
 sleep 2
 
