@@ -14,6 +14,7 @@
       ../_common/home-vpn-client.nix
       ../_common/mullvad-client.nix
       ../_common/rust-dev.nix
+      ../_common/desktop/razer-keyboard.nix
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
       ./services/local-llm-AMD.nix
@@ -86,6 +87,7 @@
       "adbusers"
       "audio"
       "docker"
+      "openrazer"
       "renderer"
       "sound"
       "video"
