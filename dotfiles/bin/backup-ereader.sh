@@ -31,7 +31,7 @@ if [ -d "$KOBO_MOUNT_PATH" ]; then
     KOBO_WAS_ALREADY_MOUNTED=true
 else
     echo "Attempting to mount Kobo using udiskie..."
-    udiskie-mount -r
+    udiskie-mount -a
 
     # Wait a bit for the mount to complete
     sleep 3
