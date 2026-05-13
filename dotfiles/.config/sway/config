@@ -373,17 +373,15 @@ for_window [workspace=10] layout splith
 # --- Launch Autostart ---
 exec ~/.config/sway/scripts/autostart.sh
 
-
-
-#
 # Start Applications at login:
 exec dbus-update-activation-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
 exec gnome-keyring-daemon --start --daemonize --components=secrets
+exec ~/.config/sway/scripts/razer-keyboard-white-backlight.sh &
 exec_always systemctl --user restart kanshi &
 exec_always /home/rramirez/bin/setup-swayidle &
 exec_always /home/rramirez/bin/mask-hotspot-data.sh &
 
-#
+
 # includes:
 include /etc/sway/config.d/*
 
