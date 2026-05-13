@@ -27,6 +27,7 @@ pgrep -x 1password > /dev/null || swaymsg "workspace 7; exec 1password"
 # 8: Webmail (Brave)
 swaymsg "workspace 8"
 exec brave --app=https://webmail.rueb.dev &
+exec brave --app=https://calendar.google.com/calendar/u/0/r/week &
 
 # 9: Brave (Homepage)
 swaymsg "workspace 9; exec brave"
