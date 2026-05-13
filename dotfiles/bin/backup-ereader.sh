@@ -93,4 +93,7 @@ else
     echo "To unmount manually, run: udiskie-umount $KOBO_MOUNT_PATH"
 fi
 
+echo "syncing changes to git repo"
+pushd "$LOCAL_EBOOKS_PATH" && bash ebooks_sync.sh && popd;
+
 exit 0
