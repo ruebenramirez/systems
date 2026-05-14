@@ -10,6 +10,7 @@
     claude-code-router
     claude-monitor
     crush
+    pkgs-unstable.codex
     pkgs-unstable.gemini-cli
     pkgs-unstable.opencode
   ];
