@@ -115,6 +115,30 @@
         ];
       };
 
+      forgejo-ci-runner-vm-image = nixos-generators.nixosGenerate {
+        system = "x86_64-linux";
+        format = "qcow";
+        specialArgs = { pkgs-unstable = unstableFor.${system}; };
+        modules = [
+          ./nix/machines/forgejo-ci-runner-vm/configuration.nix
+          ({ config, lib, pkgs, modulesPath, ... }: {
+            nixpkgs.config.allowUnfree = true;
+            system.build.qcow = lib.mkForce (
+              import "${modulesPath}/../lib/make-disk-image.nix" {
+                inherit lib config pkgs;
+                format = "qcow2";
+                partitionTableType = "efi";
+                installBootLoader = true;
+                diskSize = "auto";
+                additionalSpace = "16G";
+                memSize = 8192;
+              }
+            );
+            boot.growPartition = true;
+          })
+        ];
+      };
+
     });
 
 
@@ -138,6 +162,18 @@
       "download-vm-xps" = nixpkgs.lib.nixosSystem {
         modules = [
           ./nix/machines/download-vm-xps/configuration.nix
+          nixpkgs.nixosModules.readOnlyPkgs {
+            nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+            _module.args = {
+              pkgs-unstable = unstableFor."x86_64-linux";
+            };
+          }
+        ];
+      };
+
+      "forgejo-ci-runner-vm" = nixpkgs.lib.nixosSystem {
+        modules = [
+          ./nix/machines/forgejo-ci-runner-vm/configuration.nix
           nixpkgs.nixosModules.readOnlyPkgs {
             nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
             _module.args = {
