@@ -12,6 +12,7 @@
     crush
     pkgs-unstable.codex
     pkgs-unstable.gemini-cli
+    pkgs-unstable.goose-cli
     pkgs-unstable.opencode
   ];
 }
