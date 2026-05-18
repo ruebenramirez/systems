@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# Script to sync Kobo eReader content with laptop and auto-unmount
-# Created: May 11, 2025
+# Push Operation: Laptop -> Kobo
 
 # Define paths
 KOBO_MOUNT_PATH="/run/media/rramirez/KOBOeReader"
@@ -57,26 +56,6 @@ if [ -d "$KOBO_EBOOKS_PATH" ]; then
 else
     echo "Warning: Ebooks directory not found on Kobo. No ebooks synced."
 fi
-
-# Sync ebooks directory (Kobo->laptop)
-echo "Syncing ebooks (Kobo->laptop)..."
-if [ -d "$KOBO_EBOOKS_PATH" ]; then
-    # Replaced -a with -rtv and --modify-window=2 for FAT32 compatibility
-    rsync -rtvu --delete --modify-window=2 --progress --exclude='.git' "$KOBO_EBOOKS_PATH/" "$LOCAL_EBOOKS_PATH/"
-    echo "Ebooks sync (Kobo->laptop) completed."
-else
-    echo "Warning: Ebooks directory not found on Kobo. No ebooks synced."
-fi
-
-# # Sync KOReader installation (Kobo->laptop)
-# echo "Backing up KOReader installation (Kobo->laptop)..."
-# if [ -d "$KOBO_KOREADER_PATH" ]; then
-#     # Replaced -a with -rtv and --modify-window=2 for FAT32 compatibility
-#     rsync -rtvu --delete --modify-window=2 --progress "$KOBO_KOREADER_PATH/" "$LOCAL_KOREADER_PATH/"
-#     echo "KOReader backup (Kobo->laptop) completed."
-# else
-#     echo "Warning: KOReader directory not found on Kobo. No KOReader backup created."
-# fi
 
 echo "All sync operations completed successfully!"
 
