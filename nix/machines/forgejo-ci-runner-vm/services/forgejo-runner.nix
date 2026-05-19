@@ -1,31 +1,43 @@
-{ config, lib, pkgs, pkgs-unstable, ... }:
-{
+  { config, lib, pkgs, pkgs-unstable, ... }:
+  {
+    systemd.services.forgejo-ci-runner = {
+      description = "Forgejo Actions Runner";
+      after = [ "network.target" "docker.service" ];
+      requires = [ "docker.service" ];
+      wantedBy = [ "multi-user.target" ];
 
-  systemd.services.forgejo-ci-runner = {
-    description = "Forgejo Actions Runner";
-    after = [ "network.target" "docker.service" ];
-    requires = [ "docker.service" ];
-    wantedBy = [ "multi-user.target" ];
+      path = [
+        pkgs.bash
+        pkgs.coreutils
+        pkgs.git
+        pkgs.gnugrep
+        pkgs.gnused
+        pkgs.nix
+        pkgs.nodejs_20
+      ];
 
-    serviceConfig = {
-      ExecStart = "${pkgs-unstable.forgejo-runner}/bin/act_runner daemon --config /persist/forgejo-ci/config.yaml";
-      Restart = "always";
+      environment = {
+        HOME = "/var/lib/forgejo-runner";
+        XDG_CACHE_HOME = "/var/lib/forgejo-runner/.cache";
+      };
 
-      # Use a fixed user instead of DynamicUser to easily manage group permissions
-      User = "forgejo-runner";
-      Group = "docker";
-
-      # Ensure state directory is created
-      StateDirectory = "forgejo-runner";
+      serviceConfig = {
+        ExecStart = "${pkgs-unstable.forgejo-runner}/bin/act_runner daemon --config /persist/forgejo-ci/config.yaml";
+        Restart = "always";
+        User = "forgejo-runner";
+        Group = "docker";
+        StateDirectory = "forgejo-runner";
+      };
     };
-  };
 
-  # Explicitly create the user/group
-  users.users.forgejo-runner = {
-    isSystemUser = true;
-    group = "forgejo-runner";
-    extraGroups = [ "docker" ];
-  };
-  users.groups.forgejo-runner = {};
+    users.users.forgejo-runner = {
+      isSystemUser = true;
+      group = "forgejo-runner";
+      extraGroups = [ "docker" ];
+      home = "/var/lib/forgejo-runner";
+      createHome = true;
+    };
 
-}
+    users.groups.forgejo-runner = {};
+  }
+
