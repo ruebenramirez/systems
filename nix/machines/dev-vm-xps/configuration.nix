@@ -18,13 +18,44 @@
   };
   boot.kernelParams = [ "console=ttyS0,115200n8" "console=tty1" ];
 
-  fileSystems."/" = {
-    device = lib.mkForce "/dev/vda2";
-    fsType = "ext4"; # This is the default for nixos-generators QCOW2 images
+  # Disk layout (disko)
+  boot.growPartition = true;
+  disko.memSize = 8192;
+  disko.devices.disk.main = {
+    device = "/dev/vda";
+    imageName = "dev-vm-xps";
+    imageSize = "32G";
+    type = "disk";
+    content = {
+      type = "gpt";
+      partitions = {
+        ESP = {
+          type = "EF00";
+          size = "512M";
+          content = {
+            type = "filesystem";
+            format = "vfat";
+            mountpoint = "/boot";
+            mountOptions = [ "umask=0077" ];
+          };
+        };
+        root = {
+          size = "100%";
+          content = {
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/";
+          };
+        };
+      };
+    };
   };
-  fileSystems."/boot" = {
-    device = lib.mkForce "/dev/vda1";
-    fsType = "vfat";
+
+  # VM runtime resources (consumed by deployment script)
+  my.vmDeploy = {
+    memoryMB = 512;
+    vcpus = 2;
+    bridge = "br0";
   };
 
   time.timeZone = "America/Chicago";

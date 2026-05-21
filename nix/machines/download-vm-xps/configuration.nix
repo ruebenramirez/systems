@@ -15,13 +15,44 @@
     "net.ipv6.conf.all.forwarding" = 1;
   };
 
-  fileSystems."/" = {
-    device = lib.mkForce "/dev/vda2";
-    fsType = "ext4";
+  # Disk layout (disko)
+  boot.growPartition = true;
+  disko.memSize = 1024;
+  disko.devices.disk.main = {
+    device = "/dev/vda";
+    imageName = "download-vm-xps";
+    imageSize = "16G";
+    type = "disk";
+    content = {
+      type = "gpt";
+      partitions = {
+        ESP = {
+          type = "EF00";
+          size = "512M";
+          content = {
+            type = "filesystem";
+            format = "vfat";
+            mountpoint = "/boot";
+            mountOptions = [ "umask=0077" ];
+          };
+        };
+        root = {
+          size = "100%";
+          content = {
+            type = "filesystem";
+            format = "ext4";
+            mountpoint = "/";
+          };
+        };
+      };
+    };
   };
-  fileSystems."/boot" = {
-    device = lib.mkForce "/dev/vda1";
-    fsType = "vfat";
+
+  # VM runtime resources (consumed by deployment script)
+  my.vmDeploy = {
+    memoryMB = 512;
+    vcpus = 2;
+    bridge = "br0";
   };
 
   time.timeZone = "America/Chicago";

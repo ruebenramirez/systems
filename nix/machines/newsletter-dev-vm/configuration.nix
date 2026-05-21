@@ -1,25 +1,28 @@
-{ config, lib, pkgs, pkgs-unstable, ... }:
+{ config, lib, pkgs, ... }:
 {
   imports = [
     ../_common/base/default.nix
     ../_common/dev.nix
     ../_common/home-vpn-client.nix
     ../_common/services/kubernetes.nix
-    ./services/forgejo-runner.nix
   ];
 
   # Boot configuration
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernel.sysctl = {
+    "net.ipv4.ip_forward" = 1;
+    "net.ipv6.conf.all.forwarding" = 1;
+  };
   boot.kernelParams = [ "console=ttyS0,115200n8" "console=tty1" ];
 
   # Disk layout (disko)
   boot.growPartition = true;
-  disko.memSize = 8192;
+  disko.memSize = 4096;
   disko.devices.disk.main = {
     device = "/dev/vda";
-    imageName = "forgejo-ci-runner-vm";
-    imageSize = "48G";
+    imageName = "newsletter-dev-vm";
+    imageSize = "32G";
     type = "disk";
     content = {
       type = "gpt";
@@ -60,12 +63,18 @@
   '';
 
   networking = {
-    hostName = "forgejo-ci-runner-vm";
+    hostName = "newsletter-dev-vm";
     useNetworkd = true;
     interfaces.enp1s0.useDHCP = true;
     nftables.enable = true;
     useDHCP = false;
-    firewall.checkReversePath = "loose";
+    firewall = {
+      allowedTCPPorts = [
+        80
+        443
+      ];
+      checkReversePath = "loose";
+    };
   };
 
   systemd.services."serial-getty@ttyS0" = {
