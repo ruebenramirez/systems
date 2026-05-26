@@ -16,6 +16,7 @@ MACHINES=(
     "pi-syncoid-target-lan:pi-syncoid-target"
     "download-vm-xps-lan:download-vm-xps"
     "forgejo-ci-runner-vm-lan:forgejo-ci-runner-vm"
+    "newsletter-dev-vm-lan:newsletter-dev-vm"
     #"x220-lan:x220"
 )
 
