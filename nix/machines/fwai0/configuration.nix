@@ -9,7 +9,8 @@
       ../_common/home-vpn-client.nix
       ../_common/rust-dev.nix
       ./hardware-configuration.nix
-      ./services/local-llm-framework-desktop.nix
+      #./services/local-llm-framework-desktop.nix
+      ./services/llama-cpp.nix
     ];
 
   # Set your time zone.
