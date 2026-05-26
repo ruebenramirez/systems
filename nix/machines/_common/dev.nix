@@ -6,12 +6,9 @@
 
     # agentic dev workflow tools
     aider-chat-full
-    claude-code
-    claude-code-router
-    claude-monitor
-    crush
+    # claude-code
+    # claude-monitor
     pkgs-unstable.codex
-    pkgs-unstable.gemini-cli
     pkgs-unstable.goose-cli
     pkgs-unstable.opencode
   ];
