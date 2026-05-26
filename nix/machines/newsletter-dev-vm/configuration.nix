@@ -61,7 +61,19 @@
   };
   services.avahi.enable = true;
 
-  nix.settings.trusted-users = [ "rramirez" ];
+  nix.settings.trusted-users = [ "newsletter-dev-bot" "rramirez" ];
+
+  users.groups.newsletter-dev-bot = {};
+  users.users.newsletter-dev-bot = {
+    isSystemUser = true;
+    uid = 1001;
+    group = "newsletter-dev-bot";
+    extraGroups = [ "docker" ];
+    home = "/var/lib/newsletter-dev-bot";
+    createHome = true;
+    shell = pkgs.bashInteractive;
+    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKTMf83tSsZW9wkwOSebkoQjPwPSx35tzMM0wmVDatPh" ];
+  };
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
