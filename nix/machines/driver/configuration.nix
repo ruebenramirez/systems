@@ -88,6 +88,15 @@
       FallbackDNS = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
     };
   };
+
+  systemd.network.wait-online = {
+    enable = true;
+    anyInterface = true;
+    ignoredInterfaces = [ "wg0" "wg1" ];
+    timeout = 30;
+  };
+
+
   services.avahi.enable = true;
 
   # Define a user account. Don't forget to set a password with ‘passwd’.
