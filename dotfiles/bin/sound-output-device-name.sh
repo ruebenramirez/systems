@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
-pactl list sinks | egrep -C5 "IDLE|RUNNING" | grep Description | cut -d' ' -f 2
+wpctl inspect @DEFAULT_AUDIO_SINK@ 2>/dev/null \
+  | awk -F'"' '/node.description/ { print $2; exit }'
