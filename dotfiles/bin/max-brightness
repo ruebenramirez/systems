@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-sudo light -S 100
+brightnessctl set 100%
 sudo ddcutil setvcp 0x10 100
