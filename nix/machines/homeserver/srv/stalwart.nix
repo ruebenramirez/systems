@@ -2,14 +2,14 @@
 
 {
   # Grant Stalwart access to read the certificates owned by the shared groups
-  users.users.stalwart-mail.extraGroups = ["ruebdev-wildcard-tls"];
+  users.users.stalwart-mail.extraGroups = [ "ruebdev-wildcard-tls" ];
 
   # ---------------------------------------------------------------------------
   # Stalwart Mail Server
   # ---------------------------------------------------------------------------
-  services.stalwart-mail = {
+  services.stalwart = {
     enable = true;
-
+    stateVersion = "25.11";
     # openFirewall opens: 25, 465, 587, 993.
     # Port 8081 (management) is intentionally excluded — bound to 127.0.0.1 only.
     # Note: Port 4190 is NOT opened by default by openFirewall = true.
@@ -25,14 +25,13 @@
     };
 
     settings = {
-
       # Primary hostname for this mail server instance.
       server.hostname = "mail.rueb.dev";
 
       # Admin UI fallback credentials.
       authentication.fallback-admin = {
         user   = "admin";
-        secret = "%{file:/run/credentials/stalwart-mail.service/stalwart_admin_password}%";
+        secret = "%{file:/run/credentials/stalwart.service/stalwart_admin_password}%";
       };
 
       # TLS: Server Name Indication (SNI) setup for multiple domains
@@ -71,7 +70,6 @@
       # Listeners
       # -----------------------------------------------------------------------
       server.listener = {
-
         # Inbound SMTP from VPS Postfix over WireGuard.
         smtp = {
           bind                 = [ "[::]:25" ];
@@ -128,15 +126,13 @@
           mta-sts  = "disable";
         };
         auth = {
-          username = "%{file:/run/credentials/stalwart-mail.service/smtp2go_username}%";
-          secret   = "%{file:/run/credentials/stalwart-mail.service/smtp2go_password}%";
+          username = "%{file:/run/credentials/stalwart.service/smtp2go_username}%";
+          secret   = "%{file:/run/credentials/stalwart.service/smtp2go_password}%";
         };
       };
 
       # Local delivery route — no additional parameters required.
-      queue.route.local = {
-        type = "local";
-      };
+      queue.route.local.type = "local";
 
       # -----------------------------------------------------------------------
       # Routing strategy
@@ -162,7 +158,6 @@
         lookup    = "db";
         directory = "internal";
       };
-
     };
   };
 
@@ -174,7 +169,7 @@
   # ---------------------------------------------------------------------------
   # systemd service hardening override.
   # ---------------------------------------------------------------------------
-  systemd.services.stalwart-mail.serviceConfig = {
+  systemd.services.stalwart.serviceConfig = {
     ReadWritePaths = [
       "/tank/srv/mail.rueb.dev--stalwart"
     ];

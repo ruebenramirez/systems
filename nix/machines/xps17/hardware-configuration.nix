@@ -12,6 +12,9 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
+  boot.kernelPackages = pkgs.linuxPackages_7_0;
+  boot.zfs.package = pkgs.zfs_2_4;
+  boot.zfs.forceImportRoot = false;
 
   # Import zpool from 2nd onboard nvme
   boot.zfs.extraPools = [ "devpool" ];
@@ -41,12 +44,6 @@
     { device = "zroot/safe/persist";
       fsType = "zfs";
     };
-
-#  fileSystems."/mnt/D" =
-#    { device = "/dev/nvme1n1p1";
-#      fsType = "ntfs";
-#      options = [ "rw" "uid=1000" ];
-#    };
 
   swapDevices =
     [ { device = "/dev/disk/by-uuid/2d3ce25f-7512-432f-a7ad-87be7b411c71"; }

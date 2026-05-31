@@ -97,7 +97,7 @@ in
   users.defaultUserShell = pkgs.fish;
   programs.fish.enable = true;
   # disable long man cache build times when using fish shell
-  documentation.man.generateCaches = false;
+  documentation.man.cache.enable = false;
 
   # part of gnupg reqs
   services.pcscd.enable = true;

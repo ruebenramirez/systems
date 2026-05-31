@@ -10,10 +10,13 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
+  boot.kernelPackages = pkgs.linuxPackages_7_0;
+  boot.zfs.package = pkgs.zfs_2_4;
+  boot.zfs.forceImportRoot = false;
+  #boot.zfs.forceImportAll = true;  # Critical for external pools
 
   # Import tank zpool from USB-C DAS
   boot.zfs.extraPools = [ "tank" ];
-  boot.zfs.forceImportAll = true;  # Critical for external pools
   boot.zfs.devNodes = "/dev/disk/by-id";
   boot.postBootCommands = ''
     echo "=== STARTING ZPOOL IMPORT ==="

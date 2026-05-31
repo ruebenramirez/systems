@@ -56,8 +56,10 @@
   # DNS services
   services.resolved = {
     enable = true;
-    domains = [ "~." ];
-    fallbackDns = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
+    settings.Resolve = {
+      Domains = [ "~." ];
+      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
+    };
   };
   services.avahi.enable = true;
 

@@ -90,8 +90,8 @@ in
   # Enable touchpad support (enabled default in most desktopManager).
   services.libinput.enable = true;
 
-  # light is a backlight management utility
-  programs.light.enable = true;
+  # backlight management utility
+  hardware.acpilight.enable = true;
 
   # sway window management on wayland (replacing i3)
   programs.sway = {

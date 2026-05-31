@@ -17,7 +17,6 @@
       ../_common/desktop/razer-keyboard.nix
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
-      ./services/local-llm-AMD.nix
       ./udev-rules/lofree-keyboard-udev-disable-thinkpad-keyboard.nix
       ./udev-rules/xreal-udev-unplug-restart-kanshi.nix
     ];
@@ -39,43 +38,55 @@
   boot.loader.systemd-boot.configurationLimit = 10;
 
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.supportedFilesystems = [ "ntfs" ];
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   networking = {
     hostName = "driver";
     hostId = "6f602d2b";
-
     networkmanager.enable = false;
-    wireless.enable = true;
+
+    wireless = {
+      enable = true;
+      enableHardening = false;
+      extraConfigFiles = [
+        "/persist/etc/wpa_supplicant.conf"
+      ];
+      extraConfig = ''
+        ctrl_interface=DIR=/run/wpa_supplicant GROUP=wheel
+        update_config=1
+      '';
+      userControlled = true;
+      interfaces = [ "wlp2s0" ];
+    };
     useNetworkd = true;
-
-    # The global useDHCP flag is deprecated, therefore explicitly set to false here.
-    # Per-interface useDHCP will be mandatory in the future, so this generated config
-    # replicates the default behaviour.
     useDHCP = false;
-
-    # Make sure that dhcpcd doesnt timeout when interfaces are down
-    # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
-    dhcpcd.wait = "if-carrier-up";
-    interfaces.wlp2s0.useDHCP = true;
-
-    # 1g gigabyte ethernet (built-into laptop)
-    # interfaces.enp1s0f0.useDHCP = true;
-
-    # 2.5g Ethernet usb-c dongle
-    #interfaces.enp102s0f3u1.useDHCP = true;
-    #interfaces.enp100s0f3u2.useDHCP = true;
-
   };
+  systemd.network.networks = {
+    # Wi-Fi Interface
+    "30-wireless" = {
+      matchConfig.Name = "wlp2s0";
+      networkConfig.DHCP = "yes";
+    };
+    # Built-in 1G Ethernet
+    "40-ethernet-built-in" = {
+      matchConfig.Name = "enp1s0f0";
+      networkConfig.DHCP = "yes";
+    };
 
-  programs.nm-applet.enable = true;
+    # # USB-C 2.5G Ethernet Dongles
+    # "50-usb-ethernet-1" = {
+    #   matchConfig.Name = "enp102s0f3u*";
+    #   networkConfig.DHCP = "yes";
+    # };
+  };
 
   # DNS services
   services.resolved = {
     enable = true;
-    domains = [ "~." ];
-    fallbackDns = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
+    settings.Resolve = {
+      Domains = [ "~." ];
+      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
+    };
   };
   services.avahi.enable = true;
 
@@ -87,6 +98,7 @@
       "adbusers"
       "audio"
       "docker"
+      "network"
       "openrazer"
       "renderer"
       "sound"
@@ -110,11 +122,6 @@
     }
   ];
 
-  environment.etc."wpa_supplicant.conf" = {
-    source = "/persist/etc/wpa_supplicant.conf";
-    mode = "symlink";
-  };
-
   # Enable the OpenSSH daemon.
   services.openssh = {
     enable = true;
@@ -131,7 +138,6 @@
     ];
   };
 
-
   programs.ssh = {
     # Fix timeout from client side
     # Ref: https://www.cyberciti.biz/tips/open-ssh-server-connection-drops-out-after-few-or-n-minutes-of-inactivity.html
@@ -144,7 +150,7 @@
   # List services that you want to enable:
   # Open ports in the firewall.
   networking.firewall.allowedTCPPorts = [
-    1313  # hugo blog dev
+    #1313  # hugo blog dev
   ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.

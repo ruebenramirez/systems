@@ -1,9 +1,9 @@
 { config, pkgs, ... }:
 {
   environment.systemPackages = with pkgs; [
+    acpilight
     gammastep
     kanshi
-    light
     mako
     rofi
     swayidle

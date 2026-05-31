@@ -22,8 +22,9 @@
 
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
-  boot.kernelPackages = pkgs.linuxPackages_6_18;
+  boot.kernelPackages = pkgs.linuxPackages_7_0;
   boot.zfs.package = pkgs.zfs_2_4;
+  boot.zfs.forceImportRoot = false;
 
   fileSystems."/" =
     { device = "zroot/local/root";

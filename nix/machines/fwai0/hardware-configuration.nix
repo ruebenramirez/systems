@@ -10,7 +10,7 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
-  boot.kernelPackages = pkgs.linuxPackages_6_18;
+  boot.kernelPackages = pkgs.linuxPackages_7_0;
   boot.zfs.package = pkgs.zfs_2_4;
   boot.initrd.availableKernelModules = [
     "nvme"
@@ -30,6 +30,7 @@
     "ttm.page_pool_size=32505856"
     "amdgpu.sg_display=0"
   ];
+  boot.zfs.forceImportRoot = false;
 
   fileSystems."/" =
     { device = "zroot/local/root";

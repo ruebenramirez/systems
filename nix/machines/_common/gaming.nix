@@ -10,7 +10,7 @@ in
     wine64
     winetricks
     winePackages.fonts
-    wineWowPackages.stable
+    wineWow64Packages.stable
   ];
 
   programs.steam = {

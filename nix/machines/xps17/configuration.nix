@@ -12,7 +12,7 @@
     ../_common/services/kubernetes.nix
     ../_common/services/virtualization-intel.nix
     ./hardware-configuration.nix
-    ./services/local-llm-Nvidia.nix
+    #./services/local-llm-Nvidia.nix
   ];
 
   time.timeZone = "America/Chicago";
@@ -58,8 +58,10 @@
   # DNS services
   services.resolved = {
     enable = true;
-    domains = [ "~." ];
-    fallbackDns = [ "1.1.1.1" "1.0.0.1" ];
+    settings.Resolve = {
+      Domains = [ "~." ];
+      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
+    };
   };
   services.avahi.enable = true;
 

@@ -33,9 +33,6 @@ in
   # Make sure the DBus service files from gvfs are globally visible
   services.dbus.packages = [ pkgs.gvfs ];
 
-  # This replaces android-udev-rules and sets up the necessary hardware permissions
-  programs.adb.enable = true;
-
   # Packages for MTP access (Nautilus + CLI tools)
   environment.systemPackages = with pkgs; [
     nautilus              # GNOME Files
