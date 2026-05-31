@@ -249,25 +249,14 @@
         -- ========================================
         -- TREESITTER CONFIGURATION
         -- ========================================
-        require('nvim-treesitter.configs').setup {
-          highlight = {
-            enable = true,
-            additional_vim_regex_highlighting = false,
-          },
-          indent = {
-            enable = true
-          },
-          -- Incremental selection
-          incremental_selection = {
-            enable = true,
-            keymaps = {
-              init_selection = "gnn",
-              node_incremental = "grn",
-              scope_incremental = "grc",
-              node_decremental = "grm",
-            },
-          },
-        }
+        vim.api.nvim_create_autocmd('FileType', {
+          callback = function()
+            -- Enable treesitter highlighting and disable regex syntax
+            pcall(vim.treesitter.start)
+            -- Enable treesitter-based indentation
+            vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
+          end,
+        })
 
         -- ========================================
         -- Yazi CONFIGURATION
