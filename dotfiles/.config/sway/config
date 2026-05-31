@@ -77,7 +77,7 @@ input "type:keyboard" {
 }
 
 input "type:touchpad" {
-    #events disabled
+    events disabled
     natural_scroll enabled
     click_method clickfinger
     pointer_accel .4
