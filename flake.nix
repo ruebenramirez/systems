@@ -217,6 +217,19 @@
           ];
         };
 
+        "z13" = nixpkgs.lib.nixosSystem {
+          modules = [
+            ./nix/machines/z13/configuration.nix
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+              };
+            }
+          ];
+        };
+
       };
     };
 }
