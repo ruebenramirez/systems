@@ -1,7 +1,7 @@
-{ config, pkgs, ... }:
+{ config, pkgs, pkgs-unstable, ... }:
 {
   environment.systemPackages = with pkgs; [
-    (btop.override { rocmSupport = true; })
+    pkgs-unstable.btop-rocm
     amdgpu_top
     clinfo
     libva-utils

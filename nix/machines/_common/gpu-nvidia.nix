@@ -1,8 +1,8 @@
-{ config, pkgs, betterbird-stable, ... }:
+{ config, pkgs, pkgs-unstable, ... }:
 
 {
   environment.systemPackages = with pkgs; [
-    (btop.override { cudaSupport = true; })
+    pkgs-unstable.btop-cuda
     nvtopPackages.full
     vulkan-tools
     vulkan-loader
