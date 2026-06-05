@@ -1,4 +1,4 @@
-{ pkgs, roundcube-ident-switch-src, ... }:
+{ config, pkgs, roundcube-ident-switch-src, ... }:
 
 let
   # The plugin name must be ident_switch to match ident_switch.php
@@ -58,6 +58,49 @@ in
       "managesieve"
     ];
   };
+
+  # --- IDENT_SWITCH DATABASE INITIALIZATION ---
+  # The ident_switch plugin requires a custom database table to store configuration.
+  # This service ensures the schema is created in the PostgreSQL database automatically.
+  systemd.services.roundcube-ident-switch-db-init = {
+    description = "Initialize Roundcube ident_switch plugin database schema";
+    after = [ "postgresql.service" "roundcube-setup.service" ];
+    before = [ "phpfpm-roundcube.service" ];
+    requires = [ "postgresql.service" "roundcube-setup.service" ];
+    requiredBy = [ "phpfpm-roundcube.service" ];
+    wantedBy = [ "multi-user.target" ];
+
+    serviceConfig = {
+      Type = "oneshot";
+      User = "postgres";
+    };
+
+    script = ''
+      PSQL="${config.services.postgresql.package}/bin/psql"
+
+      if ! $PSQL -d roundcube -tAc "SELECT to_regclass('public.ident_switch') IS NOT NULL;" | grep -q t; then
+        echo "Creating ident_switch schema..."
+        $PSQL -d roundcube -f ${ident_switch_plugin}/plugins/ident_switch/SQL/postgres.initial.sql
+      else
+        echo "ident_switch schema already exists."
+      fi
+
+      echo "Ensuring ident_switch ownership..."
+      $PSQL -d roundcube <<'SQL'
+ALTER TABLE IF EXISTS public.ident_switch OWNER TO roundcube;
+ALTER SEQUENCE IF EXISTS public.ident_switch_id_seq OWNER TO roundcube;
+ALTER INDEX IF EXISTS public.ix_ident_switch_user_id OWNER TO roundcube;
+ALTER INDEX IF EXISTS public.ix_ident_switch_iid OWNER TO roundcube;
+ALTER INDEX IF EXISTS public.ix_ident_switch_parent_id OWNER TO roundcube;
+SQL
+    '';
+  };
+
+  system.activationScripts.roundcube-ident-switch-db-init = ''
+    if /run/current-system/systemd/bin/systemctl is-active --quiet postgresql.service; then
+      /run/current-system/systemd/bin/systemctl start roundcube-ident-switch-db-init.service || true
+    fi
+  '';
 
   # --- NGINX & WILDCARD TLS CONFIGURATION ---
   services.nginx = {
