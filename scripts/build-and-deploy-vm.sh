@@ -24,6 +24,60 @@ require_cmd() {
     fi
 }
 
+get_vm_ipv4() {
+    local vm_name="$1"
+    local output=""
+    local name=""
+    local mac=""
+    local protocol=""
+    local address=""
+
+    if ! output="$(sudo virsh domifaddr "$vm_name" --source agent 2>/dev/null)"; then
+        return 1
+    fi
+
+    while read -r name mac protocol address _; do
+        if [ "$protocol" = "ipv4" ] && [[ "$address" != 127.* ]]; then
+            printf '%s\n' "${address%%/*}"
+            return 0
+        fi
+    done <<< "$output"
+
+    return 1
+}
+
+wait_for_vm_ipv4() {
+    local vm_name="$1"
+    local timeout_seconds=60
+    local interval_seconds=5
+    local elapsed=0
+    local ip=""
+
+    while [ "$elapsed" -lt "$timeout_seconds" ]; do
+        if ip="$(get_vm_ipv4 "$vm_name")" && [ -n "$ip" ]; then
+            printf '%s\n' "$ip"
+            return 0
+        fi
+
+        sleep "$interval_seconds"
+        elapsed=$((elapsed + interval_seconds))
+    done
+
+    return 1
+}
+
+print_ssh_config_snippet() {
+    local vm_name="$1"
+    local host_name="$2"
+    local ssh_host_alias="${vm_name}-lan"
+
+    echo "Host ${ssh_host_alias}"
+    echo "  HostName ${host_name}"
+    echo "  User rramirez"
+    echo "  IdentityFile ~/.ssh/id_ed25519"
+    echo "  Port 22"
+}
+
 validate_local_artifact_path() {
     local path="$1"
     if [ -z "$path" ] || [ "$path" = "/" ] || [ "$path" = "." ] || [ "$path" = ".." ]; then
@@ -76,6 +130,7 @@ VM_BRIDGE=""
 
 require_cmd nix
 require_cmd qemu-img
+require_cmd virsh
 require_cmd virt-install
 require_cmd sudo
 
@@ -214,4 +269,22 @@ if [ "$KEEP_ARTIFACTS" = "true" ]; then
 else
     echo "Removed local artifacts: $RAW_IMAGE, $QCOW_IMAGE, $OUT_LINK"
 fi
-echo "Connect with: ssh rramirez@$VM_NAME"
+
+echo "--- SSH Config Snippet ---"
+if VM_IPV4="$(wait_for_vm_ipv4 "$VM_NAME")"; then
+    echo "Add this to ~/.ssh/config:"
+    echo ""
+    print_ssh_config_snippet "$VM_NAME" "$VM_IPV4"
+    echo ""
+    echo "Connect with:"
+    echo "ssh ${VM_NAME}-lan"
+else
+    echo "No IPv4 address found from the QEMU guest agent yet."
+    echo ""
+    echo "Run later:"
+    echo "sudo virsh domifaddr $VM_NAME --source agent"
+    echo ""
+    echo "Then add this to ~/.ssh/config, replacing <ip-address>:"
+    echo ""
+    print_ssh_config_snippet "$VM_NAME" "<ip-address>"
+fi
