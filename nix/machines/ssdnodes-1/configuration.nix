@@ -77,7 +77,10 @@
   # DNS services
   services.resolved = {
     enable = true;
-    domains = [ "~." ];
+    settings.Resolve = {
+      Domains = [ "~." ];
+      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ];
+    };
   };
 
   # Define a user account. Don't forget to set a password with ‘passwd’.

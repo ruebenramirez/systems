@@ -43,8 +43,10 @@ in
   # DNS services
   services.resolved = {
     enable = true;
-    domains = [ "~." ];
-    fallbackDns = [ "1.1.1.1" "1.0.0.1" ];
+    settings.Resolve = {
+      Domains = [ "~." ];
+      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ];
+    };
   };
   services.avahi.enable = true;
 
