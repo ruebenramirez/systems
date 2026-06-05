@@ -195,7 +195,7 @@ else
       --vcpus="$VM_VCPUS" \
       --disk path="$IMAGE_DEST",device=disk,bus=virtio \
       --os-variant=nixos-unstable \
-      --boot uefi \
+      --boot uefi,firmware.feature0.name=secure-boot,firmware.feature0.enabled=no \
       --network bridge="$VM_BRIDGE",model=virtio \
       --graphics none \
       --noautoconsole \

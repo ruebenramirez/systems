@@ -2,6 +2,7 @@
 {
   imports = [
     ../_common/base/default.nix
+    ../_common/qemu-vm-guest.nix
     ../_common/dev.nix
     ../_common/home-vpn-client.nix
     ../_common/rust-dev.nix
@@ -16,7 +17,6 @@
     "net.ipv4.ip_forward" = 1;
     "net.ipv6.conf.all.forwarding" = 1;
   };
-  boot.kernelParams = [ "console=ttyS0,115200n8" "console=tty1" ];
 
   # Disk layout (disko)
   boot.growPartition = true;
@@ -53,7 +53,7 @@
 
   # VM runtime resources (consumed by deployment script)
   my.vmDeploy = {
-    memoryMB = 512;
+    memoryMB = 2048;
     vcpus = 2;
     bridge = "br0";
   };
@@ -67,26 +67,12 @@
 
   networking = {
     hostName = "dev-vm-xps";
-    useNetworkd = true;
-    interfaces.enp1s0.useDHCP = true;
-    nftables.enable = true;
-    useDHCP = false;
-    firewall.checkReversePath = "loose";
   };
 
   networking.firewall.allowedTCPPorts = [
     5173
     8000
   ];
-
-  systemd.services."serial-getty@ttyS0" = {
-    enable = true;
-    wantedBy = [ "multi-user.target" ];
-  };
-
-  # Enable QEMU guest agent
-  services.qemuGuest.enable = true;
-  services.spice-vdagentd.enable = true;
 
   # DNS services
   services.resolved = {

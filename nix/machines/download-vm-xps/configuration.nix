@@ -2,6 +2,7 @@
 {
   imports = [
     ../_common/base/default.nix
+    ../_common/qemu-vm-guest.nix
     ../_common/home-vpn-client.nix
     ../_common/mullvad-client.nix
   ];
@@ -64,21 +65,12 @@
 
   networking = {
     hostName = "download-vm-xps";
-    useNetworkd = true;
-    interfaces.enp1s0.useDHCP = true;
-    nftables.enable = true;
-    useDHCP = false;
     firewall = {
       enable = true;
-      checkReversePath = "loose";
       allowedTCPPorts = [ 49164 ];
       allowedUDPPorts = [ 6881 ]; # DHT needs UDP!
     };
   };
-
-  # Enable QEMU guest agent
-  services.qemuGuest.enable = true;
-  services.spice-vdagentd.enable = true;
 
   # DNS services
   services.resolved = {
