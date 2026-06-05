@@ -4,6 +4,7 @@ set -euo pipefail
 # Default values
 REPLACE_EXISTING="false"
 KEEP_ARTIFACTS="false"
+CONFIRMED_BACKED_UP="false"
 
 # Usage information
 usage() {
@@ -13,6 +14,7 @@ usage() {
     echo ""
     echo "Options:"
     echo "  --replace-existing Overwrite an existing image and define/import the VM"
+    echo "  --confirmed-backed-up Confirm critical VM data has been backed up before replacement"
     echo "  --keep-artifacts Keep local build artifacts after deployment"
     exit 1
 }
@@ -22,6 +24,48 @@ require_cmd() {
         echo "Error: required command not found on PATH: $1"
         exit 1
     fi
+}
+
+confirm_critical_data_backed_up() {
+    local image_dest="$1"
+    local confirmation=""
+
+    echo "WARNING: This will replace the VM disk image:"
+    echo "  $image_dest"
+    echo ""
+    echo "Any data stored only inside this VM disk may be lost."
+    echo "Confirm that critical data has been backed up before continuing."
+    echo ""
+
+    if ! read -r -p "Type 'I have backed up critical data' to continue: " confirmation; then
+        echo "Aborted: backup confirmation could not be read."
+        exit 1
+    fi
+
+    if [ "$confirmation" != "I have backed up critical data" ]; then
+        echo "Aborted: backup confirmation was not provided."
+        exit 1
+    fi
+}
+
+wait_for_vm_shutdown() {
+    local vm_name="$1"
+    local timeout_seconds=120
+    local interval_seconds=5
+    local elapsed=0
+    local state=""
+
+    while [ "$elapsed" -lt "$timeout_seconds" ]; do
+        state="$(sudo virsh domstate "$vm_name" 2>/dev/null || true)"
+        if [ "$state" = "shut off" ]; then
+            return 0
+        fi
+
+        sleep "$interval_seconds"
+        elapsed=$((elapsed + interval_seconds))
+    done
+
+    return 1
 }
 
 get_vm_ipv4() {
@@ -97,6 +141,10 @@ while [[ $# -gt 0 ]]; do
             REPLACE_EXISTING="true"
             shift
             ;;
+        --confirmed-backed-up)
+            CONFIRMED_BACKED_UP="true"
+            shift
+            ;;
         --keep-artifacts)
             KEEP_ARTIFACTS="true"
             shift
@@ -167,18 +215,14 @@ if [ -z "$VM_BRIDGE" ]; then
 fi
 
 if [ -e "$IMAGE_DEST" ] && [ "$REPLACE_EXISTING" != "true" ]; then
-    echo "Error: $IMAGE_DEST already exists."
-    echo "Re-run with --replace-existing after confirming it is safe to replace."
+    echo "Error: VM disk image already exists: $IMAGE_DEST"
+    echo "Rerun with --replace-existing if you intend to replace this VM disk."
     exit 1
 fi
 
 if command -v virsh >/dev/null && sudo virsh dominfo "$VM_NAME" >/dev/null 2>&1; then
     DOMAIN_EXISTS="true"
     VM_STATE="$(sudo virsh domstate "$VM_NAME" 2>/dev/null || true)"
-    if [ "$VM_STATE" = "running" ]; then
-        echo "Error: VM '$VM_NAME' is running. Shut it down before replacing its disk image."
-        exit 1
-    fi
 fi
 
 if [ ! -d "$(dirname "$IMAGE_DEST")" ]; then
@@ -192,13 +236,34 @@ validate_local_artifact_path "$OUT_LINK"
 
 if [ "$DOMAIN_EXISTS" = "true" ] && [ "$REPLACE_EXISTING" != "true" ]; then
     echo "Error: VM domain '$VM_NAME' already exists."
-    echo "Re-run with --replace-existing after confirming it is safe to replace the disk image."
+    echo "Rerun with --replace-existing if you intend to replace its disk image."
     exit 1
 fi
 
+if [ "$REPLACE_EXISTING" = "true" ] && [ "$CONFIRMED_BACKED_UP" != "true" ]; then
+    confirm_critical_data_backed_up "$IMAGE_DEST"
+    CONFIRMED_BACKED_UP="true"
+fi
+
+if [ "$DOMAIN_EXISTS" = "true" ] && [ "$REPLACE_EXISTING" = "true" ] && [ "$VM_STATE" = "running" ]; then
+    echo "--- Shutting down running VM before disk replacement ---"
+    if ! sudo virsh shutdown "$VM_NAME"; then
+        echo "Error: failed to request shutdown for VM '$VM_NAME'."
+        exit 1
+    fi
+
+    if ! wait_for_vm_shutdown "$VM_NAME"; then
+        echo "Error: VM '$VM_NAME' did not shut down within the timeout."
+        echo "Shut it down manually, then rerun with --replace-existing."
+        exit 1
+    fi
+
+    VM_STATE="shut off"
+fi
+
 if [ "$DOMAIN_EXISTS" = "true" ] && [ "$REPLACE_EXISTING" = "true" ] && [ "$VM_STATE" != "shut off" ]; then
-    echo "Error: VM '$VM_NAME' domain exists but is not in a shut off state (state: '$VM_STATE')."
-    echo "Shut it down before replacing its disk image."
+    echo "Error: VM '$VM_NAME' is not replaceable in its current state: '$VM_STATE'."
+    echo "Bring it to a running or shut off state, or resolve it manually, then rerun with --replace-existing."
     exit 1
 fi
 
@@ -213,6 +278,11 @@ fi
 echo "Runtime memory: ${VM_MEMORY}MB"
 echo "Runtime vCPUs: ${VM_VCPUS}"
 echo "Runtime bridge: ${VM_BRIDGE}"
+if [ "$REPLACE_EXISTING" = "true" ]; then
+    echo "Backup confirmed: ${CONFIRMED_BACKED_UP}"
+else
+    echo "Backup confirmation: not required"
+fi
 echo "Local artifact cleanup: $( [ "$KEEP_ARTIFACTS" = "true" ] && echo "disabled" || echo "enabled" )"
 
 echo "--- Updating Flake ---"
@@ -241,7 +311,8 @@ sudo cp "$QCOW_IMAGE" "$IMAGE_DEST"
 sudo chmod 660 "$IMAGE_DEST"
 
 if [ "$DOMAIN_EXISTS" = "true" ]; then
-    echo "--- Existing VM found; replaced disk image only ---"
+    echo "--- Existing VM found; replaced disk image; starting domain ---"
+    sudo virsh start "$VM_NAME"
 else
     echo "--- Provisioning VM: $VM_NAME (${VM_MEMORY}MB RAM, ${VM_VCPUS} vCPUs) ---"
     sudo virt-install \
