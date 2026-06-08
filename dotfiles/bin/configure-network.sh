@@ -14,8 +14,8 @@ validate_input() {
 }
 
 stop_services() {
-  echo "Stopping wpa_supplicant.service"
-  sudo systemctl stop wpa_supplicant.service
+  echo "Stopping wpa_supplicant-wlp2s0.service"
+  sudo systemctl stop wpa_supplicant-wlp2s0.service
 
   echo "Stopping wireguard interfaces"
   sudo systemctl stop wg-quick-wg0.service
@@ -39,8 +39,8 @@ configure_network() {
 }
 
 restart_services() {
-  echo "Restarting wpa_supplicant.service"
-  sudo systemctl restart wpa_supplicant.service
+  echo "Restarting wpa_supplicant-wlp2s0.service"
+  sudo systemctl restart wpa_supplicant-wlp2s0.service
 
   echo "waiting for the network to come back online..."
   sleep 7
