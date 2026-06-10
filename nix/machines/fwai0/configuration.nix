@@ -10,7 +10,8 @@
       ../_common/rust-dev.nix
       ./hardware-configuration.nix
       #./services/local-llm-framework-desktop.nix
-      ./services/llama-cpp.nix
+      #./services/llama-cpp.nix
+      ./services/llama-cpp-upstream.nix
     ];
 
   # Set your time zone.

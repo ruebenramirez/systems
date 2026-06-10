@@ -9,6 +9,10 @@
     disko.url = "github:nix-community/disko";
     disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
     nixos-hardware.url = "github:NixOS/nixos-hardware";
+    llama-cpp = {
+      url = "github:ggml-org/llama.cpp/b9601";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
     roundcube-ident-switch-src = {
       url = "github:Gecka-Apps/roundcube-ident_switch/5.0.2";
       flake = false;
@@ -21,6 +25,7 @@
     , nixpkgs-unstable
     , disko
     , nixos-hardware
+    , llama-cpp
     , roundcube-ident-switch-src
     }@inputs:
 
@@ -155,6 +160,9 @@
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
+                llama-cpp-upstream-vulkan = llama-cpp.packages."x86_64-linux".vulkan.override {
+                  useWebUi = false;
+                };
               };
             }
           ];
