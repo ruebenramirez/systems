@@ -1,5 +1,9 @@
 # systems
 
+## Docs
+
+- [Driver LUKS/ZFS install](docs/driver-luks-zfs-install.md)
+
 
 # update this flake
 

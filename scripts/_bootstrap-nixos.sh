@@ -116,10 +116,12 @@ parted -s "$DISK_PATH" -- mkpart primary 512MiB 100%
 
 info "Formatting boot partition ..."
 mkfs.fat -F 32 -n boot "$DISK_PART_BOOT"
+BOOT_UUID="$(blkid -s UUID -o value "$DISK_PART_BOOT")"
 
 info "Setting up LUKS2 encryption on $DISK_PART_LUKS"
 info "You will be prompted to set a recovery password first."
 cryptsetup luksFormat --type luks2 "$DISK_PART_LUKS"
+LUKS_UUID="$(cryptsetup luksUUID "$DISK_PART_LUKS")"
 
 info "Opening LUKS container ..."
 cryptsetup open "$DISK_PART_LUKS" cryptroot
@@ -142,6 +144,7 @@ lvcreate -l 100%FREE -n zfs cryptvg
 
 info "Formatting and enabling encrypted swap partition ..."
 mkswap -L swap /dev/cryptvg/swap
+SWAP_UUID="$(blkid -s UUID -o value /dev/cryptvg/swap)"
 swapon /dev/cryptvg/swap
 
 info "Creating '$ZFS_POOL' ZFS pool for root ..."
@@ -216,5 +219,52 @@ mkdir -p /mnt/persist/etc/ssh
 info "Generating NixOS configuration (/mnt/etc/nixos/*.nix) just in case"
 nixos-generate-config --root /mnt
 
-info "copy out the /mnt/etc/nixos/hardware-configuration.nix if new hardware"
-info "nixos-install --flake ~/code/systems#driver"
+info "LUKS/ZFS provisioning values for driver"
+cat <<EOF
+BOOT_UUID=${BOOT_UUID}
+LUKS_UUID=${LUKS_UUID}
+SWAP_UUID=${SWAP_UUID}
+
+Enrollment model:
+- Initial luksFormat passphrase: long break-glass recovery passphrase
+- YubiKey 1: FIDO2 LUKS enrollment
+- YubiKey 2: FIDO2 LUKS enrollment
+
+Before running nixos-install, update nix/machines/driver/hardware-configuration.nix
+with the real UUIDs above. Do not leave placeholder UUIDs in active config.
+
+Required driver NixOS snippet:
+
+  boot.initrd.systemd.enable = true;
+
+  boot.initrd.luks.devices.cryptroot = {
+    device = "/dev/disk/by-uuid/${LUKS_UUID}";
+    preLVM = true;
+    allowDiscards = true;
+    crypttabExtraOpts = [
+      "fido2-device=auto"
+    ];
+  };
+
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/${BOOT_UUID}";
+    fsType = "vfat";
+    options = [ "fmask=0022" "dmask=0022" ];
+  };
+
+  swapDevices = [
+    { device = "/dev/disk/by-uuid/${SWAP_UUID}"; }
+  ];
+
+  boot.resumeDevice = "/dev/disk/by-uuid/${SWAP_UUID}";
+
+Verification commands:
+
+  cryptsetup luksDump "$DISK_PART_LUKS"
+  lsblk -f
+  zpool status
+
+After updating driver hardware config, install with:
+
+  nixos-install --flake ~/code/systems#driver
+EOF
