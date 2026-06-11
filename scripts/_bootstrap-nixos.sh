@@ -46,6 +46,20 @@ function info {
     echo -e "${BLUE_BG}$1${COLOR_RESET}"
 }
 
+function usage {
+    cat <<EOF
+Usage:
+  $0 <disk> [--luks]
+
+Examples:
+  $0 sda
+  $0 nvme0n1 --luks
+
+Without --luks, the script creates an unencrypted ZFS root pool directly on
+partition 2. With --luks, it creates LUKS2 -> LVM -> encrypted swap + ZFS.
+EOF
+}
+
 ################################################################################
 
 # Check if disk is an SSD
@@ -63,12 +77,49 @@ function is_ssd {
 
 ################################################################################
 
-export DISK=$1
-
-if ! [[ -v DISK ]]; then
+if [[ $# -lt 1 ]]; then
+    usage
     err "Missing argument. Expected block device name, e.g. 'nvme0n1'"
     exit 1
 fi
+
+USE_LUKS=false
+DISK=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --luks)
+            USE_LUKS=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --*)
+            usage
+            err "Unknown option: $1"
+            exit 1
+            ;;
+        *)
+            if [[ -n "$DISK" ]]; then
+                usage
+                err "Unexpected extra argument: $1"
+                exit 1
+            fi
+            DISK=$1
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$DISK" ]]; then
+    usage
+    err "Missing argument. Expected block device name, e.g. 'nvme0n1'"
+    exit 1
+fi
+
+export DISK
 
 export DISK_PATH="/dev/${DISK}"
 
@@ -90,7 +141,8 @@ else
 fi
 
 export DISK_PART_BOOT="${DISK_PATH}${PART_SUFFIX}1"
-export DISK_PART_LUKS="${DISK_PATH}${PART_SUFFIX}2"
+export DISK_PART_ROOT="${DISK_PATH}${PART_SUFFIX}2"
+export DISK_PART_LUKS="$DISK_PART_ROOT"
 
 export ZFS_POOL="zroot"
 
@@ -114,41 +166,52 @@ parted -s "$DISK_PATH" -- mkpart ESP fat32 1MiB 512MiB
 parted -s "$DISK_PATH" -- set 1 boot on
 parted -s "$DISK_PATH" -- mkpart primary 512MiB 100%
 
+info "Waiting for partition devices to settle ..."
+partprobe "$DISK_PATH"
+udevadm settle
+
 info "Formatting boot partition ..."
 mkfs.fat -F 32 -n boot "$DISK_PART_BOOT"
 BOOT_UUID="$(blkid -s UUID -o value "$DISK_PART_BOOT")"
 
-info "Setting up LUKS2 encryption on $DISK_PART_LUKS"
-info "You will be prompted to set a recovery password first."
-cryptsetup luksFormat --type luks2 "$DISK_PART_LUKS"
-LUKS_UUID="$(cryptsetup luksUUID "$DISK_PART_LUKS")"
+if [[ "$USE_LUKS" == true ]]; then
+    info "Setting up LUKS2 encryption on $DISK_PART_LUKS"
+    info "You will be prompted to set a recovery password first."
+    cryptsetup luksFormat --type luks2 "$DISK_PART_LUKS"
+    LUKS_UUID="$(cryptsetup luksUUID "$DISK_PART_LUKS")"
 
-info "Opening LUKS container ..."
-cryptsetup open "$DISK_PART_LUKS" cryptroot
+    info "Opening LUKS container ..."
+    cryptsetup open "$DISK_PART_LUKS" cryptroot
 
-info "Enrolling YubiKey 1 (FIDO2) ..."
-echo -e "${BLUE_BG}Please plug in your FIRST YubiKey and press Enter.${COLOR_RESET}"
-read -r
-systemd-cryptenroll --fido2-device=auto --fido2-with-user-presence=true "$DISK_PART_LUKS"
+    info "Enrolling YubiKey 1 (FIDO2) ..."
+    echo -e "${BLUE_BG}Please plug in your FIRST YubiKey and press Enter.${COLOR_RESET}"
+    read -r
+    systemd-cryptenroll --fido2-device=auto --fido2-with-user-presence=true "$DISK_PART_LUKS"
 
-info "Enrolling YubiKey 2 (FIDO2) ..."
-echo -e "${BLUE_BG}Please unplug the first YubiKey, plug in your SECOND YubiKey, and press Enter.${COLOR_RESET}"
-read -r
-systemd-cryptenroll --fido2-device=auto --fido2-with-user-presence=true "$DISK_PART_LUKS"
+    info "Enrolling YubiKey 2 (FIDO2) ..."
+    echo -e "${BLUE_BG}Please unplug the first YubiKey, plug in your SECOND YubiKey, and press Enter.${COLOR_RESET}"
+    read -r
+    systemd-cryptenroll --fido2-device=auto --fido2-with-user-presence=true "$DISK_PART_LUKS"
 
-info "Setting up LVM inside LUKS container for Swap and ZFS ..."
-pvcreate /dev/mapper/cryptroot
-vgcreate cryptvg /dev/mapper/cryptroot
-lvcreate -L 32G -n swap cryptvg
-lvcreate -l 100%FREE -n zfs cryptvg
+    info "Setting up LVM inside LUKS container for Swap and ZFS ..."
+    pvcreate /dev/mapper/cryptroot
+    vgcreate cryptvg /dev/mapper/cryptroot
+    lvcreate -L 32G -n swap cryptvg
+    lvcreate -l 100%FREE -n zfs cryptvg
 
-info "Formatting and enabling encrypted swap partition ..."
-mkswap -L swap /dev/cryptvg/swap
-SWAP_UUID="$(blkid -s UUID -o value /dev/cryptvg/swap)"
-swapon /dev/cryptvg/swap
+    info "Formatting and enabling encrypted swap partition ..."
+    mkswap -L swap /dev/cryptvg/swap
+    SWAP_UUID="$(blkid -s UUID -o value /dev/cryptvg/swap)"
+    swapon /dev/cryptvg/swap
+
+    ZFS_DEVICE="/dev/cryptvg/zfs"
+else
+    info "Using unencrypted ZFS root on $DISK_PART_ROOT"
+    ZFS_DEVICE="$DISK_PART_ROOT"
+fi
 
 info "Creating '$ZFS_POOL' ZFS pool for root ..."
-zpool create -f "$ZFS_POOL" /dev/cryptvg/zfs
+zpool create -f "$ZFS_POOL" "$ZFS_DEVICE"
 
 info "Enabling compression for '$ZFS_POOL' ZFS pool ..."
 zfs set compression=on "$ZFS_POOL"
@@ -219,8 +282,9 @@ mkdir -p /mnt/persist/etc/ssh
 info "Generating NixOS configuration (/mnt/etc/nixos/*.nix) just in case"
 nixos-generate-config --root /mnt
 
-info "LUKS/ZFS provisioning values for driver"
-cat <<EOF
+info "ZFS provisioning values"
+if [[ "$USE_LUKS" == true ]]; then
+    cat <<EOF
 BOOT_UUID=${BOOT_UUID}
 LUKS_UUID=${LUKS_UUID}
 SWAP_UUID=${SWAP_UUID}
@@ -230,12 +294,13 @@ Enrollment model:
 - YubiKey 1: FIDO2 LUKS enrollment
 - YubiKey 2: FIDO2 LUKS enrollment
 
-Before running nixos-install, update nix/machines/driver/hardware-configuration.nix
+Before running nixos-install, update the target machine's hardware-configuration.nix
 with the real UUIDs above. Do not leave placeholder UUIDs in active config.
 
-Required driver NixOS snippet:
+Required LUKS NixOS snippet:
 
   boot.initrd.systemd.enable = true;
+  boot.initrd.systemd.fido2.enable = true;
 
   boot.initrd.luks.devices.cryptroot = {
     device = "/dev/disk/by-uuid/${LUKS_UUID}";
@@ -258,13 +323,54 @@ Required driver NixOS snippet:
 
   boot.resumeDevice = "/dev/disk/by-uuid/${SWAP_UUID}";
 
+The boot.resumeDevice setting is needed on machines that hibernate, such as
+driver. x220 does not currently require it unless hibernate is enabled there.
+
 Verification commands:
 
   cryptsetup luksDump "$DISK_PART_LUKS"
   lsblk -f
   zpool status
 
-After updating driver hardware config, install with:
+After updating the target hardware config, install with the appropriate flake target, for example:
 
+  nixos-install --flake ~/code/systems#x220
   nixos-install --flake ~/code/systems#driver
 EOF
+else
+    cat <<EOF
+BOOT_UUID=${BOOT_UUID}
+
+Unencrypted ZFS root was created directly on ${DISK_PART_ROOT}.
+
+Before running nixos-install, update the target machine's hardware-configuration.nix
+with the real UUID above. Do not leave placeholder UUIDs in active config.
+
+Required unencrypted NixOS snippet:
+
+  fileSystems."/boot" = {
+    device = "/dev/disk/by-uuid/${BOOT_UUID}";
+    fsType = "vfat";
+    options = [ "fmask=0022" "dmask=0022" ];
+  };
+
+  swapDevices = [ ];
+
+Keep the ZFS filesystem entries pointed at:
+
+  zroot/local/root
+  zroot/local/nix
+  zroot/safe/home
+  zroot/safe/persist
+
+Verification commands:
+
+  lsblk -f
+  zpool status
+
+After updating the target hardware config, install with the appropriate flake target, for example:
+
+  nixos-install --flake ~/code/systems#x220
+  nixos-install --flake ~/code/systems#driver
+EOF
+fi

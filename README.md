@@ -2,7 +2,7 @@
 
 ## Docs
 
-- [Driver LUKS/ZFS install](docs/driver-luks-zfs-install.md)
+- [NixOS ZFS install](docs/nixos-zfs-install.md)
 
 
 # update this flake
