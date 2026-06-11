@@ -15,7 +15,10 @@
       ANONYMIZED_TELEMETRY = "False";
       DO_NOT_TRACK = "True";
       SCARF_NO_ANALYTICS = "True";
-      OLLAMA_API_BASE_URL = "http://10.100.0.31:11434";
+      ENABLE_OLLAMA_API = "False";
+      ENABLE_OPENAI_API = "True";
+      OPENAI_API_BASE_URLS = "http://10.100.0.31:8080/v1";
+      OPENAI_API_KEYS = "sk-no-key-required";
     };
   };
 
