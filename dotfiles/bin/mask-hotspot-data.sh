@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Script configuration
 SCRIPT_NAME="$(basename "$0")"
-VERSION="1.0.0"
+VERSION="1.0.2"
 TTL_VALUE=65
 
 # Output control
@@ -37,10 +37,10 @@ OPTIONS:
     -V, --version    Display version information
 
 EXAMPLES:
-    $SCRIPT_NAME              Apply TTL masking
-    $SCRIPT_NAME --check      Check current status
-    $SCRIPT_NAME --remove     Remove masking rules
-    $SCRIPT_NAME --verbose    Apply with detailed output
+    $SCRIPT_NAME             Apply TTL masking
+    $SCRIPT_NAME --check     Check current status
+    $SCRIPT_NAME --remove    Remove masking rules
+    $SCRIPT_NAME --verbose   Apply with detailed output
 
 EOF
 }
@@ -51,12 +51,12 @@ version_info() {
 
 log_info() {
     [[ $QUIET -eq 1 ]] && return 0
-    echo -e "${GREEN}[INFO]${NC} $*"
+    echo -e "${GREEN}[INFO]${NC} $*" >&2
 }
 
 log_verbose() {
     [[ $VERBOSE -eq 0 ]] && return 0
-    echo -e "${YELLOW}[DEBUG]${NC} $*"
+    echo -e "${YELLOW}[DEBUG]${NC} $*" >&2
 }
 
 log_error() {
@@ -65,7 +65,7 @@ log_error() {
 
 log_success() {
     [[ $QUIET -eq 1 ]] && return 0
-    echo -e "${GREEN}[SUCCESS]${NC} $*"
+    echo -e "${GREEN}[SUCCESS]${NC} $*" >&2
 }
 
 # ============================================================================
@@ -86,7 +86,7 @@ detect_firewall() {
     if command -v iptables &> /dev/null; then
         if iptables -V 2>/dev/null | grep -q "nf_tables"; then
             if command -v iptables-legacy &> /dev/null && \
-               iptables-legacy -L -t mangle -n 2>/dev/null | grep -qv "^Chain\|^target"; then
+               sudo iptables-legacy -L -t mangle -n 2>/dev/null | grep -qv "^Chain\|^target"; then
                 log_verbose "Detected: iptables-legacy (active)"
                 echo "iptables-legacy"
                 return 0
@@ -110,12 +110,17 @@ detect_firewall() {
 
 check_rules_iptables() {
     local iptables_cmd="$1"
-    log_verbose "Checking for existing rules using $iptables_cmd..."
+    local ip_cmd="iptables"
 
-    if [[ "$iptables_cmd" == "iptables-legacy" ]] && command -v iptables-legacy &> /dev/null; then
-        iptables-legacy -L -t mangle -n 2>/dev/null | grep -q "$TTL_VALUE" && return 0
-    elif command -v iptables &> /dev/null; then
-        iptables -L -t mangle -n 2>/dev/null | grep -q "$TTL_VALUE" && return 0
+    if [[ "$iptables_cmd" == "iptables-legacy" ]]; then
+        ip_cmd="iptables-legacy"
+    fi
+
+    log_verbose "Checking for existing rules using $ip_cmd..."
+
+    # The -C flag checks if a rule exists and returns 0 if true, 1 if false
+    if sudo "$ip_cmd" -t mangle -C POSTROUTING -j TTL --ttl-set "$TTL_VALUE" &>/dev/null; then
+        return 0
     fi
 
     return 1
@@ -132,21 +137,22 @@ check_rules_nftables() {
 
 apply_rules_iptables() {
     local iptables_cmd="$1"
-    log_verbose "Applying rules using $iptables_cmd..."
+    local ip_cmd="iptables"
+    local ip6_cmd="ip6tables"
 
-    if [[ "$iptables_cmd" == "iptables-legacy" ]] && command -v iptables-legacy &> /dev/null; then
-        sudo ip6tables-legacy -t mangle -I POSTROUTING -j HL --hl-set $TTL_VALUE
-        sudo ip6tables-legacy -t mangle -I PREROUTING -j HL --hl-set $TTL_VALUE
-        sudo iptables-legacy -t mangle -I POSTROUTING -j TTL --ttl-set $TTL_VALUE
-        sudo iptables-legacy -t mangle -I PREROUTING -j TTL --ttl-set $TTL_VALUE
-        [[ $VERBOSE -eq 1 ]] && sudo iptables-legacy -L -t mangle --line-numbers
-    else
-        sudo ip6tables -t mangle -I POSTROUTING -j HL --hl-set $TTL_VALUE
-        sudo ip6tables -t mangle -I PREROUTING -j HL --hl-set $TTL_VALUE
-        sudo iptables -t mangle -I POSTROUTING -j TTL --ttl-set $TTL_VALUE
-        sudo iptables -t mangle -I PREROUTING -j TTL --ttl-set $TTL_VALUE
-        [[ $VERBOSE -eq 1 ]] && sudo iptables -L -t mangle --line-numbers
+    if [[ "$iptables_cmd" == "iptables-legacy" ]]; then
+        ip_cmd="iptables-legacy"
+        ip6_cmd="ip6tables-legacy"
     fi
+
+    log_verbose "Applying rules using $ip_cmd..."
+
+    sudo "$ip6_cmd" -t mangle -I POSTROUTING -j HL --hl-set "$TTL_VALUE"
+    sudo "$ip6_cmd" -t mangle -I PREROUTING -j HL --hl-set "$TTL_VALUE"
+    sudo "$ip_cmd" -t mangle -I POSTROUTING -j TTL --ttl-set "$TTL_VALUE"
+    sudo "$ip_cmd" -t mangle -I PREROUTING -j TTL --ttl-set "$TTL_VALUE"
+
+    [[ $VERBOSE -eq 1 ]] && sudo "$ip_cmd" -L -t mangle --line-numbers
 }
 
 apply_rules_nftables() {
@@ -168,19 +174,21 @@ apply_rules_nftables() {
 
 remove_rules_iptables() {
     local iptables_cmd="$1"
-    log_verbose "Removing rules using $iptables_cmd..."
+    local ip_cmd="iptables"
+    local ip6_cmd="ip6tables"
 
-    if [[ "$iptables_cmd" == "iptables-legacy" ]] && command -v iptables-legacy &> /dev/null; then
-        sudo iptables-legacy -t mangle -D POSTROUTING -j TTL --ttl-set $TTL_VALUE 2>/dev/null || true
-        sudo iptables-legacy -t mangle -D PREROUTING -j TTL --ttl-set $TTL_VALUE 2>/dev/null || true
-        sudo ip6tables-legacy -t mangle -D POSTROUTING -j HL --hl-set $TTL_VALUE 2>/dev/null || true
-        sudo ip6tables-legacy -t mangle -D PREROUTING -j HL --hl-set $TTL_VALUE 2>/dev/null || true
-    else
-        sudo iptables -t mangle -D POSTROUTING -j TTL --ttl-set $TTL_VALUE 2>/dev/null || true
-        sudo iptables -t mangle -D PREROUTING -j TTL --ttl-set $TTL_VALUE 2>/dev/null || true
-        sudo ip6tables -t mangle -D POSTROUTING -j HL --hl-set $TTL_VALUE 2>/dev/null || true
-        sudo ip6tables -t mangle -D PREROUTING -j HL --hl-set $TTL_VALUE 2>/dev/null || true
+    if [[ "$iptables_cmd" == "iptables-legacy" ]]; then
+        ip_cmd="iptables-legacy"
+        ip6_cmd="ip6tables-legacy"
     fi
+
+    log_verbose "Removing rules using $ip_cmd..."
+
+    # Loop to remove ALL duplicate entries if they exist
+    while sudo "$ip_cmd" -t mangle -D POSTROUTING -j TTL --ttl-set "$TTL_VALUE" 2>/dev/null; do :; done
+    while sudo "$ip_cmd" -t mangle -D PREROUTING -j TTL --ttl-set "$TTL_VALUE" 2>/dev/null; do :; done
+    while sudo "$ip6_cmd" -t mangle -D POSTROUTING -j HL --hl-set "$TTL_VALUE" 2>/dev/null; do :; done
+    while sudo "$ip6_cmd" -t mangle -D PREROUTING -j HL --hl-set "$TTL_VALUE" 2>/dev/null; do :; done
 }
 
 remove_rules_nftables() {
