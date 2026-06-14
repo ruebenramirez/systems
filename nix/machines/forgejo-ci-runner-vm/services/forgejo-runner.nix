@@ -13,7 +13,7 @@
         pkgs.gnugrep
         pkgs.gnused
         pkgs.nix
-        pkgs.nodejs_20
+        pkgs.nodejs_22
       ];
 
       environment = {
