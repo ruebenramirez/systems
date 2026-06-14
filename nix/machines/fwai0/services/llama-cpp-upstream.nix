@@ -28,7 +28,7 @@ in
     spec-draft-n-max = 2
 
     [qwen3.6-35b-a3b-mtp]
-    model = /models/Qwen3.6-35B-A3B-UD-Q8_K_XL.gguf
+    model = /models/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
     alias = qwen3.6-35b-a3b-mtp
     ctx-size = 131072
     n-gpu-layers = 999
