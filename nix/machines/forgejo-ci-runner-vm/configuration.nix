@@ -19,7 +19,7 @@
   disko.devices.disk.main = {
     device = "/dev/vda";
     imageName = "forgejo-ci-runner-vm";
-    imageSize = "48G";
+    imageSize = "500G";
     type = "disk";
     content = {
       type = "gpt";
