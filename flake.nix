@@ -199,19 +199,6 @@
           };
         };
 
-        "x220" = nixpkgs.lib.nixosSystem {
-          modules = [
-            ./nix/machines/x220/configuration.nix
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-              _module.args = {
-                pkgs-unstable = unstableFor."x86_64-linux";
-              };
-            }
-          ];
-        };
-
         "xps17" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/xps17/configuration.nix
