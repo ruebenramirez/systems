@@ -17,6 +17,12 @@
       url = "github:Gecka-Apps/roundcube-ident_switch/5.0.2";
       flake = false;
     };
+    sops-nix.url = "github:mic92/sops-nix";
+    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
+    systems-secrets = {
+      url = "git+https://code.rueb.dev/rueb/systems-secrets.git";
+      flake = true;
+    };
   };
 
   outputs =
@@ -27,6 +33,9 @@
     , nixos-hardware
     , llama-cpp
     , roundcube-ident-switch-src
+    , sops-nix
+    , systems-secrets
+    , ...
     }@inputs:
 
     let
@@ -202,11 +211,13 @@
         "xps17" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/xps17/configuration.nix
+            sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
               };
             }
           ];

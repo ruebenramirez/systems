@@ -9,6 +9,7 @@ in
   imports = [
     ./editor.nix
     ./gpg.nix
+    ./sops.nix
     ./tmux.nix
     ./yubikey.nix
   ];
