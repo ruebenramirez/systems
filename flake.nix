@@ -79,11 +79,13 @@
             ./nix/machines/dev-vm-xps/configuration.nix
             ./nix/machines/_common/vm-deploy-options.nix
             disko.nixosModules.disko
+            sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
               };
             }
           ];
@@ -137,11 +139,13 @@
         "driver" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/driver/configuration.nix
+            sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
               };
             }
           ];
@@ -151,11 +155,13 @@
           specialArgs = { inherit roundcube-ident-switch-src; };
           modules = [
             ./nix/machines/homeserver/configuration.nix
+            sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
               };
             }
           ];
@@ -164,6 +170,7 @@
         "fwai0" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/fwai0/configuration.nix
+            sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
@@ -172,6 +179,7 @@
                 llama-cpp-upstream-vulkan = llama-cpp.packages."x86_64-linux".vulkan.override {
                   useWebUi = false;
                 };
+                inherit systems-secrets;
               };
             }
           ];
@@ -180,6 +188,7 @@
         "pi-syncoid-target" = nixpkgs.lib.nixosSystem {
           modules = [
             nixos-hardware.nixosModules.raspberry-pi-4
+            sops-nix.nixosModules.sops
             "${nixpkgs}/nixos/modules/installer/sd-card/sd-image-aarch64.nix"
             ./nix/machines/pi-syncoid-target/configuration.nix
             nixpkgs.nixosModules.readOnlyPkgs
@@ -187,6 +196,7 @@
               nixpkgs.pkgs = nixpkgsFor."aarch64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."aarch64-linux";
+                inherit systems-secrets;
               };
             }
           ];
@@ -195,11 +205,13 @@
         "ssdnodes-1" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/ssdnodes-1/configuration.nix
+            sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
               };
             }
           ];
