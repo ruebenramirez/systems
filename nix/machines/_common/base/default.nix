@@ -1,14 +1,9 @@
-# The base toolchain that I expect on a system
-{ config, pkgs, pkgs-unstable, ... }:
-
-let
-
-in
-{
+{ config, pkgs, pkgs-unstable, ... }: {
 
   imports = [
     ./editor.nix
     ./gpg.nix
+    ./nix-cache.nix
     ./sops.nix
     ./tmux.nix
     ./yubikey.nix
