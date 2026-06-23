@@ -57,7 +57,7 @@
     supportedFilesystems = [ "zfs" ];
     initrd.availableKernelModules = [ "xhci_pci" "usbhid" "usb_storage" ];
     initrd.supportedFilesystems = [ "zfs" ];
-    kernelPackages = pkgs.linuxPackages_rpi4;
+    #kernelPackages = pkgs.linuxPackages_rpi4;
     kernelModules = [ "zfs" ];
     initrd.kernelModules = [ "zfs" ];
     kernel.sysctl = {

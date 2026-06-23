@@ -6,6 +6,7 @@
 
   # import tankbak zpool at boot for homeserver syncoid snapshot replication
   boot.zfs.extraPools = [ "tankbak" ];
+  boot.zfs.forceImportRoot = false;
 
   services.syncoid = {
     enable = true;
