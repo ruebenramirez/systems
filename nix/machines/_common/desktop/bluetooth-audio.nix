@@ -9,13 +9,14 @@ in
   # bluetooth audio
 
   environment.systemPackages = with pkgs; [
-    pulseaudio  # for pactcl
-    pulsemixer  # like pwvucontrol for the CLI
+    bluetuith # CLI bluetooth device management
     bluez-experimental
     bluez-tools
+    easyeffects
     libopenaptx # aptX high quality audio codec
+    pulseaudio  # for pactcl
+    pulsemixer  # like pwvucontrol for the CLI
     pwvucontrol # audio control GUI
-    bluetuith # CLI bluetooth device management
   ];
 
 
