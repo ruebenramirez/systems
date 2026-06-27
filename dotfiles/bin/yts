@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+pushd ~/code/goose-youtube-workflow/ && \
+bash run.sh $1 && \
+popd
