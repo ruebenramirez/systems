@@ -11,5 +11,6 @@
     pkgs-unstable.codex
     pkgs-unstable.goose-cli
     pkgs-unstable.opencode
+    pkgs-unstable.pi-coding-agent
   ];
 }
