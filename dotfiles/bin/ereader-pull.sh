@@ -50,7 +50,7 @@ mkdir -p "$LOCAL_KOREADER_PATH"
 echo "Syncing ebooks (Kobo->laptop)..."
 if [ -d "$KOBO_EBOOKS_PATH" ]; then
     # Replaced -a with -rtv and --modify-window=2 for FAT32 compatibility
-    rsync -rtvu --delete --modify-window=2 --progress --exclude='.git' "$KOBO_EBOOKS_PATH/" "$LOCAL_EBOOKS_PATH/"
+    rsync -rtvu --modify-window=2 --progress --exclude='.git' "$KOBO_EBOOKS_PATH/" "$LOCAL_EBOOKS_PATH/"
     echo "Ebooks sync (Kobo->laptop) completed."
 else
     echo "Warning: Ebooks directory not found on Kobo. No ebooks synced."
