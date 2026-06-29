@@ -6,23 +6,30 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
-    disko.url = "github:nix-community/disko";
-    disko.inputs.nixpkgs.follows = "nixpkgs-unstable";
-    nixos-hardware.url = "github:NixOS/nixos-hardware";
+
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
+
     llama-cpp = {
       url = "github:ggml-org/llama.cpp/b9601";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
+
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
+
     roundcube-ident-switch-src = {
       url = "github:Gecka-Apps/roundcube-ident_switch/5.0.2";
       flake = false;
     };
-    sops-nix.url = "github:mic92/sops-nix";
-    sops-nix.inputs.nixpkgs.follows = "nixpkgs";
-    systems-secrets = {
-      url = "git+https://code.rueb.dev/rueb/systems-secrets.git";
-      flake = true;
+
+    sops-nix = {
+      url = "github:mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
+    systems-secrets.url = "git+https://code.rueb.dev/rueb/systems-secrets.git";
+
   };
 
   outputs =
