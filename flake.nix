@@ -50,11 +50,6 @@
       # Helper function to create attribute sets for each system
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-      # Import overlays
-      # overlays = [
-      #   (import ./overlays/tailscale.nix)
-      # ];
-
       # Create nixpkgs for each system
       nixpkgsFor = forAllSystems (system: import nixpkgs {
         inherit system;

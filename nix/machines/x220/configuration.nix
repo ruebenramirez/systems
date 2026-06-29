@@ -34,8 +34,6 @@ in
     hostName = "x220";
     hostId = "6f612d27";
 
-    # Remove warning from tailscale: Strict reverse path filtering breaks Tailscale exit node use and some subnet routing setups
-    firewall.checkReversePath = "loose";
     networkmanager.enable = true;
   };
   programs.nm-applet.enable = true;
@@ -68,29 +66,6 @@ in
       ];
     }
   ];
-
-
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
-  environment = {
-    systemPackages = with pkgs; [
-      awscli2
-      gh
-      glab
-      ticker # stocks
-      newsboat
-      icdiff
-      magic-wormhole
-      nixpkgs-review
-
-      # hardware key
-      gnupg
-      pcsclite
-      pinentry-curses
-      tailscale # VPN
-      fprintd # fingerprint reader
-    ];
-  };
 
   # Enable the OpenSSH daemon.
   services.openssh = {

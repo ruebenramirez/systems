@@ -55,12 +55,6 @@
     # Generate a random hostId: `openssl rand -hex 4`
     hostId = "cf24992e";
 
-    # Networking patch for Tailscale exit node usage
-    # Remove warning from tailscale:
-    #  Strict reverse path filtering breaks Tailscale exit node use
-    #    and some subnet routing setups
-    firewall.checkReversePath = "loose";
-    # tailscale exit node usage on ipv6
     nftables.enable = true;
     networkmanager.enable = true;
   };

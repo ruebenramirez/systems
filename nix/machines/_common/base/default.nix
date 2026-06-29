@@ -80,7 +80,6 @@
     sanoid
 
     # Network and VPN
-    tailscale
     wireguard-tools
 
     # dev related
