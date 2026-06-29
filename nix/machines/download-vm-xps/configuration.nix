@@ -4,7 +4,7 @@
     ../_common/base/default.nix
     ../_common/qemu-vm-guest.nix
     ../_common/home-vpn-client.nix
-    ../_common/mullvad-client.nix
+    ../_common/mullvad-vpn-client.nix
   ];
 
   # Boot configuration
