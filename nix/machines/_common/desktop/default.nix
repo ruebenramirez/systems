@@ -1,5 +1,5 @@
 # This config is only to contain shared desktop configuration
-{ config, pkgs, ... }:
+{ config, pkgs, pkgs-unstable, ... }:
 
 let
 
@@ -52,7 +52,7 @@ in
     # comms
     discord # projects/gaming chat app
     element-desktop #matrix chat desktop client
-    signal-desktop # signal chat app
+    pkgs-unstable.signal-desktop # signal chat app
     slack # work chat app
 
     # web browsers
