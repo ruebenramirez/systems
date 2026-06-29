@@ -24,7 +24,7 @@
   disko.devices.disk.main = {
     device = "/dev/vda";
     imageName = "dev-vm-xps";
-    imageSize = "32G";
+    imageSize = "200G";
     type = "disk";
     content = {
       type = "gpt";
