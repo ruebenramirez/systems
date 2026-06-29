@@ -91,11 +91,13 @@
             ./nix/machines/download-vm-xps/configuration.nix
             ./nix/machines/_common/vm-deploy-options.nix
             disko.nixosModules.disko
+            sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
               };
             }
           ];
