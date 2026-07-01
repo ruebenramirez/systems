@@ -3,11 +3,11 @@
 {
   imports = [
     ../_common/base/default.nix
-    ../_common/desktop/default.nix
+    #../_common/desktop/default.nix
     ../_common/dev.nix
     #../_common/fingerprint-reader.nix
     #../_common/gaming.nix
-    ../_common/gpu-nvidia.nix
+    #../_common/gpu-nvidia.nix
     ../_common/home-vpn-client.nix
     ../_common/services/kubernetes.nix
     ../_common/services/virtualization-intel.nix
@@ -28,6 +28,11 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+
+  # Set terminal blanking to 60 seconds
+  boot.kernel.sysctl = {
+    "kernel.console_blank" = 60;
+  };
 
   networking = {
     hostName = "xps17";
