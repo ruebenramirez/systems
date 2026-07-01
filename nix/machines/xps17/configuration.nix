@@ -21,11 +21,6 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Set terminal blanking to 60 seconds
-  boot.kernel.sysctl = {
-    "kernel.console_blank" = 60;
-  };
-
   networking = {
     hostName = "xps17";
     hostId = "6f602d2c";
