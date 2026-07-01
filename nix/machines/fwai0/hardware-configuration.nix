@@ -9,7 +9,6 @@
     ];
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
   boot.kernelPackages = pkgs.linuxPackages_7_0;
   boot.zfs.package = pkgs.zfs_2_4;
   boot.initrd.availableKernelModules = [

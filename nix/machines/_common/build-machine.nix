@@ -23,17 +23,6 @@
 
   # Optimize Nix settings for cross-compilation builds
   nix.settings = {
-    # Ensure we have the ARM64 binary cache
-    substituters = [
-      "https://cache.nixos.org/"
-      "https://nix-community.cachix.org"
-    ];
-
-    trusted-public-keys = [
-      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
-      "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
-    ];
-
     # Optimize build performance
     max-jobs = "auto";
     cores = 0; # Use all available cores
