@@ -5,7 +5,6 @@
 
 set -e
 
-# Your machines - edit this list
 MACHINES=(
     "xps17-lan:xps17"
     "dev-vm-xps-lan:dev-vm-xps"
@@ -13,10 +12,9 @@ MACHINES=(
     "homeserver-lan:homeserver"
     "driver-lan:driver"
     "ssdnodes-1:ssdnodes-1"
-    "pi-syncoid-target-lan:pi-syncoid-target"
     "download-vm-xps-lan:download-vm-xps"
     "forgejo-ci-runner-vm-lan:forgejo-ci-runner-vm"
-    #"x220-lan:x220"
+    "pi-syncoid-target-lan:pi-syncoid-target"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
