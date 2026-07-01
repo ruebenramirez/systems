@@ -17,7 +17,10 @@
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
-    nixos-hardware.url = "github:NixOS/nixos-hardware";
+    nixos-hardware = {
+      url = "github:NixOS/nixos-hardware";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     roundcube-ident-switch-src = {
       url = "github:Gecka-Apps/roundcube-ident_switch/5.0.2";
