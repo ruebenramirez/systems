@@ -53,26 +53,10 @@
     bridge = "br0";
   };
 
-  time.timeZone = "America/Chicago";
-
-  nix.extraOptions = ''
-    experimental-features = nix-command flakes
-  '';
-
   networking = {
     hostName = "forgejo-ci-runner-vm";
   };
 
-  services.resolved = {
-    enable = true;
-    settings.Resolve = {
-      Domains = [ "~." ];
-      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ];
-    };
-  };
-  services.avahi.enable = true;
-
-  nix.settings.trusted-users = [ "rramirez" ];
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
@@ -80,32 +64,6 @@
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
   };
   security.sudo.wheelNeedsPassword = false;
-
-  services.openssh = {
-    enable = true;
-    hostKeys = [
-      {
-        path = "/persist/etc/ssh/ssh_host_ed25519_key";
-        type = "ed25519";
-      }
-      {
-        path = "/persist/etc/ssh/ssh_host_rsa_key";
-        type = "rsa";
-        bits = 4096;
-      }
-    ];
-  };
-  programs.ssh.extraConfig = ''
-    Host *
-      ServerAliveInterval 15
-      ServerAliveCountMax 3
-  '';
-
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
-  };
 
   system.stateVersion = "25.11";
 }

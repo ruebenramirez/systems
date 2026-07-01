@@ -8,22 +8,13 @@
       ../_common/gpu-amd.nix
       ../_common/home-vpn-client.nix
       ../_common/rust-dev.nix
+      ../_common/physical.nix
+      ../_common/build-machine.nix
       ./hardware-configuration.nix
       #./services/local-llm-framework-desktop.nix
       #./services/llama-cpp.nix
       ./services/llama-cpp-upstream.nix
     ];
-
-  # Set your time zone.
-  time.timeZone = "America/Chicago";
-
-  nix.settings.trusted-users = [ "rramirez" ];
-
-  # remove the annoying experimental warnings
-  nix.extraOptions = ''
-    experimental-features = nix-command flakes
-  '';
-
 
   networking = {
     hostName = "fwai0";
@@ -49,22 +40,9 @@
 
     # 2.5g Ethernet usb-c dongle
     interfaces.enp195s0f4u1.useDHCP = true;
-
   };
 
-  programs.nm-applet.enable = true;
-
-  # DNS services
-  services.resolved = {
-    enable = true;
-    settings.Resolve = {
-      Domains = [ "~." ];
-      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
-    };
-  };
-  services.avahi.enable = true;
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
+  # Define a user account. Don't forget to set a password with 'passwd'.
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
@@ -93,38 +71,6 @@
     }
   ];
 
-  # Enable the OpenSSH daemon.
-  services.openssh = {
-    enable = true;
-    hostKeys = [
-      {
-        path = "/persist/etc/ssh/ssh_host_ed25519_key";
-        type = "ed25519";
-      }
-      {
-        path = "/persist/etc/ssh/ssh_host_rsa_key";
-        type = "rsa";
-        bits = 4096;
-      }
-    ];
-  };
-
-
-  programs.ssh = {
-    # Fix timeout from client side
-    # Ref: https://www.cyberciti.biz/tips/open-ssh-server-connection-drops-out-after-few-or-n-minutes-of-inactivity.html
-    extraConfig = ''
-      Host *
-        ServerAliveInterval 15
-        ServerAliveCountMax 3
-    '';
-  };
-  # List services that you want to enable:
-  # Open ports in the firewall.
-  #networking.firewall.allowedTCPPorts = [
-  #  ...
-  #];
-
   # ZFS
   services.zfs = {
     autoScrub = {
@@ -137,16 +83,6 @@
     };
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
-
-  # firmware update
-  services.fwupd.enable = true;
-
-  # Native NixOS Garbage Collection
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
-  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

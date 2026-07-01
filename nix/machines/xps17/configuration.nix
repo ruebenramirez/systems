@@ -11,23 +11,15 @@
     ../_common/home-vpn-client.nix
     ../_common/services/kubernetes.nix
     ../_common/services/virtualization-intel.nix
+    ../_common/physical.nix
+    ../_common/build-machine.nix
     ./hardware-configuration.nix
     #./services/local-llm-Nvidia.nix
   ];
 
-  time.timeZone = "America/Chicago";
-
-  nix.settings.trusted-users = [ "rramirez" ];
-
-  # remove the annoying experimental warnings
-  nix.extraOptions = ''
-    experimental-features = nix-command flakes
-  '';
-
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   # Set terminal blanking to 60 seconds
   boot.kernel.sysctl = {
@@ -60,17 +52,7 @@
     interfaces.br0.useDHCP = true;
   };
 
-  # DNS services
-  services.resolved = {
-    enable = true;
-    settings.Resolve = {
-      Domains = [ "~." ];
-      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
-    };
-  };
-  services.avahi.enable = true;
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
+  # Define a user account. Don't forget to set a password with 'passwd'.
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
@@ -85,31 +67,6 @@
     }];
   } ];
 
-  # SSH
-  services.openssh = {
-    enable = true;
-    hostKeys = [
-      {
-        path = "/persist/etc/ssh/ssh_host_ed25519_key";
-        type = "ed25519";
-      }
-      {
-        path = "/persist/etc/ssh/ssh_host_rsa_key";
-        type = "rsa";
-        bits = 4096;
-      }
-    ];
-  };
-  programs.ssh = {
-    # Fix timeout from client side
-    # Ref: https://www.cyberciti.biz/tips/open-ssh-server-connection-drops-out-after-few-or-n-minutes-of-inactivity.html
-    extraConfig = ''
-      Host *
-        ServerAliveInterval 15
-        ServerAliveCountMax 3
-    '';
-  };
-
   # ZFS
   services.zfs = {
     autoScrub = {
@@ -122,10 +79,6 @@
     };
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
-
-
-  # firmware update
-  services.fwupd.enable = true;
 
   # laptop power management
   powerManagement.enable = true;
@@ -150,13 +103,6 @@
   # if laptop lid closes
   services.logind.settings.Login.HandleLidSwitch = "ignore";        # clamshell w/out power
   services.logind.settings.Login.HandleLidSwitchDocked = "ignore";  # clamshell w/ power
-
-  # Native NixOS Garbage Collection
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
-  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

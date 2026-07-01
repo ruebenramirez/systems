@@ -1,10 +1,11 @@
 # Edit this configuration file to define what should be installed on
 # your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
+# and in the NixOS manual (accessible by running 'nixos-help').
 
 { config, lib, pkgs, pkgs-unstable, modulesPath, disko, ... }: {
   imports =
     [
+      ../_common/physical.nix
       (modulesPath + "/profiles/qemu-guest.nix")
       disko.nixosModules.disko
       ./disk-config.nix
@@ -17,16 +18,6 @@
       ../_common/home-vpn-client.nix
     ];
 
-  # Set your time zone.
-  time.timeZone = "America/Chicago";
-
-  nix.settings.trusted-users = [ "rramirez" ];
-
-  # remove the annoying experimental warnings
-  nix.extraOptions = ''
-    experimental-features = nix-command flakes
-  '';
-
   boot.loader.grub = {
     enable = true;
     device = "nodev";  # Do not install to MBR
@@ -34,8 +25,6 @@
     efiSupport = false;
     zfsSupport = true;
   };
-
-  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   networking = {
     hostName = "ssdnodes-1";
@@ -74,16 +63,7 @@
     ];
   };
 
-  # DNS services
-  services.resolved = {
-    enable = true;
-    settings.Resolve = {
-      Domains = [ "~." ];
-      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ];
-    };
-  };
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
+  # Define a user account. Don't forget to set a password with 'passwd'.
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
@@ -105,32 +85,6 @@
     export TERM=xterm-256color
   '';
 
-  # Enable the OpenSSH daemon.
-  services.openssh = {
-    enable = true;
-    hostKeys = [
-      {
-        path = "/persist/etc/ssh/ssh_host_ed25519_key";
-        type = "ed25519";
-      }
-      {
-        path = "/persist/etc/ssh/ssh_host_rsa_key";
-        type = "rsa";
-        bits = 4096;
-      }
-    ];
-  };
-
-  programs.ssh = {
-    # Fix timeout from client side
-    # Ref: https://www.cyberciti.biz/tips/open-ssh-server-connection-drops-out-after-few-or-n-minutes-of-inactivity.html
-    extraConfig = ''
-      Host *
-        ServerAliveInterval 15
-        ServerAliveCountMax 3
-    '';
-  };
-
   # ZFS
   services.zfs = {
     autoScrub = {
@@ -141,13 +95,6 @@
       enable = true;
       monthly = 3;
     };
-  };
-
-  # Native NixOS Garbage Collection
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
   };
 
   # This value determines the NixOS release from which the default

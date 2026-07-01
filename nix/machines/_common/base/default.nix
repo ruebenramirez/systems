@@ -1,10 +1,13 @@
 { config, pkgs, pkgs-unstable, ... }: {
 
   imports = [
+    ./dns.nix
     ./editor.nix
     ./gpg.nix
     ./nix-cache.nix
+    ./nix-settings.nix
     ./sops.nix
+    ./ssh.nix
     ./tmux.nix
     ./yubikey.nix
   ];

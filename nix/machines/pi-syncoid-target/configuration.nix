@@ -6,19 +6,9 @@
   imports = [
     ../_common/base/default.nix
     ../_common/home-vpn-client.nix
+    ../_common/physical.nix
     ./zfs-backups.nix
   ];
-
-  time.timeZone = "America/Chicago";
-
-  nix = {
-    settings = {
-      trusted-users = [ "rramirez" ];
-    };
-    extraOptions = ''
-      experimental-features = nix-command flakes
-    '';
-  };
 
   hardware = {
     enableRedistributableFirmware = true;
@@ -69,30 +59,9 @@
     nftables.enable = true;
   };
 
-  services.openssh = {
-    enable = true;
-    settings = {
-      PermitRootLogin = "no";
-      PasswordAuthentication = false;
-    };
-    hostKeys = [
-      {
-        path = "/persist/etc/ssh/ssh_host_ed25519_key";
-        type = "ed25519";
-      }
-      {
-        path = "/persist/etc/ssh/ssh_host_rsa_key";
-        type = "rsa";
-        bits = 4096;
-      }
-    ];
-  };
-
-  # Native NixOS Garbage Collection
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
+  services.openssh.settings = {
+    PermitRootLogin = "no";
+    PasswordAuthentication = false;
   };
 
    system.stateVersion = "25.05";

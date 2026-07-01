@@ -5,7 +5,6 @@
     [
       ../_common/android.nix
       ../_common/base/default.nix
-      ../_common/build-machine.nix
       ../_common/desktop/default.nix
       ../_common/dev.nix
       ../_common/fingerprint-reader.nix
@@ -14,22 +13,13 @@
       ../_common/home-vpn-client.nix
       ../_common/mullvad-vpn-client.nix
       ../_common/rust-dev.nix
+      ../_common/physical.nix
       ../_common/desktop/razer-keyboard.nix
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
       ./udev-rules/lofree-keyboard-udev-disable-thinkpad-keyboard.nix
       ./udev-rules/xreal-udev-unplug-restart-kanshi.nix
     ];
-
-  # Set your time zone.
-  time.timeZone = "America/Chicago";
-
-  nix.settings.trusted-users = [ "rramirez" ];
-
-  # remove the annoying experimental warnings
-  nix.extraOptions = ''
-    experimental-features = nix-command flakes
-  '';
 
   # Use the systemd-boot EFI boot loader.
   boot.loader.systemd-boot.enable = true;
@@ -38,7 +28,6 @@
   boot.loader.systemd-boot.configurationLimit = 10;
 
   boot.loader.efi.canTouchEfiVariables = true;
-  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
 
   networking = {
     hostName = "driver";
@@ -80,15 +69,6 @@
     # };
   };
 
-  # DNS services
-  services.resolved = {
-    enable = true;
-    settings.Resolve = {
-      Domains = [ "~." ];
-      FallbackDNS = [ "1.1.1.1" "1.0.0.1" ]; # cloudflare dns
-    };
-  };
-
   systemd.network.wait-online = {
     enable = true;
     anyInterface = true;
@@ -96,10 +76,7 @@
     timeout = 30;
   };
 
-
-  services.avahi.enable = true;
-
-  # Define a user account. Don't forget to set a password with ‘passwd’.
+  # Define a user account. Don't forget to set a password with 'passwd'.
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
@@ -131,31 +108,6 @@
     }
   ];
 
-  # Enable the OpenSSH daemon.
-  services.openssh = {
-    enable = true;
-    hostKeys = [
-      {
-        path = "/persist/etc/ssh/ssh_host_ed25519_key";
-        type = "ed25519";
-      }
-      {
-        path = "/persist/etc/ssh/ssh_host_rsa_key";
-        type = "rsa";
-        bits = 4096;
-      }
-    ];
-  };
-
-  programs.ssh = {
-    # Fix timeout from client side
-    # Ref: https://www.cyberciti.biz/tips/open-ssh-server-connection-drops-out-after-few-or-n-minutes-of-inactivity.html
-    extraConfig = ''
-      Host *
-        ServerAliveInterval 15
-        ServerAliveCountMax 3
-    '';
-  };
   # List services that you want to enable:
   # Open ports in the firewall.
   networking.firewall.allowedTCPPorts = [
@@ -177,9 +129,6 @@
     };
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
-
-  # firmware update
-  services.fwupd.enable = true;
 
   # laptop power management
   powerManagement.enable = true;
