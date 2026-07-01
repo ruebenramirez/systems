@@ -66,4 +66,8 @@
   # networking.interfaces.wlp2s0.useDHCP = lib.mkDefault true;
 
   hardware.cpu.amd.updateMicrocode = lib.mkDefault config.hardware.enableRedistributableFirmware;
+
+  # Force performance power profile — Strix Halo: 120W sustained / 140W boost
+  # Without this, the Framework Desktop defaults to "balanced" (~100W sustained)
+  services.power-profiles-daemon.enable = true;
 }
