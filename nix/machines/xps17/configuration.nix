@@ -6,7 +6,7 @@
     ../_common/desktop/default.nix
     ../_common/dev.nix
     #../_common/fingerprint-reader.nix
-    ../_common/gaming.nix
+    #../_common/gaming.nix
     ../_common/gpu-nvidia.nix
     ../_common/home-vpn-client.nix
     ../_common/services/kubernetes.nix
