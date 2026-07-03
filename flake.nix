@@ -1,8 +1,4 @@
 {
-  nixConfig = {
-    download-buffer-size = 500000000; # 500MB
-  };
-
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
