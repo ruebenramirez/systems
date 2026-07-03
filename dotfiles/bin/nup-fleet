@@ -14,7 +14,8 @@ MACHINES=(
     "ssdnodes-1:ssdnodes-1"
     "download-vm-xps-lan:download-vm-xps"
     "forgejo-ci-runner-vm-lan:forgejo-ci-runner-vm"
-    "pi-syncoid-target-lan:pi-syncoid-target"
+    "newsletter-dev-vm-lan:newsletter-dev-vm"
+    #"pi-syncoid-target-lan:pi-syncoid-target"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
