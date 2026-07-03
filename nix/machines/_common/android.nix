@@ -1,11 +1,4 @@
-
-# This config is only to contain shared desktop configuration
-{ config, pkgs, betterbird-stable, ... }:
-
-let
-
-in
-{
+{ config, pkgs, ... }: {
   environment.systemPackages = with pkgs; [
     android-tools
     # android-studio
