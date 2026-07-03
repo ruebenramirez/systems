@@ -5,6 +5,7 @@
     [
       ../_common/base/default.nix
       ../_common/build-machine.nix
+      ../_common/desktop/default.nix
       ../_common/dev.nix
       ../_common/gaming.nix
       ../_common/gpu-amd.nix
