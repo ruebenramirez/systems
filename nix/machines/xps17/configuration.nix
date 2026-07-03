@@ -27,7 +27,6 @@
 
     networkmanager.enable = false;
     wireless.enable = false;
-    firewall.checkReversePath = "loose";
     nftables.enable = true;
 
     useNetworkd = true;
