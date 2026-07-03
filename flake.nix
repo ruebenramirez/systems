@@ -131,11 +131,13 @@
             ./nix/machines/newsletter-dev-vm/configuration.nix
             ./nix/machines/_common/vm-deploy-options.nix
             disko.nixosModules.disko
+            sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
               nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
               };
             }
           ];
@@ -210,6 +212,7 @@
         "ssdnodes-1" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/ssdnodes-1/configuration.nix
+            disko.nixosModules.disko
             sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
             {
@@ -220,9 +223,6 @@
               };
             }
           ];
-          specialArgs = {
-            inherit disko;
-          };
         };
 
         "xps17" = nixpkgs.lib.nixosSystem {
