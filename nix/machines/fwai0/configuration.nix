@@ -10,6 +10,7 @@
       ../_common/rust-dev.nix
       ../_common/physical.nix
       ../_common/build-machine.nix
+      ../_common/sunshine-game-streaming.nix
       ./hardware-configuration.nix
       #./services/local-llm-framework-desktop.nix
       #./services/llama-cpp.nix
