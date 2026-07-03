@@ -4,16 +4,15 @@
   imports =
     [
       ../_common/base/default.nix
+      ../_common/build-machine.nix
       ../_common/dev.nix
+      ../_common/gaming.nix
       ../_common/gpu-amd.nix
       ../_common/home-vpn-client.nix
-      ../_common/rust-dev.nix
       ../_common/physical.nix
-      ../_common/build-machine.nix
+      ../_common/rust-dev.nix
       ../_common/sunshine-game-streaming.nix
       ./hardware-configuration.nix
-      #./services/local-llm-framework-desktop.nix
-      #./services/llama-cpp.nix
       ./services/llama-cpp-upstream.nix
     ];
 

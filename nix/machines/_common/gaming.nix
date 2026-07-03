@@ -5,6 +5,8 @@ let
 in
 {
   environment.systemPackages = with pkgs; [
+    moonlight-qt
+
     # wine related
     wine
     wine64
