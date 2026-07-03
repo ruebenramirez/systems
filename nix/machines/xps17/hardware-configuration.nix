@@ -15,6 +15,7 @@
   boot.kernelPackages = pkgs.linuxPackages_7_0;
   boot.zfs.package = pkgs.zfs_2_4;
   boot.zfs.forceImportRoot = false;
+  boot.kernelParams = [ "consoleblank=30" ];
 
   # Import zpool from 2nd onboard nvme
   boot.zfs.extraPools = [ "devpool" ];
