@@ -44,9 +44,14 @@ in
   };
   networking.firewall.allowedTCPPorts = [
     48010
+    47984
+    47989
   ];
   networking.firewall.allowedUDPPorts = [
+    47998
+    47999
     48000
+    48002
     48010
   ];
 
