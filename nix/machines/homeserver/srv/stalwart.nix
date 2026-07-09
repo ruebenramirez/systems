@@ -53,12 +53,17 @@
       };
 
       # -----------------------------------------------------------------------
-      # Disable Local DKIM Signing
+      # Disable Local DKIM Signing & Global DMARC Reporting
       # SMTP2GO handles DKIM signing natively via Verified Senders.
       # -----------------------------------------------------------------------
       auth.dkim.sign = false;
       report.dkim.sign = false;
       report.dsn.sign = false;
+
+      # Disable sending DMARC Aggregate (RUA) and Failure (RUF) reports globally
+      report.dmarc.aggregate-send-frequency = { "else" = "disable"; };
+      report.dmarc.failure-send-frequency = { "else" = "disable"; };
+
       report.dmarc.sign = false;
       report.dmarc.aggregate.sign = false;
       report.dmarc.aggregate.enable = false;
