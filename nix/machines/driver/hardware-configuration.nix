@@ -10,19 +10,9 @@
 
   boot.initrd.availableKernelModules = [ "nvme" "xhci_pci" "thunderbolt" "usbhid" "usb_storage" "sd_mod" ];
   boot.initrd.kernelModules = [ "amdgpu" ];
-
-  # Allow the AMD GPU to access up to 24GB of system RAM (leave 8GB for OS)
-  boot.kernelParams = [
-    "amd_iommu=off"
-    "amdgpu.gttsize=24576"
-    "ttm.pages_limit=6291456"
-    "ttm.page_pool_size=6291456"
-    "amdgpu.sg_display=0"
-  ];
-
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
-  boot.kernelPackages = pkgs.linuxPackages_7_0;
+  boot.kernelPackages = pkgs.linuxPackages; # use LTS kernel
   boot.zfs.package = pkgs.zfs_2_4;
   boot.zfs.forceImportRoot = false;
 

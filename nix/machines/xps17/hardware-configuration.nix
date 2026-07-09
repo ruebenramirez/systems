@@ -12,7 +12,7 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-intel" ];
   boot.extraModulePackages = [ ];
-  boot.kernelPackages = pkgs.linuxPackages_7_0;
+  boot.kernelPackages = pkgs.linuxPackages; # use LTS kernel
   boot.zfs.package = pkgs.zfs_2_4;
   boot.zfs.forceImportRoot = false;
   boot.kernelParams = [ "consoleblank=30" ];

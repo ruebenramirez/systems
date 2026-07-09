@@ -10,6 +10,7 @@
   boot.initrd.kernelModules = [ ];
   boot.kernelModules = [ "kvm-amd" ];
   boot.extraModulePackages = [ ];
+  boot.kernelPackages = pkgs.linuxPackages; # use LTS kernel
   boot.zfs.package = pkgs.zfs_2_4;
   boot.zfs.forceImportRoot = false;
   #boot.zfs.forceImportAll = true;  # Critical for external pools
