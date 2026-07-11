@@ -7,7 +7,7 @@ launch_terminal() {
     local cmd=$3
     # Check if this class is already running to prevent duplicates on reload
     if ! pgrep -f "alacritty --class $class" > /dev/null; then
-        swaymsg "workspace $ws; exec alacritty --class $class -e bash -c '$cmd'"
+        swaymsg "workspace $ws; exec alacritty --class $class -e bash -c \"$cmd\""
         sleep 1
     fi
 }
@@ -24,18 +24,16 @@ launch_terminal 4 "workstation" "hostname -f"
 # 7: 1Password
 pgrep -x 1password > /dev/null || swaymsg "workspace 7; exec 1password"
 
-# 8: Webmail (Brave)
-swaymsg "workspace 8"
-exec brave --app=https://webmail.rueb.dev &
-exec brave --app=https://calendar.google.com/calendar/u/0/r/week &
+# 8: Webmail (Firefox)
+swaymsg "workspace 8; exec firefox --new-window https://webmail.rueb.dev"
+swaymsg "workspace 8; exec firefox --new-window https://calendar.google.com/calendar/u/0/r/week"
 
-# 9: Brave (Homepage)
-swaymsg "workspace 9; exec brave"
+# 9: Firefox (Homepage)
+swaymsg "workspace 9; exec firefox"
 
 # 10: Google Messages and Signal
-swaymsg "workspace 10"
-exec brave --app=https://messages.google.com/web &
-exec signal-desktop &
+swaymsg "workspace 10; exec firefox --new-window https://messages.google.com/web"
+swaymsg "workspace 10; exec signal-desktop"
 sleep 2
 
 # Return to Workspace 9
