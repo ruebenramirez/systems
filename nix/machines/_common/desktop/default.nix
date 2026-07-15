@@ -54,6 +54,7 @@ in
     element-desktop #matrix chat desktop client
     pkgs-unstable.signal-desktop # signal chat app
     slack # work chat app
+    thunderbird
 
     # web browsers
     brave
