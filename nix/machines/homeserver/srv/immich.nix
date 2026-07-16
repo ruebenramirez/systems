@@ -1,6 +1,5 @@
-{ config, pkgs, pkgs-unstable, ... }:
+{ config, pkgs, pkgs-unstable, ... }: {
 
-{
 	services.immich = {
 		enable = true;
 
