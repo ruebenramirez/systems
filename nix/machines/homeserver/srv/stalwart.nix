@@ -1,8 +1,31 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, systems-secrets, ... }: {
+  # SOPS Secrets
+  sops.secrets = {
+    smtp2go_username = {
+      mode = "0600";
+      group = "stalwart-mail";
+      owner = "stalwart-mail";
+      restartUnits = [ "stalwart.service" ];
+    };
+    smtp2go_password = {
+      mode = "0600";
+      group = "stalwart-mail";
+      owner = "stalwart-mail";
+      restartUnits = [ "stalwart.service" ];
+    };
+  };
 
-{
   # Grant Stalwart access to read the certificates owned by the shared groups
   users.users.stalwart-mail.extraGroups = [ "ruebdev-wildcard-tls" ];
+
+  # Ensure sops secrets are available before Stalwart starts
+  systemd.services.stalwart = {
+    wants = [ "sops-nix.service" ];
+    after = [ "sops-nix.service" ];
+    serviceConfig.ReadWritePaths = [
+      "/tank/srv/mail.rueb.dev--stalwart"
+    ];
+  };
 
   # ---------------------------------------------------------------------------
   # Stalwart Mail Server
@@ -19,20 +42,20 @@
     # Secrets via systemd LoadCredential=
     # ---------------------------------------------------------------------------
     credentials = {
-      stalwart_admin_password = "/persist/secrets/stalwart-admin-password";
-      smtp2go_username        = "/persist/secrets/smtp2go_username";
-      smtp2go_password        = "/persist/secrets/smtp2go_password";
+      smtp2go_username        = config.sops.secrets.smtp2go_username.path;
+      smtp2go_password        = config.sops.secrets.smtp2go_password.path;
     };
 
     settings = {
+
       # Primary hostname for this mail server instance.
       server.hostname = "mail.rueb.dev";
 
       # Admin UI fallback credentials.
-      authentication.fallback-admin = {
-        user   = "admin";
-        secret = "%{file:/run/credentials/stalwart.service/stalwart_admin_password}%";
-      };
+      # authentication.fallback-admin = {
+      #   user   = "admin";
+      #   secret = "REDACTED";
+      # };
 
       # TLS: Server Name Indication (SNI) setup for multiple domains
       certificate."rueb-dev" = {
@@ -172,24 +195,10 @@
   networking.firewall.allowedTCPPorts = [ 4190 ];
 
   # ---------------------------------------------------------------------------
-  # systemd service hardening override.
-  # ---------------------------------------------------------------------------
-  systemd.services.stalwart.serviceConfig = {
-    ReadWritePaths = [
-      "/tank/srv/mail.rueb.dev--stalwart"
-    ];
-  };
-
-  # ---------------------------------------------------------------------------
   # Storage directory setup.
   # ---------------------------------------------------------------------------
   systemd.tmpfiles.rules = [
     "d /tank/srv/mail.rueb.dev--stalwart       0750 stalwart-mail stalwart-mail -"
     "d /tank/srv/mail.rueb.dev--stalwart/data  0750 stalwart-mail stalwart-mail -"
-    "d /persist/secrets                        0710 root          stalwart-mail -"
-    "f /persist/secrets/smtp2go_username           0600 stalwart-mail stalwart-mail -"
-    "f /persist/secrets/smtp2go_password           0600 stalwart-mail stalwart-mail -"
-    "f /persist/secrets/stalwart-admin-password    0600 stalwart-mail stalwart-mail -"
-    "f /persist/secrets/cloudflare-token           0600 root          root          -"
   ];
 }
