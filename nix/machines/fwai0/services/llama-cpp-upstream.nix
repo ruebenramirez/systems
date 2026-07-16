@@ -17,7 +17,7 @@ in
     [qwen3.6-27b-mtp]
     model = /models/Qwen3.6-27B-UD-Q4_K_XL.gguf
     alias = qwen3.6-27b-mtp
-    ctx-size = 131072
+    ctx-size = 262144
     n-gpu-layers = 999
     flash-attn = on
     cache-type-k = q4_0
@@ -30,7 +30,7 @@ in
     [qwen3.6-35b-a3b-mtp]
     model = /models/Qwen3.6-35B-A3B-UD-Q4_K_XL.gguf
     alias = qwen3.6-35b-a3b-mtp
-    ctx-size = 131072
+    ctx-size = 262144
     n-gpu-layers = 999
     flash-attn = on
     cache-type-k = q4_0
