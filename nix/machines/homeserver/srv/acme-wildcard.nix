@@ -1,6 +1,9 @@
-{ config, pkgs, lib, ... }:
+{ config, lib, systems-secrets, ... }: {
 
 {
+  # declare sops secret for cloudflare-token secret
+  sops.secrets.cloudflare-token = { };
+
   # ---------------------------------------------------------------------------
   # Shared Group for Wildcard TLS Certificate
   # ---------------------------------------------------------------------------
@@ -18,7 +21,7 @@
       domain = "*.rueb.dev";
       dnsProvider = "cloudflare";
       credentialFiles = {
-        CLOUDFLARE_DNS_API_TOKEN_FILE = "/persist/secrets/cloudflare-token";
+        CLOUDFLARE_DNS_API_TOKEN_FILE = sops.secrets.cloudflare-token.path;
       };
       group = "ruebdev-wildcard-tls";
     };
@@ -26,7 +29,7 @@
       domain = "*.monicaandrueben.com";
       dnsProvider = "cloudflare";
       credentialFiles = {
-        CLOUDFLARE_DNS_API_TOKEN_FILE = "/persist/secrets/cloudflare-token";
+        CLOUDFLARE_DNS_API_TOKEN_FILE = sops.secrets.cloudflare-token.path;
       };
       group = "ruebdev-wildcard-tls";
     };
