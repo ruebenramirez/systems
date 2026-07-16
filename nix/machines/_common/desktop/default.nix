@@ -30,10 +30,6 @@ in
     ghostty
     wezterm
 
-    # file browser and google drive integration
-    insync
-    insync-nautilus
-
     # auth-related desktop backend services
     acpi
     libnotify
@@ -41,7 +37,6 @@ in
     polkit
     polkit_gnome
     exfat
-    ntfs3g
     udiskie # automount attached usb disks
 
     # books and whitepapers related
