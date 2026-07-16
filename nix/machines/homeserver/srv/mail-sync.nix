@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, systems-secrets, ... }:
 
 let
   gmail-sync-pkg = pkgs.writeShellApplication {

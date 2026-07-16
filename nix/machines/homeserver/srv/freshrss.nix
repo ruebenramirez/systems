@@ -1,6 +1,7 @@
-{ config, pkgs, pkgs-unstable, ... }:
+{ config, lib, pkgs, pkgs-unstable, systems-secrets, ... }: {
 
-{
+  # declare sops secret for freshrss-pass
+  sops.secrets.freshrss-pass = { };
 
   # Grant Nginx access to read the certificate owned by the shared group
   users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
@@ -9,7 +10,7 @@
     enable = true;
     baseUrl = "https://freshrss.rueb.dev";
     database.type = "sqlite";
-    passwordFile = "/persist/secrets/freshrss-pass";
+    passwordFile = config.sops.secrets.freshrss-pass.path;
     defaultUser = "admin";
     package = pkgs-unstable.freshrss;
     virtualHost = "freshrss.rueb.dev";

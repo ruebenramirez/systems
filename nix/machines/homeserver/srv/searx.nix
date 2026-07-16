@@ -1,11 +1,13 @@
-{ pkgs, ... }:
+{ config, lib, pkgs, systems-secrets, ... }: {
 
-{
+  # declare sops secret for searx-secret-key
+  sops.secrets.searx-secret-key = { };
+
   services.searx = {
     enable = true;
     package = pkgs.searxng;
 
-    environmentFile = "/persist/secrets/searx-secret-key";
+    environmentFile = config.sops.secrets.searx-secret-key.path;
 
     settings = {
       use_default_settings = {

@@ -1,6 +1,5 @@
 { config, lib, systems-secrets, ... }: {
 
-{
   # declare sops secret for cloudflare-token secret
   sops.secrets.cloudflare-token = { };
 
@@ -21,7 +20,7 @@
       domain = "*.rueb.dev";
       dnsProvider = "cloudflare";
       credentialFiles = {
-        CLOUDFLARE_DNS_API_TOKEN_FILE = sops.secrets.cloudflare-token.path;
+        CLOUDFLARE_DNS_API_TOKEN_FILE = config.sops.secrets.cloudflare-token.path;
       };
       group = "ruebdev-wildcard-tls";
     };
@@ -29,7 +28,7 @@
       domain = "*.monicaandrueben.com";
       dnsProvider = "cloudflare";
       credentialFiles = {
-        CLOUDFLARE_DNS_API_TOKEN_FILE = sops.secrets.cloudflare-token.path;
+        CLOUDFLARE_DNS_API_TOKEN_FILE = config.sops.secrets.cloudflare-token.path;
       };
       group = "ruebdev-wildcard-tls";
     };

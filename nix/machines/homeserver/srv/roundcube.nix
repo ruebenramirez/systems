@@ -1,4 +1,4 @@
-{ config, pkgs, roundcube-ident-switch-src, ... }:
+{ config, lib, pkgs, roundcube-ident-switch-src, systems-secrets, ... }:
 
 let
   # The plugin name must be ident_switch to match ident_switch.php
@@ -14,6 +14,10 @@ let
   };
 in
 {
+
+  # declare sops secret for roundcube db password
+  sops.secrets.roundcube_postgresql_db_password = { };
+
   # Grant Nginx access to read the certificate owned by the shared group
   users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
 
@@ -31,7 +35,7 @@ in
     ]);
 
     # --- POSTGRESQL CONFIGURATION ---
-    database.passwordFile = "/persist/secrets/roundcube-db-password";
+    database.passwordFile = config.sops.secrets.roundcube_postgresql_db_password.path;
 
     configureNginx = true;
 
