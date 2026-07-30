@@ -1,3 +1,37 @@
 #!/usr/bin/env bash
 
-WINEPREFIX=~/.wine_cncgenerals wine explorer /desktop=generals,2048x1536 ~/.wine_cncgenerals/drive_c/Program\ Files/EA\ Games/Command\ \&\ Conquer\ Generals\ Zero\ Hour/generals.exe
+export HOME=/home/rramirez
+export USER=rramirez
+export WINEPREFIX=/home/rramirez/.wine_cncgenerals
+export DISPLAY=:0
+export WAYLAND_DISPLAY=wayland-1
+export XDG_RUNTIME_DIR=/run/user/1000
+export DXVK_HUD=full
+export WINE_MOUSE_WARP_DISABLE=1
+
+
+# DONE: install directx dependencies
+#winetricks directplay d3dx9 dinput8
+
+# DONE: configure virtual desktop (1600 x 1200)
+# DONE: configure game to play in windows xp
+#winecfg
+
+#wine explorer /desktop=generals,1600x1200 ~/.wine_cncgenerals/drive_c/Program\ Files/EA\ Games/Command\ \&\ Conquer\ Generals\ Zero\ Hour/generals.exe
+
+# DONE: test if force grab cursor fixes the mouse jitter problems
+# - result: it doesn't
+# exec nix run nixpkgs#gamescope -- \
+#   -f \
+#   --force-grab-cursor \
+#   -W 1600 \
+#   -H 1200 \
+#   -- \
+#   wine explorer /desktop=generals,1600x1200 ~/.wine_cncgenerals/drive_c/Program\ Files/EA\ Games/Command\ \&\ Conquer\ Generals\ Zero\ Hour/generals.exe
+
+exec nix run nixpkgs#gamescope -- \
+  -f \
+  -W 1600 \
+  -H 1200 \
+  -- \
+  wine explorer /desktop=generals,1600x1200 ~/.wine_cncgenerals/drive_c/Program\ Files/EA\ Games/Command\ \&\ Conquer\ Generals\ Zero\ Hour/generals.exe
