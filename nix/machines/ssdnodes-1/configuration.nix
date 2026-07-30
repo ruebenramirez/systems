@@ -7,7 +7,6 @@
     [
       ../_common/physical.nix
       (modulesPath + "/profiles/qemu-guest.nix")
-      disko.nixosModules.disko
       ./disk-config.nix
       ./srv/firewall.nix
       ./srv/monicaandrueben.com-reverse-proxy.nix
