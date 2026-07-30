@@ -1,5 +1,62 @@
 #!/usr/bin/env bash
 
-pushd /home/rramirez/.wine_nfsmw/drive_c/Program\ Files/NFS\ Most\ Wanted/ &&
-WINEPREFIX=~/.wine_nfsmw taskset -c 0 wine speed.exe &&
-popd
+export HOME=/home/rramirez
+export USER=rramirez
+export WINEPREFIX=/home/rramirez/.wine_nfsmw
+export DISPLAY=:0
+export WAYLAND_DISPLAY=wayland-1
+export XDG_RUNTIME_DIR=/run/user/1000
+#export WINE_MOUSE_WARP_DISABLE=1
+
+# export DXVK_ASYNC=1
+# export DXVK_HUD=full
+#export WINEDLLOVERRIDES="d3d8=n;d3d9=n;dxgi=n"
+# export WINEDLLOVERRIDES="d3d9,d3d10,d3d11=b"
+#unset DXVK_HUD
+
+# DONE: install directx and other dependencies
+#winetricks directplay dxvk d3dx9 dinput8 vcrun2005 vcrun2008 d3dcompiler_47 xact d3d8
+
+# DONE: configure virtual desktop (1600 x 1200)
+# DONE: configure game to play in windows xp
+#winecfg
+
+
+# exec nix run nixpkgs#gamescope -- \
+#   -f \
+#   -W 1600 \
+#   -H 1200 \
+#   -- \
+#   taskset -c 0 \
+#   wine explorer /desktop=nfsmw,1600x1200 /home/rramirez/.wine_nfsmw/drive_c/Program\ Files/NFS\ Most\ Wanted/speed.exe &> /tmp/nfsmw.log
+
+# exec nix run nixpkgs#gamescope -- \
+#   -f \
+#   -W 1600 \
+#   -H 1200 \
+#   -- \
+#   wine /home/rramirez/.wine_nfsmw/drive_c/Program\ Files/NFS\ Most\ Wanted/speed.exe &> /tmp/nfsmw.log
+
+
+#wine /home/rramirez/.wine_nfsmw/drive_c/Program\ Files/NFS\ Most\ Wanted/speed.exe &> /tmp/nfsmw.log
+
+
+
+################################################
+# install the game from scratch
+################################################
+
+# export WINEPREFIX=$HOME/.wine_nfsmw
+# export WINEARCH=win32
+
+# wineboot --init
+# winecfg
+
+# winetricks corefonts d3dx9 dinput8 vcrun2005 vcrun2008
+
+# exec nix run nixpkgs#gamescope -- \
+#   -f \
+#   -W 1600 \
+#   -H 1200 \
+#   -- \
+wine /home/rramirez/Downloads/need-for-speed-most-wanted-win-setup-en/Need_For_Speed_Most_Wanted_Win_Setup_EN/Game Files/NFSMostWanted2005setup.exe
