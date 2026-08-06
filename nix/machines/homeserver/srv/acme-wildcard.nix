@@ -32,5 +32,13 @@
       };
       group = "ruebdev-wildcard-tls";
     };
+    certs."monicarosephotography.com" = {
+      domain = "*.monicarosephotography.com";
+      dnsProvider = "cloudflare";
+      credentialFiles = {
+        CLOUDFLARE_DNS_API_TOKEN_FILE = config.sops.secrets.cloudflare-token.path;
+      };
+      group = "ruebdev-wildcard-tls";
+    };
   };
 }

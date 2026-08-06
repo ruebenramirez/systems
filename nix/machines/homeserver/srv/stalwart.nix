@@ -68,8 +68,13 @@
         private-key = "%{file:/var/lib/acme/monicaandrueben.com/key.pem}%";
       };
 
+      certificate."monicarosephotography-com" = {
+        cert        = "%{file:/var/lib/acme/monicarosephotography.com/cert.pem}%";
+        private-key = "%{file:/var/lib/acme/monicarosephotography.com/key.pem}%";
+      };
+
       server.tls = {
-        certificate = [ "rueb-dev" "monicaandrueben-com" ];
+        certificate = [ "rueb-dev" "monicaandrueben-com" "monicarosephotography-com" ];
         enable      = true;
         implicit    = false; # overridden per-listener below
         version     = "TLSv1.2";
