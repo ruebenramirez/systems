@@ -8,6 +8,7 @@ let
       pkgs.imapsync
       pkgs.jq
       pkgs.procps
+      pkgs.util-linux
     ];
 
     text = ''
@@ -15,34 +16,52 @@ let
 
       CONFIG_FILE="/persist/secrets/mailsync/accounts.json"
       STALWART_HOST="mail.rueb.dev"
+      LOCKFILE="/var/lib/mailsync/mailsync.lock"
 
       if [[ ! -f "$CONFIG_FILE" ]]; then
           echo "Error: Configuration file not found at $CONFIG_FILE"
           exit 1
       fi
 
-      jq -c '.[] | select(.active == true)' "$CONFIG_FILE" | while read -r row; do
+      exec 9>"$LOCKFILE"
+      flock -n 9 || { echo "Another sync run is active; skipping this run."; exit 0; }
+
+      mapfile -t ACCOUNTS < <(jq -c '.[] | select(.active == true)' "$CONFIG_FILE")
+
+      PIDS=()
+      FAILED=0
+
+      for row in "''${ACCOUNTS[@]}"; do
           G_USER=$(echo "$row" | jq -r '.gmail_user')
           G_PASS=$(echo "$row" | jq -r '.gmail_pass')
           S_USER=$(echo "$row" | jq -r '.stalwart_user')
           S_PASS=$(echo "$row" | jq -r '.stalwart_pass')
 
-          echo "--- Starting Sync: $G_USER -> $S_USER ---"
+          echo "--- Starting Sync (parallel): $G_USER -> $S_USER ---"
 
-          imapsync \
-            --host1 imap.gmail.com --port1 993 --ssl1 \
-            --user1 "$G_USER" --passfile1 "$G_PASS" \
-            --host2 "$STALWART_HOST" --port2 993 --ssl2 \
-            --user2 "$S_USER" --passfile2 "$S_PASS" \
-            --folder INBOX \
-            --folder "[Gmail]/Sent Mail" \
-            --folder "[Gmail]/Drafts" \
-            --useheader "Message-Id" \
-            --regextrans2 's/^INBOX$/INBOX/' \
-            --regextrans2 's/^\[Gmail\]\/Sent Mail$/Sent/' \
-            --regextrans2 's/^\[Gmail\]\/Drafts$/Drafts/' \
-            --delete1
+          ( exec imapsync \
+              --host1 imap.gmail.com --port1 993 --ssl1 \
+              --user1 "$G_USER" --passfile1 "$G_PASS" \
+              --host2 "$STALWART_HOST" --port2 993 --ssl2 \
+              --user2 "$S_USER" --passfile2 "$S_PASS" \
+              --folder INBOX \
+              --folder "[Gmail]/Sent Mail" \
+              --folder "[Gmail]/Drafts" \
+              --useheader "Message-Id" \
+              --regextrans2 's/^INBOX$/INBOX/' \
+              --regextrans2 's/^\[Gmail\]\/Sent Mail$/Sent/' \
+              --regextrans2 's/^\[Gmail\]\/Drafts$/Drafts/' \
+              --delete1
+          ) &
+
+          PIDS+=($!)
       done
+
+      for pid in "''${PIDS[@]}"; do
+          wait "$pid" || FAILED=1
+      done
+
+      exit $FAILED
     '';
   };
 in
