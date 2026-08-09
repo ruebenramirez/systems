@@ -44,13 +44,8 @@ let
               --user1 "$G_USER" --passfile1 "$G_PASS" \
               --host2 "$STALWART_HOST" --port2 993 --ssl2 \
               --user2 "$S_USER" --passfile2 "$S_PASS" \
-              --folder INBOX \
-              --folder "[Gmail]/Sent Mail" \
-              --folder "[Gmail]/Drafts" \
-              --useheader "Message-Id" \
-              --regextrans2 's/^INBOX$/INBOX/' \
-              --regextrans2 's/^\[Gmail\]\/Sent Mail$/Sent/' \
-              --regextrans2 's/^\[Gmail\]\/Drafts$/Drafts/' \
+              --automap \
+              --useheader Message-Id \
               --delete1
           ) &
 
