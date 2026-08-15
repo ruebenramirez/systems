@@ -9,7 +9,7 @@
     };
 
     llama-cpp = {
-      url = "github:ggml-org/llama.cpp/b9601";
+      url = "github:ggml-org/llama.cpp/b10442";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
