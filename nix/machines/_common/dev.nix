@@ -6,6 +6,12 @@
 
     # agentic dev workflow tools
     aider-chat-full
+    ansible
+    ansible-lint
+    awscli2
+    awsls
+    awslogs
+    aws-gate
     # claude-code
     # claude-monitor
     pkgs-unstable.codex
