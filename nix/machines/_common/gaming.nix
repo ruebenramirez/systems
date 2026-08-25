@@ -1,18 +1,10 @@
 { config, pkgs, ... }:
-
-let
-
-in
 {
   environment.systemPackages = with pkgs; [
     moonlight-qt
-
-    # wine related
-    wine
-    wine64
     winetricks
-    winePackages.fonts
-    wineWowPackages.stable
+    wineWowPackages.stable # wine32
+    #wineWow64Packages.stable # wine64
   ];
 
   programs.steam = {
