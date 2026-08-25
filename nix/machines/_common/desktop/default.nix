@@ -59,6 +59,7 @@ in
     # media players
     cmus
     gpodder # podcast listener desktop app (syncs progress with antennapod android podcast app)
+    jellyfin-tui
     mpv # media player
     playerctl # media controls for applications running on linux
     vlc # video player with lots format compatibility
