@@ -53,8 +53,8 @@
 
   # VM runtime resources (consumed by deployment script)
   my.vmDeploy = {
-    memoryMB = 2048;
-    vcpus = 2;
+    memoryMB = 8192;
+    vcpus = 8;
     bridge = "br0";
   };
 
