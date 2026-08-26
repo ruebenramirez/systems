@@ -359,3 +359,8 @@ else
     echo ""
     print_ssh_config_snippet "$VM_NAME" "<ip-address>"
 fi
+
+echo "--- Reminder: cycle age encryption key for VM if necessary ---"
+echo ""
+echo "Sops-nix depends on ssh host key based encryption and "
+echo "ssh host keys are regenerated during this VM deployment process"
