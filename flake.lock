@@ -82,11 +82,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1787640266,
-        "narHash": "sha256-MrkfE5hF5xx4L/0h5NyJ3xQkKVftwSuKSkFSrvlTxGY=",
+        "lastModified": 1787753485,
+        "narHash": "sha256-BZWCi9ZRJiARTuKTbbtvFTj7t1TK4G3UEckT3HyNfRg=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "f4f698677b11021a8f84f452e23ae9ef2427bec3",
+        "rev": "062346a6d85bc4b49dfaa61c986e9c5be21217d1",
         "type": "github"
       },
       "original": {
@@ -178,11 +178,11 @@
     },
     "systems-secrets": {
       "locked": {
-        "lastModified": 1785867158,
-        "narHash": "sha256-/ZU2O52tbBS4cNtuWEDet/kN0OSq+9YijuOoXdziE+A=",
+        "lastModified": 1787781253,
+        "narHash": "sha256-3jEJVfJGwifvOnwf76QdvpQ9d3Z/GTP9faFU287o9Xo=",
         "ref": "refs/heads/main",
-        "rev": "90a6bfdb1046e54750e16da07e6f0c363ed7c182",
-        "revCount": 36,
+        "rev": "9dea354e25d1c96d5513c8db0d0cca124b5c1383",
+        "revCount": 37,
         "type": "git",
         "url": "https://code.rueb.dev/rueb/systems-secrets.git"
       },
