@@ -43,7 +43,7 @@ update_machine() {
 UPDATE=false
 args=()
 for arg in "$@"; do
-    if [[ "$arg" == "--update" ]]; then
+    if [[ "$arg" == "--update" || "$arg" == "--upgrade" ]]; then
         UPDATE=true
     else
         args+=("$arg")
