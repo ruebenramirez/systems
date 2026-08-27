@@ -14,6 +14,7 @@
     aws-gate
     # claude-code
     # claude-monitor
+    pkgs-unstable.ccusage
     pkgs-unstable.codex
     pkgs-unstable.goose-cli
     pkgs-unstable.opencode
