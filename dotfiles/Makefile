@@ -20,7 +20,7 @@ macbookpro_keyboard:
 
 git-config:
 	- git config --global user.name "Rueben Ramirez"
-	- git config --global user.email ruebenramirez@gmail.com
+	- git config --global user.email r3v2@rueb.dev
 	- git config --global core.editor nvim
 	- git config --global color.ui true
 	- git config --global pull.rebase true
