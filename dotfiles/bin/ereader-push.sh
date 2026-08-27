@@ -4,7 +4,7 @@
 
 # Define paths
 KOBO_MOUNT_PATH="/run/media/rramirez/KOBOeReader"
-LOCAL_EBOOKS_PATH="$HOME/ebooks"
+LOCAL_EBOOKS_PATH="xps17-lan:~/ebooks"
 KOBO_EBOOKS_PATH="$KOBO_MOUNT_PATH/ebooks"
 KOBO_KOREADER_PATH="$KOBO_MOUNT_PATH/.adds/koreader"
 LOCAL_KOREADER_PATH="$HOME/.config/koreader"
@@ -52,6 +52,9 @@ if [ -d "$KOBO_EBOOKS_PATH" ]; then
     # Note: excluding the `--delete` flag to not overwrite ereader data
     # Replaced -a with -rtv and --modify-window=2 for FAT32 compatibility
     rsync -rtvu --modify-window=2 --progress --exclude='.git' "$LOCAL_EBOOKS_PATH/" "$KOBO_EBOOKS_PATH/"
+
+    # with the --delete (to override the contents of the kobo)
+    #rsync -rtvu --modify-window=2 --delete --progress --exclude='.git' "$LOCAL_EBOOKS_PATH/" "$KOBO_EBOOKS_PATH/"
     echo "Ebooks sync (laptop->Kobo) completed."
 else
     echo "Warning: Ebooks directory not found on Kobo. No ebooks synced."

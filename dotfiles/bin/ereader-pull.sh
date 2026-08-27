@@ -4,7 +4,7 @@
 
 # Define paths
 KOBO_MOUNT_PATH="/run/media/rramirez/KOBOeReader"
-LOCAL_EBOOKS_PATH="$HOME/ebooks"
+LOCAL_EBOOKS_PATH="xps17-lan:~/ebooks"
 KOBO_EBOOKS_PATH="$KOBO_MOUNT_PATH/ebooks"
 KOBO_KOREADER_PATH="$KOBO_MOUNT_PATH/.adds/koreader"
 LOCAL_KOREADER_PATH="$HOME/.config/koreader"
