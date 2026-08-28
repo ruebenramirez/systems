@@ -1,11 +1,11 @@
-{ config, lib, pkgs, systems-secrets, ... }: {
+{ config, lib, pkgs, pkgs-unstable, systems-secrets, ... }: {
 
   # declare sops secret for searx-secret-key
   sops.secrets.searx-secret-key = { };
 
   services.searx = {
     enable = true;
-    package = pkgs.searxng;
+    package = pkgs-unstable.searxng;
 
     environmentFile = config.sops.secrets.searx-secret-key.path;
 
@@ -13,7 +13,7 @@
       use_default_settings = {
         engines = {
           keep_only = [
-            "duckduckgo"
+            "duckduckgo web"
           ];
         };
       };
@@ -36,7 +36,9 @@
 
       engines = [
         {
-          name = "duckduckgo";
+          name = "duckduckgo web";
+          engine = "duckduckgo_web";
+          shortcut = "ddgw";
           disabled = false;
           timeout = 10.0;
         }
