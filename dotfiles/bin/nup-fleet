@@ -10,7 +10,7 @@ MACHINES=(
     "dev-vm-xps-lan:dev-vm-xps"
     "fwai0-lan:fwai0"
     "homeserver-lan:homeserver"
-    "driver-lan:driver"
+    "driver:driver"
     "ssdnodes-1:ssdnodes-1"
     "download-vm-xps-lan:download-vm-xps"
     "forgejo-ci-runner-vm-lan:forgejo-ci-runner-vm"
