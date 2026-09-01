@@ -112,7 +112,7 @@
   # List services that you want to enable:
   # Open ports in the firewall.
   networking.firewall.allowedTCPPorts = [
-    #1313  # hugo blog dev
+    1313  # hugo blog dev
   ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   # Or disable the firewall altogether.
