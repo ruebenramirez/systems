@@ -41,6 +41,29 @@ in
     spec-type = draft-mtp
     spec-draft-n-max = 3
     spec-draft-p-min = 0.8
+
+    # [qwen3.8-flash-next]
+    # model = /models/Qwen3.8-Flash-Next/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf
+    # alias = qwen3.8-flash-next
+    # ctx-size = 262144
+    # n-gpu-layers = all
+    # flash-attn = on
+    # cache-type-k = q8_0
+    # cache-type-v = q8_0
+    # batch-size = 2048
+    # ubatch-size = 512
+    # parallel = 1
+    # fit = off
+    # load-mode = mmap
+    # lazy-mode = off
+    # jinja = true
+    # cont-batching = true
+    # temp = 1.0
+    # top-p = 0.95
+    # top-k = 20
+    # min-p = 0.0
+    # presence-penalty = 0.0
+    # repeat-penalty = 1.0
   '';
 
   systemd.services.llama-cpp = {
@@ -90,4 +113,3 @@ in
     pkgs-unstable.python3Packages.huggingface-hub
   ];
 }
-
