@@ -135,7 +135,7 @@
         sieve = {
           bind         = [ "[::]:4190" ];
           protocol     = "managesieve";
-          tls.implicit = false; # Matches tls:// in Roundcube config
+          tls.implicit = false;
         };
 
         # Admin UI — restricted to loopback only.

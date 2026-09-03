@@ -28,7 +28,6 @@
     ./srv/openwebui.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
-    ./srv/roundcube.nix
     ./srv/smb-shares.nix
     ./srv/searx.nix
     ./srv/stalwart.nix

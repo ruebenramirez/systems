@@ -18,11 +18,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    roundcube-ident-switch-src = {
-      url = "github:Gecka-Apps/roundcube-ident_switch/5.0.2";
-      flake = false;
-    };
-
     sops-nix = {
       url = "github:mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -38,7 +33,6 @@
     , disko
     , nixos-hardware
     , llama-cpp
-    , roundcube-ident-switch-src
     , sops-nix
     , systems-secrets
     , ...
@@ -159,7 +153,6 @@
         };
 
         "homeserver" = nixpkgs.lib.nixosSystem {
-          specialArgs = { inherit roundcube-ident-switch-src; };
           modules = [
             ./nix/machines/homeserver/configuration.nix
             sops-nix.nixosModules.sops
