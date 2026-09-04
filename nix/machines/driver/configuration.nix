@@ -17,6 +17,7 @@
       ../_common/physical.nix
       ../_common/desktop/razer-keyboard.nix
       ./hardware-configuration.nix
+      ./pine.nix
       ./mtp-storage-access.nix
       ./udev-rules/lofree-keyboard-udev-disable-thinkpad-keyboard.nix
       ./udev-rules/xreal-udev-unplug-restart-kanshi.nix
