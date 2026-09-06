@@ -17,6 +17,19 @@
     NIXOS_OZONE_WL = "1";
   };
 
+  xdg.portal = {
+    enable = true;
+    wlr.enable = true;
+    extraPortals = [
+      pkgs.xdg-desktop-portal-gtk
+      pkgs.xdg-desktop-portal-wlr
+    ];
+  };
+  xdg.mime.enable = true;
+  xdg.mime.defaultApplications = {
+    "text/plain" = "nvim.desktop";
+  };
+
   # kanshi manages displays my sway setup
   systemd.user.services.kanshi = {
     description = "kanshi dynamic display congfiguration daemon";

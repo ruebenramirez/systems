@@ -96,19 +96,6 @@ in
     wrapperFeatures.gtk = true;
   };
 
-  xdg.portal = {
-    enable = true;
-    wlr.enable = true;
-    extraPortals = [
-      pkgs.xdg-desktop-portal-gtk
-      pkgs.xdg-desktop-portal-wlr
-    ];
-  };
-  xdg.mime.enable = true;
-  xdg.mime.defaultApplications = {
-    "text/plain" = "nvim.desktop";
-  };
-
   services.udisks2 = {
     enable = true;
   };
