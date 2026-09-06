@@ -30,6 +30,9 @@
     "text/plain" = "nvim.desktop";
   };
 
+  # Make the source-selection menu available to the screen-sharing portal
+  systemd.user.services.xdg-desktop-portal-wlr.path = [ pkgs.rofi ];
+
   # kanshi manages displays my sway setup
   systemd.user.services.kanshi = {
     description = "kanshi dynamic display congfiguration daemon";
