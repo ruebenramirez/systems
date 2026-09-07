@@ -6,10 +6,11 @@ let
 in
 {
   imports = [
-    ./onepassword.nix
     ./bluetooth-audio.nix
-    ./wayland-display.nix
     ./lofree-keyboard-function-key-access.nix
+    ./onepassword.nix
+    ./pine.nix
+    ./wayland-display.nix
   ];
 
   # install Desktop packages
