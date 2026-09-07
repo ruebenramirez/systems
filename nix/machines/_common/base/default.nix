@@ -110,4 +110,7 @@
   };
 
   programs.mosh.enable = true;
+
+  # automate firmware updates
+  services.fwupd.enable = true;
 }
