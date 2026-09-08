@@ -3,7 +3,7 @@
   # declare sops secret for wgnet vpn client configuration
   sops.secrets.wgnet_home_conf = { };
 
-  systemd.services."wg-quick@wg0" = {
+  systemd.services."wg-quick-wg0" = {
     wants = [ "sops-nix.service" ];
     after = [ "sops-nix.service" ];
   };
