@@ -14,7 +14,6 @@
       ../_common/mullvad-vpn-client.nix
       ../_common/tailscale-client.nix
       ../_common/rust-dev.nix
-      ../_common/physical.nix
       ../_common/desktop/razer-keyboard.nix
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
