@@ -81,6 +81,8 @@ in
     satty
   ];
 
+  programs.kdeconnect.enable = true;
+
   fonts.packages = with pkgs; [
     nerd-fonts.sauce-code-pro
   ];
