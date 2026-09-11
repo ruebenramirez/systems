@@ -59,6 +59,7 @@ in
 
     # media players
     cmus
+    feishin
     gpodder # podcast listener desktop app (syncs progress with antennapod android podcast app)
     jellyfin-tui
     mpv # media player
