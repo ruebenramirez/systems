@@ -6,7 +6,6 @@
   imports = [
     ../_common/base/default.nix
     ../_common/home-vpn-client.nix
-    ../_common/physical.nix
     ./zfs-backups.nix
   ];
 

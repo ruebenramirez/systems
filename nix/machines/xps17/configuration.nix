@@ -11,7 +11,6 @@
     ../_common/home-vpn-client.nix
     ../_common/services/kubernetes.nix
     ../_common/services/virtualization-intel.nix
-    ../_common/physical.nix
     ../_common/build-machine.nix
     ./hardware-configuration.nix
     #./services/local-llm-Nvidia.nix

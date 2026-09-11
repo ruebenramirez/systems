@@ -5,7 +5,6 @@
 { config, lib, pkgs, pkgs-unstable, modulesPath, disko, ... }: {
   imports =
     [
-      ../_common/physical.nix
       (modulesPath + "/profiles/qemu-guest.nix")
       ./disk-config.nix
       ./srv/firewall.nix

@@ -7,7 +7,6 @@
     ../_common/gpu-amd.nix
     ../_common/home-vpn-client.nix
     ../_common/services/kubernetes.nix
-    ../_common/physical.nix
     ./hardware-configuration.nix
 
     # virtualization services
