@@ -60,6 +60,10 @@
     }];
   } ];
 
+  networking.firewall.allowedTCPPorts = [
+    1313  # hugo blog dev
+  ];
+
   # ZFS
   services.zfs = {
     autoScrub = {
