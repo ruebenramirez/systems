@@ -7,13 +7,14 @@
       ../_common/build-machine.nix
       ../_common/desktop/default.nix
       ../_common/dev.nix
-      ../_common/gaming.nix
+      #../_common/gaming.nix
       ../_common/gpu-amd.nix
       ../_common/home-vpn-client.nix
-      ../_common/rust-dev.nix
-      ../_common/sunshine-headless.nix
+      #../_common/rust-dev.nix
+      #../_common/sunshine-headless.nix
       ./hardware-configuration.nix
       ./services/llama-cpp-upstream.nix
+      #./services/halogen-flash-server.nix
     ];
 
   networking = {
@@ -50,7 +51,7 @@
       "adbusers"
       "audio"
       "docker"
-      "renderer"
+      "render"
       "sound"
       "video"
       "wheel"
