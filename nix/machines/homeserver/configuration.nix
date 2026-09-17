@@ -30,6 +30,7 @@
     ./srv/smb-shares.nix
     ./srv/searx.nix
     ./srv/stalwart.nix
+    ./srv/webmail.nix
 
   ];
 

@@ -33,10 +33,9 @@
   services.stalwart = {
     enable = true;
     stateVersion = "25.11";
-    # openFirewall opens: 25, 465, 587, 993.
-    # Port 8081 (management) is intentionally excluded — bound to 127.0.0.1 only.
-    # Note: Port 4190 is NOT opened by default by openFirewall = true.
-    openFirewall = true;
+    # Firewall ports are declared explicitly below so loopback HTTP listeners
+    # are never included automatically.
+    openFirewall = false;
 
     # ---------------------------------------------------------------------------
     # Secrets via systemd LoadCredential=
@@ -195,9 +194,9 @@
   };
 
   # ---------------------------------------------------------------------------
-  # Firewall: Open ManageSieve port
+  # Firewall: mail protocol listeners only. HTTP listeners remain on loopback.
   # ---------------------------------------------------------------------------
-  networking.firewall.allowedTCPPorts = [ 4190 ];
+  networking.firewall.allowedTCPPorts = [ 25 465 587 993 4190 ];
 
   # ---------------------------------------------------------------------------
   # Storage directory setup.
