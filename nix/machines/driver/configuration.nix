@@ -15,6 +15,7 @@
       ../_common/tailscale-client.nix
       ../_common/rust-dev.nix
       ../_common/desktop/razer-keyboard.nix
+      ./services/firewall.nix
       ./hardware-configuration.nix
       ./mtp-storage-access.nix
       ./udev-rules/lofree-keyboard-udev-disable-thinkpad-keyboard.nix

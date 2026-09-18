@@ -13,6 +13,7 @@
       #../_common/rust-dev.nix
       #../_common/sunshine-headless.nix
       ./hardware-configuration.nix
+      ./services/firewall.nix
       ./services/llama-cpp-upstream.nix
       #./services/halogen-flash-server.nix
     ];
