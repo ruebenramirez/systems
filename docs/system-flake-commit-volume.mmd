@@ -1,0 +1,46 @@
+---
+config:
+  xyChart:
+    width: 2600
+    height: 1400
+    titleFontSize: 56
+    xAxis:
+      labelFontSize: 28
+      titleFontSize: 32
+    yAxis:
+      labelFontSize: 28
+      titleFontSize: 32
+      titlePadding: 60
+  themeVariables:
+    xyChart:
+      plotColorPalette: "#2563eb"
+  themeCSS: |
+    .labels text {
+      font-size: 32px !important;
+      font-weight: 700;
+      paint-order: stroke;
+      stroke: white;
+      stroke-width: 8px;
+      stroke-linejoin: round;
+      writing-mode: sideways-lr;
+      text-anchor: middle;
+    }
+    .bottom-axis .label text:nth-child(even) {
+      display: none;
+    }
+    .bottom-axis .label text {
+      translate: 0 -18px;
+    }
+    .bottom-axis .title text {
+      translate: 0 -12px;
+    }
+---
+%% Commits reachable from master at 07bf7da07bffcc4e8f231263d8886b40d57638f8, trailing 12 quarters (2023 Q4 - 2026 Q3).
+%% Counts use author dates and include merge commits. Labels mark the quarter in
+%% which each nixosConfigurations output was first added after the personal fork
+%% at ce788b1a46fd73d0e1017d0528f4e3b8a39dabb6.
+xychart
+    title "Quarterly System Flake Commit Volume and Machine Additions"
+    x-axis "Quarter" ["2023 Q4", "2024 Q1", "2024 Q2", "2024 Q3", "2024 Q4", "2025 Q1", "2025 Q2", "2025 Q3", "2025 Q4", "2026 Q1", "2026 Q2", "2026 Q3"]
+    y-axis "Commits" 0 --> 200
+    line [41 "vmdev-mac / x220 / vmdev", 21, 19, 41, 89, 43, 75 "ssdnodes-1 / raspberry-pi", 147 "homeserver", 100, 140 "fwai0 / dev-vm-xps / download-vm-xps / openclaw-vm / pi-syncoid-target (rename)", 147 "forgejo-ci-runner-vm / newsletter-dev-vm / z13", 112]
