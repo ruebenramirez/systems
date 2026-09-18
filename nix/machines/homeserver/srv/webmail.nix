@@ -94,7 +94,10 @@ in
       bind = [ "127.0.0.1:8080" ];
       protocol = "http";
     };
-    server.http.permissive-cors = true;
+    http = {
+      permissive-cors = true;
+      url = "'https://mail.rueb.dev'";
+    };
   };
 
   users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
