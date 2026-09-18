@@ -21,6 +21,7 @@
     ./srv/firewall.nix
     ./srv/forgejo-reverse-proxy.nix
     ./srv/freshrss.nix
+    ./srv/hosted-sites-backup.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
     ./srv/mail-sync.nix

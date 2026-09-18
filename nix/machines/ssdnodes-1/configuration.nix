@@ -8,6 +8,7 @@
       (modulesPath + "/profiles/qemu-guest.nix")
       ./disk-config.nix
       ./srv/firewall.nix
+      ./srv/hosted-sites-backup-source.nix
       ./srv/monicaandrueben.com-reverse-proxy.nix
       ./srv/monicarosephotography.com-reverse-proxy.nix
       ./srv/postfix.nix
