@@ -1,4 +1,8 @@
 { config, pkgs, pkgs-unstable, ... }:
+
+let
+  opencode = pkgs.callPackage ../../pkgs/opencode/package.nix { };
+in
 {
   environment.systemPackages = with pkgs; [
     harlequin # SQL TUI
@@ -17,7 +21,7 @@
     pkgs-unstable.ccusage
     pkgs-unstable.codex
     pkgs-unstable.goose-cli
-    pkgs-unstable.opencode
+    opencode
     pkgs-unstable.pi-coding-agent
   ];
 }
