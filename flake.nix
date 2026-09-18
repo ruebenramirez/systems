@@ -53,7 +53,10 @@
       # Create nixpkgs for each system
       nixpkgsFor = forAllSystems (system: import nixpkgs {
         inherit system;
-        config.allowUnfree = true;
+        config = {
+          allowUnfree = true;
+          permittedInsecurePackages = [ "immich-2.7.5" ];
+        };
         # overlays = overlays;
       });
 
