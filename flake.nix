@@ -9,9 +9,10 @@
     };
 
     llama-cpp = {
-      url = "github:ggml-org/llama.cpp/b10726";
+      url = "github:ggml-org/llama.cpp/v0.4.1";
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
+
 
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware";
