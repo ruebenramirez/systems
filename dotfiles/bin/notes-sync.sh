@@ -21,8 +21,6 @@ fi
 source $NOTES_ENV_FILE
 cd $NOTES_DIR
 
-#git fetch --all
-#git pull -r origin master
 git pull --no-rebase origin master
 echo "git pull complete"
 
