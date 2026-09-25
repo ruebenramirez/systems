@@ -1,3 +1,11 @@
+## Acknowledgments
+
+A special thanks to [`@sarcasticadmin`](https://github.com/sarcasticadmin) for
+pointing me down the Nix road. Rob's example of Nix possibilities became the
+foundation for managing all of my machines declaratively.
+
+**This is the way.**
+
 # systems
 
 A single NixOS flake defining 11 machines:
