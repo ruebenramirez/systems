@@ -91,6 +91,7 @@ config:
     width: 2600
     height: 1400
     titleFontSize: 56
+    titlePadding: 60
     xAxis:
       labelFontSize: 28
       titleFontSize: 32
@@ -133,7 +134,7 @@ FRONTMATTER
   printf '%%%% which each nixosConfigurations output was first added after the personal fork\n'
   printf '%%%% at %s.\n' "$FORK_COMMIT"
   echo "xychart"
-  echo "    title \"Quarterly System Flake Commit Volume and Machine Additions\""
+  echo "    title \"Repo Commit Volume and Machine Additions\""
   echo "    x-axis \"Quarter\" [$xlabels]"
   echo "    y-axis \"Commits\" 0 --> $ymax"
   echo "    line [$line]"

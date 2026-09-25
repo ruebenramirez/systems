@@ -4,6 +4,7 @@ config:
     width: 2600
     height: 1400
     titleFontSize: 56
+    titlePadding: 60
     xAxis:
       labelFontSize: 28
       titleFontSize: 32
@@ -35,12 +36,12 @@ config:
       translate: 0 -12px;
     }
 ---
-%% Commits reachable from master at 07bf7da07bffcc4e8f231263d8886b40d57638f8, trailing 12 quarters (2023 Q4 - 2026 Q3).
+%% Commits reachable from master at 89fc62cf58ae530f844b8311b07d1441afefc997, trailing 12 quarters (2023 Q4 - 2026 Q3).
 %% Counts use author dates and include merge commits. Labels mark the quarter in
 %% which each nixosConfigurations output was first added after the personal fork
 %% at ce788b1a46fd73d0e1017d0528f4e3b8a39dabb6.
 xychart
-    title "Quarterly System Flake Commit Volume and Machine Additions"
+    title "Repo Commit Volume and Machine Additions"
     x-axis "Quarter" ["2023 Q4", "2024 Q1", "2024 Q2", "2024 Q3", "2024 Q4", "2025 Q1", "2025 Q2", "2025 Q3", "2025 Q4", "2026 Q1", "2026 Q2", "2026 Q3"]
     y-axis "Commits" 0 --> 200
-    line [41 "vmdev-mac / x220 / vmdev", 21, 19, 41, 89, 43, 75 "ssdnodes-1 / raspberry-pi", 147 "homeserver", 100, 140 "fwai0 / dev-vm-xps / download-vm-xps / openclaw-vm / pi-syncoid-target (rename)", 147 "forgejo-ci-runner-vm / newsletter-dev-vm / z13", 112]
+    line [41 "vmdev-mac / x220 / vmdev", 21, 19, 41, 89, 43, 75 "ssdnodes-1 / raspberry-pi", 147 "homeserver", 100, 140 "fwai0 / dev-vm-xps / download-vm-xps / openclaw-vm / pi-syncoid-target (rename)", 147 "forgejo-ci-runner-vm / newsletter-dev-vm / z13", 118]
