@@ -1,8 +1,9 @@
 ## Acknowledgments
 
 A special thanks to [`@sarcasticadmin`](https://github.com/sarcasticadmin) for
-pointing me down the Nix road. Rob's example of Nix possibilities became the
-foundation for managing all of my machines declaratively.
+pointing me down the Nix road. Rob's [flake
+example](https://github.com/sarcasticadmin/systems) of Nix possibilities became
+the foundation for managing all of my machines declaratively.
 
 **This is the way.**
 
