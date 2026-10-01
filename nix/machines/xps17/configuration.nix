@@ -14,6 +14,7 @@
     ../_common/build-machine.nix
     ./hardware-configuration.nix
     #./services/local-llm-Nvidia.nix
+    ./services/firewall.nix
   ];
 
   # Use the systemd-boot EFI boot loader.
@@ -26,7 +27,6 @@
 
     networkmanager.enable = false;
     wireless.enable = false;
-    nftables.enable = true;
 
     useNetworkd = true;
 
@@ -60,9 +60,6 @@
     }];
   } ];
 
-  networking.firewall.allowedTCPPorts = [
-    1313  # hugo blog dev
-  ];
 
   # ZFS
   services.zfs = {
