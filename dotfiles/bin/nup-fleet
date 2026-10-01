@@ -16,7 +16,7 @@ MACHINES=(
     "forgejo-ci-runner-vm-lan:forgejo-ci-runner-vm"
     "x220-lan:x220"
     #"newsletter-dev-vm-lan:newsletter-dev-vm"
-    #"pi-syncoid-target-lan:pi-syncoid-target"
+    "pi-syncoid-target-lan:pi-syncoid-target"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
