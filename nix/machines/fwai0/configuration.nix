@@ -1,22 +1,22 @@
 { config, lib, pkgs, ... }:
 
 {
-  imports =
-    [
-      ../_common/base/default.nix
-      ../_common/build-machine.nix
-      ../_common/desktop/default.nix
-      ../_common/dev.nix
-      #../_common/gaming.nix
-      ../_common/gpu-amd.nix
-      ../_common/home-vpn-client.nix
-      #../_common/rust-dev.nix
-      #../_common/sunshine-headless.nix
-      ./hardware-configuration.nix
-      ./services/firewall.nix
-      ./services/llama-cpp-upstream.nix
-      #./services/halogen-flash-server.nix
-    ];
+  imports = [
+    ../_common/base/default.nix
+    ../_common/build-machine.nix
+    ../_common/desktop/default.nix
+    ../_common/dev.nix
+    #../_common/gaming.nix
+    ../_common/gpu-amd.nix
+    ../_common/home-vpn-client.nix
+    ../_common/tailscale-client.nix
+    #../_common/rust-dev.nix
+    #../_common/sunshine-headless.nix
+    ./hardware-configuration.nix
+    ./services/firewall.nix
+    ./services/llama-cpp-upstream.nix
+    #./services/halogen-flash-server.nix
+  ];
 
   networking = {
     hostName = "fwai0";
