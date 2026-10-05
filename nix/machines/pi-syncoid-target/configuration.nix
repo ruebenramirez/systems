@@ -12,6 +12,10 @@
   hardware = {
     enableRedistributableFirmware = true;
     enableAllHardware = lib.mkForce false;
+    raspberry-pi.firmware = {
+      enable = true;
+      uboot.enable = true;
+    };
   };
 
   sdImage = {
@@ -42,7 +46,7 @@
     supportedFilesystems = [ "zfs" ];
     initrd.availableKernelModules = [ "xhci_pci" "usbhid" "usb_storage" ];
     initrd.supportedFilesystems = [ "zfs" ];
-    #kernelPackages = pkgs.linuxPackages_rpi4;
+    kernelPackages = pkgs.linuxPackages;
     kernelModules = [ "zfs" ];
     initrd.kernelModules = [ "zfs" ];
     kernel.sysctl = {
