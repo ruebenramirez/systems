@@ -1,11 +1,11 @@
-{ config, pkgs, ... }:
+{ config, pkgs, pkgs-unstable, ... }:
 
 {
   users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
 
   services.headscale = {
     enable = true;
-    package = pkgs.headscale;
+    package = pkgs-unstable.headscale;
 
     address = "127.0.0.1";
     port = 8090;
