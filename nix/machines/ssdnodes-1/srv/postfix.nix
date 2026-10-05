@@ -42,10 +42,10 @@
       mail_name    = "Postfix";
 
       transport_maps = "inline:{
-        rueb.dev=smtp:[10.100.0.2]:25
-        ruebenramirez.com=smtp:[10.100.0.2]:25
-        monicarosephotography.com=smtp:[10.100.0.2]:25
-        monicaandrueben.com=smtp:[10.100.0.2]:25
+        rueb.dev=smtp:[100.64.0.1]:25
+        ruebenramirez.com=smtp:[100.64.0.1]:25
+        monicarosephotography.com=smtp:[100.64.0.1]:25
+        monicaandrueben.com=smtp:[100.64.0.1]:25
       }";
 
       smtpd_relay_restrictions = [

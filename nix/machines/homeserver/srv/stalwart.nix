@@ -106,7 +106,7 @@
         smtp = {
           bind                 = [ "[::]:25" ];
           protocol             = "smtp";
-          proxy.trusted-networks = [ "10.100.0.5/32" ];
+          proxy.trusted-networks = [ "100.64.0.4/32" ];
         };
 
         # Client submission — implicit TLS (SSL/TLS mode in mail clients).
