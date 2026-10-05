@@ -124,23 +124,6 @@
           ];
         };
 
-        "newsletter-dev-vm" = nixpkgs.lib.nixosSystem {
-          modules = [
-            ./nix/machines/newsletter-dev-vm/configuration.nix
-            ./nix/machines/_common/vm-deploy-options.nix
-            disko.nixosModules.disko
-            sops-nix.nixosModules.sops
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-              _module.args = {
-                pkgs-unstable = unstableFor."x86_64-linux";
-                inherit systems-secrets;
-              };
-            }
-          ];
-        };
-
         "driver" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/driver/configuration.nix
