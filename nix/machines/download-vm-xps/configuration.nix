@@ -3,7 +3,6 @@
   imports = [
     ../_common/base/default.nix
     ../_common/qemu-vm-guest.nix
-    ../_common/home-vpn-client.nix
     ../_common/mullvad-vpn-client.nix
     ../_common/tailscale-client.nix
   ];

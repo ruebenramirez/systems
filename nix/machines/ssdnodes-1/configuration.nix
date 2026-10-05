@@ -14,7 +14,6 @@
       ./srv/postfix.nix
       ../_common/base/default.nix
       ../_common/services/kubernetes.nix
-      ../_common/home-vpn-client.nix
       ../_common/tailscale-client.nix
     ];
 

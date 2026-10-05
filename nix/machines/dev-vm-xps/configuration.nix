@@ -4,7 +4,6 @@
     ../_common/base/default.nix
     ../_common/qemu-vm-guest.nix
     ../_common/dev.nix
-    ../_common/home-vpn-client.nix
     ../_common/tailscale-client.nix
     ../_common/rust-dev.nix
     ../_common/services/kubernetes.nix

@@ -8,7 +8,6 @@
     #../_common/fingerprint-reader.nix
     #../_common/gaming.nix
     #../_common/gpu-nvidia.nix
-    ../_common/home-vpn-client.nix
     ../_common/tailscale-client.nix
     ../_common/services/kubernetes.nix
     ../_common/services/virtualization-intel.nix

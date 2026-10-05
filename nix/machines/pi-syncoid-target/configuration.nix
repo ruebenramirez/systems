@@ -5,7 +5,7 @@
 {
   imports = [
     ../_common/base/default.nix
-    ../_common/home-vpn-client.nix
+    ../_common/tailscale-client.nix
     ./zfs-backups.nix
   ];
 

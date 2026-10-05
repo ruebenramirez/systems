@@ -8,7 +8,6 @@
     ../_common/dev.nix
     #../_common/gaming.nix
     ../_common/gpu-amd.nix
-    ../_common/home-vpn-client.nix
     ../_common/tailscale-client.nix
     #../_common/rust-dev.nix
     #../_common/sunshine-headless.nix
