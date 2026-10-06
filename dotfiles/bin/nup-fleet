@@ -6,17 +6,15 @@
 set -e
 
 MACHINES=(
-    "xps17-lan:xps17"
-    "dev-vm-xps-lan:dev-vm-xps"
-    "fwai0-lan:fwai0"
-    "homeserver-lan:homeserver"
-    "driver-lan:driver"
-    "ssdnodes-1:ssdnodes-1"
-    "download-vm-xps-lan:download-vm-xps"
-    "forgejo-ci-runner-vm-lan:forgejo-ci-runner-vm"
-    "x220-lan:x220"
-    #"newsletter-dev-vm-lan:newsletter-dev-vm"
-    "pi-syncoid-target-lan:pi-syncoid-target"
+    "xps17"
+    "dev-vm-xps"
+    "fwai0"
+    "homeserver"
+    "driver"
+    "ssdnodes-1"
+    "download-vm-xps"
+    "forgejo-ci-runner-vm"
+    "pi-syncoid-target"
 )
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
