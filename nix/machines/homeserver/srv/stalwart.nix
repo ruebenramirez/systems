@@ -102,11 +102,10 @@
       # Listeners
       # -----------------------------------------------------------------------
       server.listener = {
-        # Inbound SMTP from VPS Postfix over WireGuard.
+        # Inbound SMTP from VPS Postfix over headscale VPN.
         smtp = {
           bind                 = [ "[::]:25" ];
           protocol             = "smtp";
-          proxy.trusted-networks = [ "100.64.0.4/32" ];
         };
 
         # Client submission — implicit TLS (SSL/TLS mode in mail clients).
@@ -196,7 +195,7 @@
   # ---------------------------------------------------------------------------
   # Firewall: mail protocol listeners only. HTTP listeners remain on loopback.
   # ---------------------------------------------------------------------------
-  networking.firewall.allowedTCPPorts = [ 25 465 587 993 4190 ];
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 25 465 587 993 4190 ];
 
   # ---------------------------------------------------------------------------
   # Storage directory setup.
