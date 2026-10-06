@@ -18,7 +18,6 @@
     # homeserver services
     ./srv/acme-wildcard.nix
     ./srv/audiobookshelf.nix
-    ./srv/cloudflared-reverse-proxy.nix
     ./srv/firewall.nix
     ./srv/forgejo-reverse-proxy.nix
     ./srv/freshrss.nix
