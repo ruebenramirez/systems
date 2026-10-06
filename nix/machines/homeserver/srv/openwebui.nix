@@ -17,7 +17,7 @@
       SCARF_NO_ANALYTICS = "True";
       ENABLE_OLLAMA_API = "False";
       ENABLE_OPENAI_API = "True";
-      OPENAI_API_BASE_URLS = "http://10.100.0.31:8080/v1";
+      OPENAI_API_BASE_URLS = "http://fwai0.tailnet.rueb.dev:8080/v1";
       OPENAI_API_KEYS = "sk-no-key-required";
     };
   };
