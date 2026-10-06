@@ -7,17 +7,11 @@
   # networking.firewall.allowedTCPPorts = [ ... ];
   # networking.firewall.allowedUDPPorts = [ ... ];
   networking.firewall.allowedTCPPorts = [
-    80
     443
-    139
-    445
+    445 # samba
     5201 # iperf3
-    8089
-    9008
   ];
   networking.firewall.allowedUDPPorts = [
-    137
-    138
   ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;
