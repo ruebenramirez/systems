@@ -94,7 +94,7 @@ in
     serviceConfig = {
       ExecStart = lib.concatStringsSep " " [
         llamaServer
-        "--host 10.100.0.31"
+        "--host 100.64.0.8"
         "--port 8080"
         "--models-preset /etc/llama-cpp/models.ini"
         "--models-max 2"
@@ -127,7 +127,7 @@ in
     };
   };
 
-  networking.firewall.interfaces.wg0.allowedTCPPorts = [
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [
     8080
   ];
 
