@@ -213,15 +213,11 @@ function mynet
 end
 
 function mullvad-disable
-    sudo systemctl stop wg-quick-wg1.service
-    sudo systemctl restart wg-quick-wg0.service
-    sudo watch -c "wg show"
+    sudo tailscale set --exit-node="" --exit-node-allow-lan-access=true --accept-routes=true
 end
 
 function mullvad-enable
-    sudo systemctl restart wg-quick-wg1.service
-    sudo systemctl restart wg-quick-wg0.service
-    sudo watch -c "wg show"
+    sudo tailscale set --exit-node="download-vm-xps.tailnet.rueb.dev" --exit-node-allow-lan-access=true --accept-routes=true
 end
 
 function dush

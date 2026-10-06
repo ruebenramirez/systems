@@ -17,9 +17,8 @@ stop_services() {
   echo "Stopping wpa_supplicant-wlp2s0.service"
   sudo systemctl stop wpa_supplicant-wlp2s0.service
 
-  echo "Stopping wireguard interfaces"
-  sudo systemctl stop wg-quick-wg0.service
-  sudo systemctl stop wg-quick-wg1.service
+  echo "Stopping VPN"
+  sudo tailscale down
 }
 
 configure_network() {
@@ -30,30 +29,21 @@ configure_network() {
 
   echo "Setting wpa_supplicant config to $wpa_src"
   sudo ln -sf "$wpa_src" "$wpa_dst"
-
-  local wg0_src="/run/secrets/wgnet_home_conf"
-  local wg0_dst="/persist/etc/wireguard/wgnet-home.conf"
-
-  echo "Setting wg0 config to $wpa_src"
-  sudo ln -sf "$wg0_src" "$wg0_dst"
 }
 
-restart_services() {
+start_services() {
   echo "Restarting wpa_supplicant-wlp2s0.service"
-  sudo systemctl restart wpa_supplicant-wlp2s0.service
-
-  echo "waiting for the network to come back online..."
-  sleep 7
-
-  echo "Restarting wireguard interfaces"
-  sudo systemctl restart wg-quick-wg0.service
-  sudo systemctl restart wg-quick-wg1.service
+  sudo systemctl start wpa_supplicant-wlp2s0.service
+  sudo tailscale up
 
   echo "Network configured for $mode mode."
+
+  echo "waiting for the network to come back online..."
 }
 
-show_wireguard_connections() {
-  sudo watch wg show
+show_VPN_conf() {
+  sudo tailscale get
+  sudo tailscale status
 }
 
 main() {
@@ -66,8 +56,8 @@ main() {
   validate_input "$mode"
   stop_services
   configure_network "$mode"
-  restart_services
-  show_wireguard_connections
+  start_services
+  show_VPN_conf
 }
 
 main "$@"
