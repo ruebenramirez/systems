@@ -8,7 +8,6 @@
     ../_common/home-vpn-client.nix
     ../_common/tailscale-client.nix
     ../_common/services/kubernetes.nix
-    ../_common/services/headscale-server.nix
     ./hardware-configuration.nix
 
     # virtualization services
@@ -21,10 +20,12 @@
     ./srv/firewall.nix
     ./srv/forgejo-reverse-proxy.nix
     ./srv/freshrss.nix
+    ./srv/headscale-server.nix
     ./srv/hosted-sites-backup.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
     ./srv/mail-sync.nix
+    ./srv/nginx.nix
     ./srv/openwebui.nix
     ./srv/postgresql.nix
     ./srv/redis.nix

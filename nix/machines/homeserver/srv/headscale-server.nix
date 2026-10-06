@@ -41,6 +41,10 @@
     recommendedGzipSettings = true;
 
     virtualHosts."hs.rueb.dev" = {
+      # Must stay reachable on the public interface so new nodes can enroll;
+      # the global default binds all other vhosts to tailscale0 only.
+      listenAddresses = [ "0.0.0.0" ];
+
       forceSSL = true;
       useACMEHost = "rueb.dev";
 

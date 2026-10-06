@@ -70,6 +70,9 @@ in
     recommendedGzipSettings = true;
 
     virtualHosts."tv.rueb.dev" = {
+      # Serve Jellyfin on both the tailscale0 and wg0 interfaces.
+      listenAddresses = [ "100.64.0.1" "10.100.0.2" ];
+
       forceSSL = true;
 
       # Use the wildcard cert defined in acme-wildcard.nix
