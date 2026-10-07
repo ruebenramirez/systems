@@ -1,0 +1,36 @@
+{
+  "groups": {
+    "group:admins": ["rueb@"],
+    "group:home-users": ["moni@"],
+    "group:jellyfin": ["greg-n-diana@"]
+  },
+  "tagOwners": {
+    "tag:jellyfin": ["rueb@"],
+    "tag:exit": ["rueb@"]
+  },
+  "hosts": {
+    "homeserver": "100.64.0.1/32",
+    "ssdnodes-relay": "100.64.0.4/32"
+  },
+  "autoApprovers": { "exitNode": ["tag:exit"] },
+
+  "grants": [
+    { "src": ["group:admins"],     "dst": ["group:admins"],     "ip": ["*"] },
+    { "src": ["group:admins"],     "dst": ["tag:exit"],         "ip": ["*"] },
+
+    { "src": ["group:admins", "group:home-users"],
+      "dst": ["autogroup:self"], "ip": ["*"] },
+    { "src": ["group:home-users"], "dst": ["homeserver"],
+      "ip": ["443", "3001", "445", "25,465,587,993,4190"] },
+
+    { "src": ["tag:jellyfin", "group:jellyfin"],
+      "dst": ["homeserver"], "ip": ["443"] },
+
+    { "src": ["group:admins", "group:home-users"],
+      "dst": ["autogroup:internet"], "ip": ["*"] },
+    { "src": ["group:admins", "group:home-users"],
+      "dst": ["ssdnodes-relay"], "app": { "tailscale.com/cap/relay": [] } },
+
+    { "src": ["group:admins"], "dst": ["tag:jellyfin"], "ip": ["*"] }
+  ]
+}

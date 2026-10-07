@@ -1,0 +1,14 @@
+regions:
+  901:
+    regionid: 901
+    regioncode: ssdnodes
+    regionname: ssdnodes-1
+    nodes:
+      - name: 901a
+        regionid: 901
+        hostname: derp.rueb.dev
+        ipv4: 172.93.51.14
+        ipv6: "2602:ff16:1:0:1:f:0:1"
+        derpport: 443
+        stunport: 3478
+        canport80: true

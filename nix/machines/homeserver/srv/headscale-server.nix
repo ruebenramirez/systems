@@ -29,7 +29,12 @@
         nameservers.global = [ "1.1.1.1" "1.0.0.1" ];
       };
 
-      policy.mode = "database";
+      derp.paths = [ ./derp-map.yaml ];
+
+      policy = {
+        mode = "file";
+        path = ./headscale-policy.hujson;
+      };
     };
   };
 

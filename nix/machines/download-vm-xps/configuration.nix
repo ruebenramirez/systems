@@ -7,6 +7,9 @@
     ../_common/tailscale-client.nix
   ];
 
+  # Advertise this VM as an exit node; approval is via autoApprovers tag:exit.
+  services.tailscale.extraSetFlags = [ "--advertise-exit-node" ];
+
   # Boot configuration
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
