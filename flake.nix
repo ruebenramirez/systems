@@ -76,7 +76,6 @@
         "dev-vm-xps" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/dev-vm-xps/configuration.nix
-            ./nix/machines/_common/vm-deploy-options.nix
             disko.nixosModules.disko
             sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
@@ -93,7 +92,6 @@
         "download-vm-xps" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/download-vm-xps/configuration.nix
-            ./nix/machines/_common/vm-deploy-options.nix
             disko.nixosModules.disko
             sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs
@@ -110,7 +108,6 @@
         "forgejo-ci-runner-vm" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/forgejo-ci-runner-vm/configuration.nix
-            ./nix/machines/_common/vm-deploy-options.nix
             disko.nixosModules.disko
             sops-nix.nixosModules.sops
             nixpkgs.nixosModules.readOnlyPkgs

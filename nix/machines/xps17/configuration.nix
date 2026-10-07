@@ -10,7 +10,7 @@
     #../_common/gpu-nvidia.nix
     ../_common/tailscale-client.nix
     ../_common/services/kubernetes.nix
-    ../_common/services/virtualization-intel.nix
+    ../_common/services/virtualization-incus.nix
     ../_common/build-machine.nix
     ./hardware-configuration.nix
     #./services/local-llm-Nvidia.nix

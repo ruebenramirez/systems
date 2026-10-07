@@ -13,6 +13,7 @@
     # virtualization services
     ../_common/services/virtualization-amd.nix
     ../_common/services/vm-storage.nix
+    ../_common/services/vm-nfs-server.nix
 
     # homeserver services
     ./srv/acme-wildcard.nix
@@ -107,6 +108,13 @@
   };
 
   environment.systemPackages = with pkgs; [ sanoid ];
+
+  # NFS shares for VM guests, backed by the tank zpool:
+  #   /tank/vm-nfs-shares/<host>/<mount>
+  my.vmNfsServer = {
+    enable = true;
+    shares."dev-vm-xps" = [ "data" ];
+  };
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

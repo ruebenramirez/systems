@@ -9,9 +9,9 @@ the foundation for managing all of my machines declaratively.
 
 # systems
 
-A single NixOS flake defining 11 machines:
+A single NixOS flake defining 10 machines:
 - 7 physical boxes: laptops, servers, a VPS, and a Raspberry Pi
-- 4 QEMU VMs deployed to `xps17`.
+- 3 Incus VMs on `xps17` (managed by OpenTofu).
 
 ![Quarterly system flake commit volume and machine additions](docs/system-flake-commit-volume.svg)
 
@@ -27,13 +27,14 @@ A single NixOS flake defining 11 machines:
 - **Networking.** `wgnet` is a WireGuard service network spanning the home
   network, providing remote access from the daily-driver laptop and connecting
   a VPS that exposes inbound SMTP.
-- **VMs.** [disko](https://github.com/nix-community/disko) defines disk
-  layouts; `scripts/build-and-deploy-vm.sh` builds qcow2 images and deploys
-  them with libvirt using Nix-defined memory, vCPUs, and networking.
+- **VMs.** [Incus](https://linuxcontainers.org/incus/) on `xps17` runs the guest
+  VMs; instances and their CPU, memory, and networking are declared with
+  OpenTofu in [`tofu/`](tofu/). Guests are NixOS systems updated in place via
+  `nup-fleet`. See [Incus VM management](docs/incus-vm-management.md).
 - **Cross-building.** `fwai0` and `xps17` import `build-machine.nix`, which
   enables aarch64 binfmt emulation and tuning for slow ARM builds — used to
   build the `pi-syncoid-target` SD image
-  (`scripts/build-raspberrypi-image.sh`) and VM images from the builder.
+  (`scripts/build-raspberrypi-image.sh`).
 
 ## nup-fleet
 
@@ -61,9 +62,10 @@ nup-fleet --upgrade xps17  # flake update + single machine
 | `homeserver` | App, file, and mail server | [Stalwart](https://github.com/stalwartlabs/stalwart), [Gmail sync](https://github.com/imapsync/imapsync), [Jellyfin](https://github.com/jellyfin/jellyfin), [Immich](https://github.com/immich-app/immich), [Audiobookshelf](https://github.com/advplyr/audiobookshelf), [FreshRSS](https://github.com/FreshRSS/FreshRSS), [SearXNG](https://github.com/searxng/searxng), [Open WebUI](https://github.com/open-webui/open-webui) |
 | `pi-syncoid-target` | ZFS replication target | Hourly [`syncoid`](https://github.com/jimsalterjrs/sanoid) snapshot replication of `homeserver`'s `tank/data` dataset |
 | `ssdnodes-1` | Public MX relay and web host | [Postfix](https://github.com/vdukhovni/postfix) relay to [Stalwart](https://github.com/stalwartlabs/stalwart) over `wgnet`, nginx reverse proxy, containerized [WordPress](https://hub.docker.com/_/wordpress/) sites |
-| `xps17` | Libvirt VM host | [libvirt](https://github.com/libvirt/libvirt)/KVM, `devpool` VM storage, Docker, [k3d](https://github.com/k3d-io/k3d), ARM64 builds |
+| `xps17` | Incus VM host | [Incus](https://linuxcontainers.org/incus/) VMs declared in [`tofu/`](tofu/), Incus `dir` pool on `devpool`, Docker, [k3d](https://github.com/k3d-io/k3d), ARM64 builds |
 
 ## Docs
 
 - [NixOS ZFS install](docs/nixos-zfs-install.md)
+- [Incus VM management](docs/incus-vm-management.md)
 - [System flake activity chart](docs/system-flake-activity.md)

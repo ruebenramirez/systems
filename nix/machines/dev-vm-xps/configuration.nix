@@ -7,6 +7,7 @@
     ../_common/tailscale-client.nix
     ../_common/rust-dev.nix
     ../_common/services/kubernetes.nix
+    ../_common/vm-nfs-client.nix
   ];
 
   # Boot configuration
@@ -51,16 +52,12 @@
     };
   };
 
-  # VM runtime resources (consumed by deployment script)
-  my.vmDeploy = {
-    memoryMB = 8192;
-    vcpus = 8;
-    bridge = "br0";
-  };
-
   networking = {
     hostName = "dev-vm-xps";
   };
+
+  # data share from homeserver tank -> /mnt/data
+  my.vmNfsClient.mounts.data = { };
 
   networking.firewall.allowedTCPPorts = [
     5173

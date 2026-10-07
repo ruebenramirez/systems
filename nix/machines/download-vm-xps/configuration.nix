@@ -52,13 +52,6 @@
     };
   };
 
-  # VM runtime resources (consumed by deployment script)
-  my.vmDeploy = {
-    memoryMB = 512;
-    vcpus = 2;
-    bridge = "br0";
-  };
-
   networking = {
     hostName = "download-vm-xps";
     firewall = {
