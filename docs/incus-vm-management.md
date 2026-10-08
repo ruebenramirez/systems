@@ -235,7 +235,11 @@ Add a `nixosConfigurations.<vm>` entry (mirror an existing guest) and a
 
 ### 3. nup-fleet
 
-Add `"<vm>"` to `MACHINES` in [`dotfiles/bin/nup-fleet`](../dotfiles/bin/nup-fleet).
+`nup-fleet` reaches hosts by **tailnet name**, so add `"<vm>"` to `MACHINES` in
+[`dotfiles/bin/nup-fleet`](../dotfiles/bin/nup-fleet) **only if the guest joins
+the tailnet** (imports `tailscale-client.nix`). A VM without tailscale (e.g. a
+simple LAN-only service) can't be reached by name — add a local `ssh <vm>` alias,
+or manage it with `incus exec` instead.
 
 ### 4. Build and stage the image
 
@@ -288,8 +292,8 @@ hence the `vm-base` profile (root disk + `secureboot=false` + `autostart`).
 ```sh
 incus list <vm>
 incus exec <vm> -- ip -br addr     # eth0 + LAN IP
-ssh <vm>                            # tailnet
-nup-fleet --upgrade <vm>
+ssh <vm>                            # tailnet, if the guest runs tailscale
+nup-fleet --upgrade <vm>            # only if reachable by tailnet name
 ```
 Then add the `Host <vm>-lan` SSH snippet.
 

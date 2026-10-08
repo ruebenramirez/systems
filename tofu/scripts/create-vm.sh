@@ -21,8 +21,8 @@ IFS=',' read -r vcpus mem mac <<<"$vals"
 echo "Registering image for $vm ..."
 tofu apply -auto-approve -input=false -target="incus_image.vm[\"$vm\"]"
 
-fp="$(incus image list --format csv --columns fd | grep "$vm" | cut -d, -f1)"
-[ -n "$fp" ] || { echo "ERROR: no image found for $vm" >&2; exit 1; }
+fp="$(tofu state show "incus_image.vm[\"$vm\"]" | awk '/fingerprint/{gsub(/"/,"",$3); print $3; exit}')"
+[ -n "$fp" ] || { echo "ERROR: no fingerprint for $vm in state" >&2; exit 1; }
 echo "image fingerprint: $fp"
 
 incus init local:"$fp" "$vm" --vm -p vm-base

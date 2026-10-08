@@ -22,5 +22,11 @@ locals {
       mac       = "52:54:00:1b:30:3b"
       image_dir = "${local.stage}/forgejo-ci-runner-vm.tar"
     }
+    "nginx-vm" = {
+      vcpus     = 1
+      memory    = "512MiB"
+      mac       = "52:54:00:80:00:01"
+      image_dir = "${local.stage}/nginx-vm.tar"
+    }
   }
 }
