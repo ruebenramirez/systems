@@ -10,6 +10,7 @@
       ../_common/fingerprint-reader.nix
       ../_common/gaming.nix
       ../_common/gpu-amd.nix
+      ../_common/sing-box-client.nix
       ../_common/tailscale-client.nix
       ../_common/rust-dev.nix
       ../_common/desktop/razer-keyboard.nix

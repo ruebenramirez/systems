@@ -9,10 +9,12 @@
       ./disk-config.nix
       ./srv/derp-relay.nix
       ./srv/firewall.nix
+      ./srv/haproxy.nix
       ./srv/hosted-sites-backup-source.nix
       ./srv/monicaandrueben.com-reverse-proxy.nix
       ./srv/monicarosephotography.com-reverse-proxy.nix
       ./srv/postfix.nix
+      ./srv/sing-box.nix
       ../_common/base/default.nix
       ../_common/services/kubernetes.nix
       ../_common/tailscale-client.nix

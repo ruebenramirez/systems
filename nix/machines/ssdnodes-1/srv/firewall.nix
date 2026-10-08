@@ -11,7 +11,7 @@
     443
   ];
   networking.firewall.allowedUDPPorts = [
-
+    443  # sing-box Hysteria2
   ];
   # Or disable the firewall altogether.
   # networking.firewall.enable = false;

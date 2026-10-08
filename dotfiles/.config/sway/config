@@ -193,6 +193,9 @@ input "1390:388:IST_TrackBall_Mouse" {
     # toggle notifications
     #bindsym XF86Messenger exec ~/bin/toggle-notifications.sh
 
+    # toggle stealth proxy (VLESS+Reality / Hysteria2)
+    bindsym $mod+Shift+t exec ~/bin/sstunnel toggle
+
 #
 # Moving around:
 #

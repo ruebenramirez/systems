@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+# sstunnel - enable/disable the on-demand stealth proxy on the driver.
+#   sstunnel on | off | toggle | status | use <vless|hy2|auto>
+#
+# Routing model:
+#   ON  -> disable the Tailscale exit node (it would take precedence over the
+#          TUN), start sing-box, route all traffic via the VPS.
+#   OFF -> stop sing-box, restore the Tailscale exit node.
+set -euo pipefail
+
+SERVICE=sing-box
+API=http://127.0.0.1:9090
+SELECTOR=proxy
+EXIT_NODE="${SSTUNNEL_EXIT_NODE:-download-vm-xps}"
+
+secret() { sudo cat /run/secrets/clash_api_secret 2>/dev/null; }
+notify() { command -v notify-send >/dev/null 2>&1 && notify-send -a sstunnel "$1" "${2:-}" || true; }
+is_active() { systemctl is-active --quiet "$SERVICE"; }
+
+exit_node_disable() { sudo tailscale set --exit-node= >/dev/null 2>&1 || true; }
+exit_node_restore() { sudo tailscale set --exit-node="$EXIT_NODE" >/dev/null 2>&1 || true; }
+exit_node_state() { tailscale status --json 2>/dev/null | jq -r 'if .ExitNodeStatus then "on" else "off" end' 2>/dev/null || echo "?"; }
+
+selector_now() {
+  curl -s -H "Authorization: Bearer $(secret)" "$API/proxies/$SELECTOR" 2>/dev/null \
+    | jq -r '.now // "?"' 2>/dev/null || echo "?"
+}
+egress_ip() { curl -s --max-time 8 https://ifconfig.me 2>/dev/null || echo "?"; }
+
+tag_for() {
+  case "$1" in
+    vless|reality) echo vless-out ;;
+    hy2|hysteria2) echo hy2-out ;;
+    auto|urltest)  echo auto ;;
+    *)             echo "$1" ;;
+  esac
+}
+
+cmd_on() {
+  # The stealth proxy owns routing; a Tailscale exit node would win otherwise.
+  exit_node_disable
+  sudo systemctl start "$SERVICE"
+  sleep 2
+  if is_active; then notify "Stealth proxy ON" "reality (vless-out)"; else notify "Stealth proxy FAILED to start"; fi
+}
+cmd_off() {
+  sudo systemctl stop "$SERVICE"
+  exit_node_restore
+  notify "Stealth proxy OFF" "exit node: $EXIT_NODE"
+}
+cmd_toggle() { if is_active; then cmd_off; else cmd_on; fi; }
+
+cmd_status() {
+  if is_active; then
+    printf 'state:    active\n'
+    printf 'outbound: %s\n' "$(selector_now)"
+  else
+    printf 'state:    inactive (direct)\n'
+  fi
+  printf 'exitnode: %s\n' "$(exit_node_state)"
+  printf 'egress:   %s\n' "$(egress_ip)"
+}
+
+cmd_use() {
+  local name="${1:-}"
+  [ -z "$name" ] && { echo "usage: sstunnel use <vless|hy2|auto>"; exit 1; }
+  is_active || { echo "tunnel is off; run 'sstunnel on' first"; exit 1; }
+  local tag; tag="$(tag_for "$name")"
+  curl -s -o /dev/null -w '%{http_code}\n' -X PUT \
+    -H "Authorization: Bearer $(secret)" -H 'Content-Type: application/json' \
+    -d "{\"name\":\"$tag\"}" "$API/proxies/$SELECTOR"
+  notify "Proxy outbound" "$tag"
+}
+
+case "${1:-status}" in
+  on)     cmd_on ;;
+  off)    cmd_off ;;
+  toggle) cmd_toggle ;;
+  status) cmd_status ;;
+  use)    shift; cmd_use "$@" ;;
+  *)      echo "usage: sstunnel on|off|toggle|status|use <vless|hy2|auto>"; exit 2 ;;
+esac

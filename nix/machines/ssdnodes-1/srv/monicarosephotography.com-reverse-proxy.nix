@@ -44,6 +44,14 @@
       serverAliases = [ "www.monicarosephotography.com" ];
       forceSSL = true;
 
+      # Fronted by HAProxy on :443; nginx TLS lives on loopback 8444.
+      listen = [
+        { addr = "0.0.0.0"; port = 80; }
+        { addr = "[::0]"; port = 80; }
+        { addr = "127.0.0.1"; port = 8444; ssl = true; proxyProtocol = true; }
+        { addr = "[::1]"; port = 8444; ssl = true; proxyProtocol = true; }
+      ];
+
       # Use the certificate defined in the acme block
       useACMEHost = "monicarosephotography.com";
 
