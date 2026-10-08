@@ -34,9 +34,8 @@ Host dev-vm-xps-lan
   IdentityFile ~/.ssh/id_ed25519
 ```
 
-Guests also join the tailnet, so `ssh dev-vm-xps` works — **except
-`download-vm-xps`, which runs Mullvad and blocks inbound tailnet SSH**; reach it
-over the LAN or with `incus exec`.
+Guests also join the tailnet, so `ssh <vm>` works from anywhere (e.g.
+`ssh dev-vm-xps`), alongside `incus exec`.
 
 ## Updating a guest
 
@@ -48,13 +47,7 @@ nup-fleet --upgrade dev-vm-xps   # flake update + rebuild
 nup-fleet dev-vm-xps             # rebuild only
 ```
 
-`nup-fleet` uses `ssh <name>` (the tailnet), so `download-vm-xps` needs the LAN
-fallback:
-
-```sh
-nixos-rebuild switch --flake ~/code/systems#download-vm-xps \
-  --target-host rramirez@192.168.8.176 --sudo --no-reexec
-```
+`nup-fleet` uses `ssh <name>` (the tailnet) and works for all three guests.
 
 ### Changing CPU / RAM
 
@@ -239,6 +232,13 @@ would make OpenTofu plan a replacement.
   (in the `vm-base` profile). Check `incus console --show-log <vm>`.
 - **No network**: guest should use `eth0` (`net.ifnames=0`); NIC must bridge to
   `br0` (`incus config show <vm>`).
+- **Tailnet/exit-node traffic goes nowhere on `download-vm-xps`**: its Mullvad
+  `wg-quick` tunnel installs a default route in table 51820 via a rule (priority
+  5209) that precedes Tailscale's `lookup 52` rule (5270), hijacking
+  `100.64.0.0/10` and `fd7a:115c:a1e0::/48` (breaks tailnet SSH and exit-node
+  return traffic). `mullvad-vpn-client.nix` adds a `tailnet-route-fix` oneshot
+  that pins both ranges to table 52 at priority 5200. Check with
+  `ip route get 100.64.0.1` (expect `dev tailscale0`).
 - **`incus exec` fails**: guest needs `virtualisation.incus.agent.enable = true`
   and a running `incus-agent`; rebuild with `nup-fleet`.
 - **`incusd` segfaults / client websocket 1006 on a big VM**: the daemon's
