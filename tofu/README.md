@@ -17,7 +17,9 @@ operator guide; this file is the short in-directory runbook.
 | `images.tf` | Unified Incus VM images (from staged `.tar` files) |
 | `instances.tf` | The VM instances (limits + eth0) |
 | `outputs.tf` | Running state |
-| `scripts/stage-libvirt-disks.sh` | Package + compact qcow2 into Incus image tarballs |
+| `scripts/stage-libvirt-disks.sh` | Compact a libvirt qcow2 into an Incus image tarball |
+| `scripts/build-incus-image.sh` | Build a guest's image via the flake and stage it |
+| `scripts/create-vm.sh` | Register the image, create the instance, adopt it |
 
 ## Prerequisites on xps17
 
@@ -37,24 +39,24 @@ incus config set storage.images_volume local/incus-images
 Local state (`terraform.tfstate`) lives in this directory and is gitignored.
 Run on `xps17` as a user in `incus-admin`. `.terraform.lock.hcl` is committed.
 
-## Adding / migrating a VM
+## Adding a new VM
+
+Full guide: [Create a new VM](../docs/incus-vm-management.md#create-a-new-vm).
+Define the guest + `flake.nix` entries first, then:
 
 ```sh
-# 1. shut the libvirt domain down, then stage a compact Incus image:
-./scripts/stage-libvirt-disks.sh <vm>
+./scripts/build-incus-image.sh <vm>   # build .#<vm>-incus-image and stage it
+# add <vm> to locals.tf, then:
+./scripts/create-vm.sh <vm>           # register + create + adopt
+```
 
-# 2. add <vm> to locals.tf, then register the image:
-tofu apply -target='incus_image.vm["<vm>"]'
+## Migrating a libvirt VM
 
-# 3. create the instance with the CLI and adopt it into state:
-fp=$(incus image list --format csv --columns fd | grep <vm> | cut -d, -f1)
-incus init local:$fp <vm> --vm -p vm-base
-incus config set <vm> limits.cpu=<n>
-incus config set <vm> limits.memory=<MiB>MiB
-incus config device add <vm> eth0 nic nictype=bridged parent=br0 hwaddr=<mac>
-incus start <vm>
-tofu import 'incus_instance.vm["<vm>"]' "<vm>,image=$fp"
-tofu plan     # expect: no changes
+```sh
+sudo virsh shutdown <vm>
+./scripts/stage-libvirt-disks.sh <vm> # compact qcow2 -> <vm>.tar
+# add <vm> to locals.tf, then:
+./scripts/create-vm.sh <vm>
 ```
 
 Instances are created with the Incus CLI + `tofu import` because the provider's
@@ -76,4 +78,4 @@ VM roots are treated as rebuildable/disposable: there are **no snapshots of
 `devpool`** and the original qcow2s are rollback-only. Durable data lives on
 `homeserver` `tank` and is mounted over NFS (see
 [Backups & recovery](../docs/incus-vm-management.md#backups--recovery) and
-[Building a fresh Incus image](../docs/incus-vm-management.md#building-a-fresh-incus-image)).
+[Create a new VM](../docs/incus-vm-management.md#create-a-new-vm)).

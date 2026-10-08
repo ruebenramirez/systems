@@ -134,33 +134,164 @@ my.vmNfsClient.mounts.data = { };     # -> /mnt/data
 
 then `nup-fleet --upgrade homeserver` and `nup-fleet --upgrade <guest>`.
 
-## Adding a VM
+## Create a new VM
 
-1. **Guest config.** Add `nix/machines/<vm>/configuration.nix` importing
-   `../_common/qemu-vm-guest.nix` (for `eth0` + incus-agent) and, if it needs
-   tank data, `../_common/vm-nfs-client.nix`. Add it to `nixosConfigurations` in
-   `flake.nix`, and add `<vm>` to `MACHINES` in
-   [`dotfiles/bin/nup-fleet`](../dotfiles/bin/nup-fleet).
-2. **Image.** Build (below) or stage a compact image tarball.
-3. **Inventory.** Add the VM to `tofu/locals.tf` (vcpus, memory, mac, image_dir).
-4. **Register + create + adopt:**
-   ```sh
-   cd ~/code/systems/tofu
-   tofu apply -target='incus_image.vm["<vm>"]'
-   fp=$(incus image list --format csv --columns fd | grep <vm> | cut -d, -f1)
-   incus init local:$fp <vm> --vm -p vm-base
-   incus config set <vm> limits.cpu=<n>
-   incus config set <vm> limits.memory=<MiB>MiB
-   incus config device add <vm> eth0 nic nictype=bridged parent=br0 hwaddr=<mac>
-   incus start <vm>
-   tofu import 'incus_instance.vm["<vm>"]' "<vm>,image=$fp"
-   tofu plan            # expect: no changes
-   ```
+Adding a VM touches three places: the NixOS guest (which builds the disk image),
+OpenTofu (the instance and its resources), and the fleet (`nup-fleet`).
 
-The instance is created with the **Incus CLI and imported**, not created by the
+**Name invariant:** the name must be identical in `networking.hostName`, the
+`nixosConfigurations.<vm>` key, the `tofu/locals.tf` `vms` key, the `nup-fleet`
+`MACHINES` entry, and the Incus instance name. Pick it once and reuse it.
+
+### 1. Guest config
+
+Create `nix/machines/<vm>/configuration.nix`. Minimal example:
+
+```nix
+{ config, lib, pkgs, ... }:
+{
+  imports = [
+    ../_common/base/default.nix
+    ../_common/qemu-vm-guest.nix        # net.ifnames=0 -> eth0, incus-agent
+    # ../_common/tailscale-client.nix   # optional
+    # ../_common/vm-nfs-client.nix      # optional (tank data)
+  ];
+
+  boot.loader.systemd-boot.enable = true;
+  boot.loader.efi.canTouchEfiVariables = true;
+  boot.growPartition = true;
+
+  disko.memSize = 4096;
+  disko.imageBuilder.imageFormat = "qcow2";
+  disko.devices.disk.main = {
+    device = "/dev/vda";
+    imageName = "<vm>";
+    imageSize = "100G";                 # provisioned disk size
+    type = "disk";
+    content = {
+      type = "gpt";
+      partitions = {
+        ESP = {
+          type = "EF00";
+          size = "512M";
+          content = {
+            type = "filesystem";
+            format = "vfat";
+            mountpoint = "/boot";
+            mountOptions = [ "umask=0077" ];
+          };
+        };
+        root = {
+          size = "100%";
+          content = { type = "filesystem"; format = "ext4"; mountpoint = "/"; };
+        };
+      };
+    };
+  };
+
+  networking.hostName = "<vm>";
+
+  users.users.rramirez = {
+    isNormalUser = true;
+    uid = 1000;
+    extraGroups = [ "wheel" ];
+    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAA... me" ];
+  };
+  security.sudo.wheelNeedsPassword = false;
+
+  system.stateVersion = "25.11";
+}
+```
+
+The disk **size** comes from `disko...imageSize` and is baked into the image, so
+there's nothing to set in OpenTofu.
+
+### 2. flake.nix
+
+Add a `nixosConfigurations.<vm>` entry (mirror an existing guest) and a
+`packages."x86_64-linux".<vm>-incus-image` entry:
+
+```nix
+"<vm>" = nixpkgs.lib.nixosSystem {
+  modules = [
+    ./nix/machines/<vm>/configuration.nix
+    disko.nixosModules.disko
+    sops-nix.nixosModules.sops
+    nixpkgs.nixosModules.readOnlyPkgs
+    {
+      nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+      _module.args = {
+        pkgs-unstable = unstableFor."x86_64-linux";
+        inherit systems-secrets;
+      };
+    }
+  ];
+};
+```
+```nix
+# inside packages."x86_64-linux"
+"<vm>-incus-image" = mkIncusImage self.nixosConfigurations."<vm>";
+```
+
+### 3. nup-fleet
+
+Add `"<vm>"` to `MACHINES` in [`dotfiles/bin/nup-fleet`](../dotfiles/bin/nup-fleet).
+
+### 4. Build and stage the image
+
+```sh
+nix build .#<vm>-incus-image              # unified image tar (metadata.yaml + rootfs.img)
+tofu/scripts/build-incus-image.sh <vm>    # stages /devpool/incus-migration/<vm>.tar
+```
+
+`nix/lib/mk-incus-image.nix` wraps disko's qcow2 with `qemu-img convert -c` (drops
+dead clusters) and a fixed `metadata.yaml` `creation_date` (stable fingerprint).
+
+### 5. tofu/locals.tf
+
+Add a `vms` entry:
+
+```hcl
+"<vm>" = {
+  vcpus     = 4
+  memory    = "4096MiB"
+  mac       = "52:54:00:aa:bb:cc"
+  image_dir = "${local.stage}/<vm>.tar"
+};
+```
+
+### 6. Register, create, adopt
+
+```sh
+tofu/scripts/create-vm.sh <vm>
+```
+
+which runs `tofu apply -target='incus_image.vm["<vm>"]'` → `incus init local:$fp <vm> --vm -p vm-base`
+→ set limits → add `eth0` (bridged `br0`, `hwaddr`) → `incus start` → `tofu import` → `tofu plan`.
+
+Instances are created with the **Incus CLI and imported**, not created by the
 provider: the `lxc/incus` provider's create path drops the websocket / segfaults
 `incusd` on large disk copies, and the CLI can't create a VM without a profile —
 hence the `vm-base` profile (root disk + `secureboot=false` + `autostart`).
+
+### 7. Secrets / bootstrap
+
+- **sops** (`systems-secrets`): add the host's age key (derived from its SSH host
+  key once it first boots), or reuse the shared `tailscale-auth-key`.
+- **tailscale**: importing `tailscale-client.nix` needs `sops.secrets.tailscale-auth-key`.
+- **NFS**: if it needs tank data, add `my.vmNfsServer.shares."<vm>" = [ "data" ]`
+  on `homeserver` and `my.vmNfsClient.mounts.data = { }` in the guest, then
+  `nup-fleet --upgrade homeserver` and `nup-fleet --upgrade <vm>`.
+
+### 8. Verify
+
+```sh
+incus list <vm>
+incus exec <vm> -- ip -br addr     # eth0 + LAN IP
+ssh <vm>                            # tailnet
+nup-fleet --upgrade <vm>
+```
+Then add the `Host <vm>-lan` SSH snippet.
 
 ## Removing a VM
 
@@ -171,42 +302,8 @@ incus delete <vm> --force
 incus image delete <fingerprint>
 ```
 
-then drop it from `tofu/locals.tf`, `flake.nix`, and `nup-fleet` `MACHINES`.
-
-## Building a fresh Incus image
-
-Tested end to end on `xps17`. Use nixpkgs' incus VM profile instead of disko:
-
-1. Guest config imports the profile:
-   ```nix
-   imports = [ (modulesPath + "/virtualisation/incus-virtual-machine.nix") ];
-   networking.hostName = "<vm>";
-   ```
-   (That profile enables `virtualisation.incus.agent` and sets
-   `system.build.qemuImage`.)
-2. Build the disk and metadata:
-   ```sh
-   qcowdir=$(nix build --no-link --print-out-paths .#nixosConfigurations.<vm>.config.system.build.qemuImage)
-   metadir=$(nix build --no-link --print-out-paths .#nixosConfigurations.<vm>.config.system.build.metadata)
-   ```
-3. Package a unified image (`metadata.yaml` + `rootfs.img`) — the provider needs a
-   **file**, not a directory:
-   ```sh
-   work=$(mktemp -d)
-   tar -xf "$metadir"/tarball/*.tar.xz -C "$work" metadata.yaml
-   qemu-img convert -c -O qcow2 "$qcowdir"/nixos.qcow2 "$work/rootfs.img"
-   tar -C "$work" -cf /tmp/<vm>.tar metadata.yaml rootfs.img
-   ```
-4. Import and create:
-   ```sh
-   scp /tmp/<vm>.tar xps17:/tmp/
-   ssh xps17 'incus image import /tmp/<vm>.tar'      # or a tofu incus_image resource
-   ```
-   Then follow the create/adopt steps above.
-
-Note: the stock profile uses predictable NIC names (e.g. `enp5s0`). Import
-`qemu-vm-guest.nix` (which sets `net.ifnames=0` → `eth0`) if I want the migrated
-guests' naming.
+then drop it from `tofu/locals.tf`, `flake.nix` (both `nixosConfigurations` and the
+`packages` image entry), and `nup-fleet` `MACHINES`.
 
 ## Migrating a libvirt VM (one-time)
 

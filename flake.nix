@@ -233,5 +233,19 @@
         };
 
       };
+
+      # Unified Incus VM images: `nix build .#<vm>-incus-image` then import
+      # with incus / the OpenTofu `incus_image` resource.
+      packages."x86_64-linux" =
+        let
+          mkIncusImage = import ./nix/lib/mk-incus-image.nix {
+            pkgs = nixpkgsFor."x86_64-linux";
+          };
+        in
+        {
+          "dev-vm-xps-incus-image" = mkIncusImage self.nixosConfigurations."dev-vm-xps";
+          "download-vm-xps-incus-image" = mkIncusImage self.nixosConfigurations."download-vm-xps";
+          "forgejo-ci-runner-vm-incus-image" = mkIncusImage self.nixosConfigurations."forgejo-ci-runner-vm";
+        };
     };
 }

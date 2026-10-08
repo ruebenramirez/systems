@@ -22,6 +22,7 @@
   # Disk layout (disko)
   boot.growPartition = true;
   disko.memSize = 1024;
+  disko.imageBuilder.imageFormat = "qcow2";
   disko.devices.disk.main = {
     device = "/dev/vda";
     imageName = "download-vm-xps";
