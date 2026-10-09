@@ -333,6 +333,29 @@ would make OpenTofu plan a replacement.
   (in the `vm-base` profile). Check `incus console --show-log <vm>`.
 - **No network**: guest should use `eth0` (`net.ifnames=0`); NIC must bridge to
   `br0` (`incus config show <vm>`).
+- **Guest userspace randomly segfaults / crash-reboots (CET shadow stack)**:
+  on CET-capable hosts (e.g. the 11th-gen i9 in `xps17`) the host KVM advertises
+  user shadow stack (KVM guest CET landed ~Linux 6.17) and Incus runs VMs with
+  `-cpu host` (host-passthrough), so guests see `user_shstk`/`ibt`. QEMU only
+  gained guest CET support in **11.0** (Apr 2026), and the SSP-MSR fix that makes
+  it safe landed in **11.0.4**; `nixos-26.05` ships **QEMU 10.2.x**, which predates
+  CET entirely. glibc then enables user shadow stack while QEMU can't
+  context-switch the CET state, so processes die with
+  `segfault at ... error 44/46 ... in libc.so.6`, faulting on the `ret` straight
+  after a `syscall` (`Code: ... 0f 05 <c3>`). It presents as "VMs up but not
+  networking": `systemd`/`systemd-networkd`/`sshd`/`incus-agent` crash, so the
+  guest loses its IP and `incus exec`/`incus restart` hang waiting for the agent.
+  Confirm inside a guest with `grep -c user_shstk /proc/cpuinfo` (non-zero =
+  affected) and `journalctl -k --no-pager | grep segfault`; `journalctl
+  --list-boots` shows the crash-reboot loop. `qemu-vm-guest.nix` disables it with
+  the kernel param `nousershstk` (drops `user_shstk`); rebuild each guest and
+  reboot. This only surfaced after the Incus migration: the old `virt-install`
+  calls passed no `--cpu`, so libvirt used its default `host-model`, whose CPU
+  definition is built from QEMU's capabilities and so silently omitted CET (a CPU
+  feature becomes guest-usable only once QEMU knows it — "except with
+  host-passthrough"). Incus's host-passthrough copies the raw KVM CPUID and
+  exposed it. Revisit once the fleet runs QEMU ≥ 11.0.4 (NixOS 26.11, ~2026-11);
+  upstream is conservative here too — Proxmox ships `cet-ss`/`cet-ibt` disabled.
 - **Tailnet/exit-node traffic goes nowhere on `download-vm-xps`**: its Mullvad
   `wg-quick` tunnel installs a default route in table 51820 via a rule (priority
   5209) that precedes Tailscale's `lookup 52` rule (5270), hijacking

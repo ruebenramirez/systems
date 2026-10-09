@@ -8,6 +8,10 @@
     "net.ifnames=0"
     "console=ttyS0,115200n8"
     "console=tty1"
+    # QEMU/KVM here has no guest CET support (upstream series still unmerged),
+    # but `-cpu host` still advertises user_shstk, so glibc enables shadow
+    # stack and processes segfault at `ret` after a syscall. Disable it.
+    "nousershstk"
   ];
 
   networking = {
@@ -28,6 +32,10 @@
 
   services.qemuGuest.enable = true;
   services.spice-vdagentd.enable = true;
+
+  # Let `nixos-rebuild --target-host` push unsigned closures to minimal guests
+  # that don't import the full base profile.
+  nix.settings.trusted-users = [ "rramirez" ];
 
   # Incus guest agent: enables `incus exec`, file push and disk automount for VMs.
   virtualisation.incus.agent.enable = true;
