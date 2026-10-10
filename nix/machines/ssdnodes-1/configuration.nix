@@ -11,6 +11,9 @@
       ./srv/firewall.nix
       ./srv/haproxy.nix
       ./srv/hosted-sites-backup-source.nix
+      ./srv/matrix.nix
+      ./srv/matrix-backup-source.nix
+      ./srv/matrix-snapshot.nix
       ./srv/monicaandrueben.com-reverse-proxy.nix
       ./srv/monicarosephotography.com-reverse-proxy.nix
       ./srv/postfix.nix
@@ -22,7 +25,7 @@
 
   boot.loader.grub = {
     enable = true;
-    device = "nodev";  # Do not install to MBR
+    device = "nodev"; # Do not install to MBR
     useOSProber = true;
     efiSupport = false;
     zfsSupport = true;
@@ -34,7 +37,8 @@
     useDHCP = false;
 
     # Static IP configuration for IPv4 and IPv6
-    interfaces.enp3s0 = {  # Using the same interface name as in netplan
+    interfaces.enp3s0 = {
+      # Using the same interface name as in netplan
       useDHCP = false;
       ipv4.addresses = [{
         address = "172.93.51.14";
@@ -74,11 +78,11 @@
   };
   security.sudo.extraRules = [
     {
-      users = ["rramirez"];
+      users = [ "rramirez" ];
       commands = [
         {
           command = "ALL";
-          options = ["NOPASSWD"];
+          options = [ "NOPASSWD" ];
         }
       ];
     }

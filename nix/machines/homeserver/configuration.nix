@@ -26,6 +26,7 @@
     ./srv/immich.nix
     ./srv/jellyfin.nix
     ./srv/mail-sync.nix
+    ./srv/matrix-backup.nix
     ./srv/nginx.nix
     ./srv/openwebui.nix
     ./srv/postgresql.nix
@@ -64,13 +65,13 @@
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAoT6LnPxojekkdEDX5MxA9hpiSOK1RX95h41aK1wkX7"
     ];
   };
-  security.sudo.extraRules = [ {
-    users = ["rramirez"];
-    commands = [ {
+  security.sudo.extraRules = [{
+    users = [ "rramirez" ];
+    commands = [{
       command = "ALL";
-      options = ["NOPASSWD"];
-    } ];
-  } ];
+      options = [ "NOPASSWD" ];
+    }];
+  }];
 
   # List services that you want to enable:
   # Open ports in the firewall.

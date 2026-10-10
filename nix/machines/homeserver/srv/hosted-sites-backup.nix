@@ -19,7 +19,7 @@ let
       --delete-delay \
       --itemize-changes \
       --timeout=600 \
-      root@10.100.0.5: \
+      root@ssdnodes-1.tailnet.rueb.dev: \
       ${backupRoot}/srv/
   '';
 in
@@ -31,7 +31,7 @@ in
   };
 
   programs.ssh.knownHosts.ssdnodes-1 = {
-    hostNames = [ "10.100.0.5" ];
+    hostNames = [ "ssdnodes-1.tailnet.rueb.dev" ];
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDNY0yujuHWiB+tE0StHp5mPwSofjtjquE5IHkrQP6AE";
   };
 
@@ -57,11 +57,11 @@ in
   systemd.services.hosted-sites-backup = {
     description = "Pull hosted website files from ssdnodes-1";
     requires = [ "hosted-sites-backup-directory.service" ];
-    wants = [ "network-online.target" "wg-quick-wg0.service" ];
+    wants = [ "network-online.target" "tailscaled-autoconnect.service" ];
     after = [
       "hosted-sites-backup-directory.service"
       "network-online.target"
-      "wg-quick-wg0.service"
+      "tailscaled-autoconnect.service"
     ];
     unitConfig.ConditionPathIsMountPoint = "/tank";
 
