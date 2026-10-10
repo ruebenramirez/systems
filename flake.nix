@@ -247,6 +247,22 @@
           ];
         };
 
+        "hermes-vm-xps" = nixpkgs.lib.nixosSystem {
+          modules = [
+            ./nix/machines/hermes-vm-xps/configuration.nix
+            disko.nixosModules.disko
+            sops-nix.nixosModules.sops
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
+              };
+            }
+          ];
+        };
+
       };
 
       # Unified Incus VM images: `nix build .#<vm>-incus-image` then import
@@ -262,6 +278,7 @@
           "download-vm-xps-incus-image" = mkIncusImage self.nixosConfigurations."download-vm-xps";
           "forgejo-ci-runner-vm-incus-image" = mkIncusImage self.nixosConfigurations."forgejo-ci-runner-vm";
           "nginx-vm-incus-image" = mkIncusImage self.nixosConfigurations."nginx-vm";
+          "hermes-vm-xps-incus-image" = mkIncusImage self.nixosConfigurations."hermes-vm-xps";
         };
     };
 }

@@ -28,5 +28,11 @@ locals {
       mac       = "52:54:00:80:00:01"
       image_dir = "${local.stage}/nginx-vm.tar"
     }
+    "hermes-vm-xps" = {
+      vcpus     = 4
+      memory    = "8192MiB"
+      mac       = "52:54:00:68:65:72"
+      image_dir = "${local.stage}/hermes-vm-xps.tar"
+    }
   }
 }

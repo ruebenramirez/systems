@@ -14,6 +14,7 @@ Run everything here **on `xps17`** as `rramirez` (member of `incus-admin`).
 | `dev-vm-xps` | 8 | 8192 MiB | 200 GiB | `52:54:00:07:c2:28` | `192.168.8.165` |
 | `download-vm-xps` | 2 | 4096 MiB | 250 GiB | `52:54:00:40:72:56` | `192.168.8.176` |
 | `forgejo-ci-runner-vm` | 4 | 4096 MiB | 500 GiB | `52:54:00:1b:30:3b` | `192.168.8.230` |
+| `hermes-vm-xps` | 4 | 8192 MiB | 60 GiB | `52:54:00:68:65:72` | tailnet only |
 
 Provisioned sizes are just the virtual disk sizes; the qcow2 files are sparse and
 compressed far below that (e.g. `dev` runs ~25 GiB on disk for ~60 GiB of data).

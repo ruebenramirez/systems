@@ -22,6 +22,7 @@
     ./srv/forgejo-reverse-proxy.nix
     ./srv/freshrss.nix
     ./srv/headscale-server.nix
+    ./srv/hermes-backup.nix
     ./srv/hosted-sites-backup.nix
     ./srv/immich.nix
     ./srv/jellyfin.nix
