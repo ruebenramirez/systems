@@ -51,6 +51,7 @@
       "adbusers"
       "audio"
       "docker"
+      "llama-cpp"
       "render"
       "sound"
       "video"
