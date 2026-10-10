@@ -36,8 +36,8 @@ in
 
   systemd.services.podman-halogen-flash-server = {
     conflicts = [ "llama-cpp.service" ];
-    wants = [ "wg-quick-wg0.service" ];
-    after = [ "wg-quick-wg0.service" ];
+    wants = [ "tailscaled-autoconnect.service" ];
+    after = [ "tailscaled-autoconnect.service" ];
     unitConfig = {
       AssertPathExists = "${modelDir}/qwen38-flash-next-w4b.hgn";
       RequiresMountsFor = modelDir;
@@ -48,7 +48,7 @@ in
     };
   };
 
-  networking.firewall.interfaces.wg0.allowedTCPPorts = [ 8731 ];
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 8731 ];
 
   # Keep the downloader available for explicit, revision-pinned model updates.
   environment.systemPackages = [ pkgs-unstable.python3Packages.huggingface-hub ];
