@@ -30,7 +30,6 @@ update_machine() {
     local host_config="$1"
     IFS=':' read -r hostname config <<< "$host_config"
     echo "Updating $hostname ($config)..."
-    ssh -t "$SSH_USER@$hostname" "sudo ip link delete dev wg0 && sudo systemctl restart wg-quick-wg0.service || true"
     time nixos-rebuild switch \
         --flake "$FLAKE_DIR#$config" \
         --target-host "$SSH_USER@$hostname" \
