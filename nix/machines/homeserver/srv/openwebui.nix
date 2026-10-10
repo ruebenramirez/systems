@@ -1,11 +1,29 @@
 { config, pkgs, pkgs-unstable, ... }:
 
 {
+  # Upstream credentials. The two API keys are injected together as
+  # OPENAI_API_KEYS for the pipe-matched OPENAI_API_BASE_URLS below.
+  sops.secrets = {
+    openrouter-api-key = { };
+    llama-cpp-api-key = { };
+  };
+
+  sops.templates."openwebui.env" = {
+    content = ''
+      OPENAI_API_KEYS=${config.sops.placeholder.openrouter-api-key};${config.sops.placeholder.llama-cpp-api-key}
+    '';
+    mode = "0400";
+    restartUnits = [ "open-webui.service" ];
+  };
+
   services.open-webui = {
     enable = true;
     port = 13379;
+    # systemd reads EnvironmentFile as root, so the 0400 template is fine even
+    # though the service itself is DynamicUser.
+    environmentFile = config.sops.templates."openwebui.env".path;
     package = pkgs-unstable.open-webui.overrideAttrs (oldAttrs: {
-      makeWrapperArgs = (oldAttrs.makeWrapperArgs or []) ++ [
+      makeWrapperArgs = (oldAttrs.makeWrapperArgs or [ ]) ++ [
         "--prefix PYTHONPATH : ${pkgs-unstable.python3Packages.makePythonPath [
           pkgs-unstable.python3Packages.youtube-transcript-api
         ]}"
@@ -17,8 +35,11 @@
       SCARF_NO_ANALYTICS = "True";
       ENABLE_OLLAMA_API = "False";
       ENABLE_OPENAI_API = "True";
-      OPENAI_API_BASE_URLS = "http://fwai0.tailnet.rueb.dev:8080/v1";
-      OPENAI_API_KEYS = "sk-no-key-required";
+      # Env (incl. the sops-provided OPENAI_API_KEYS) must be authoritative;
+      # otherwise the persisted webui.db config overrides it (it held the
+      # retired WireGuard URL and an empty key).
+      ENABLE_PERSISTENT_CONFIG = "False";
+      OPENAI_API_BASE_URLS = "https://openrouter.ai/api/v1;http://fwai0.tailnet.rueb.dev:8080/v1";
     };
   };
 

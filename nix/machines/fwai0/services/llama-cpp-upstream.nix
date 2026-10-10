@@ -13,6 +13,14 @@ in
     home = "/var/cache/llama-cpp";
   };
 
+  # Bearer auth for the OpenAI-compatible endpoint on the tailnet. This unit is
+  # not DynamicUser, so owner-matching is reliable.
+  sops.secrets.llama-cpp-api-key = {
+    owner = "llama-cpp";
+    group = "llama-cpp";
+    mode = "0440";
+  };
+
   environment.etc."llama-cpp/models.ini".text = ''
     [qwen3.8-27b-mtp]
     model = /models/Qwen3.8-27B-UD-Q4_K_XL.gguf
@@ -96,6 +104,7 @@ in
         llamaServer
         "--host 100.64.0.8"
         "--port 8080"
+        "--api-key-file ${config.sops.secrets.llama-cpp-api-key.path}"
         "--models-preset /etc/llama-cpp/models.ini"
         "--models-max 2"
         "--models-autoload"
