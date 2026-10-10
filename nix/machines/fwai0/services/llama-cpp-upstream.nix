@@ -85,10 +85,11 @@ in
   systemd.services.llama-cpp = {
     description = "llama.cpp multi-model server";
     wantedBy = [ "multi-user.target" ];
-    wants = [ "wg-quick-wg0.service" ];
+    wants = [ "tailscaled-autoconnect.service" "sops-install-secrets.service" ];
     after = [
       "network.target"
-      "wg-quick-wg0.service"
+      "tailscaled-autoconnect.service"
+      "sops-install-secrets.service"
     ];
 
     unitConfig.RequiresMountsFor = "/home/rramirez/models";
