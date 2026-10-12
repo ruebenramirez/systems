@@ -5,11 +5,9 @@
     ../_common/base/default.nix
     ../_common/build-machine.nix
     ../_common/desktop/default.nix
-    ../_common/dev.nix
     #../_common/gaming.nix
     ../_common/gpu-amd.nix
     ../_common/tailscale-client.nix
-    #../_common/rust-dev.nix
     #../_common/sunshine-headless.nix
     ./hardware-configuration.nix
     ./services/firewall.nix
@@ -36,7 +34,7 @@
     # ref: https://nixos.org/manual/nixos/stable/options.html#opt-networking.dhcpcd.wait
     dhcpcd.wait = "if-carrier-up";
 
-    # 1g gigabyte ethernet (built-into laptop)
+    # 1g gigabyte ethernet (built-in)
     # interfaces.enp191s0.useDHCP = true;
 
     # 2.5g Ethernet usb-c dongle
