@@ -24,4 +24,13 @@ in
     opencode
     pkgs-unstable.pi-coding-agent
   ];
+
+  # Bearer auth for the OpenAI-compatible endpoint on the tailnet. This unit is
+  # not DynamicUser, so owner-matching is reliable.
+  sops.secrets.llama-cpp-api-key = {
+    owner = "rramirez";
+    group = "users";
+    mode = "0440";
+  };
+
 }
