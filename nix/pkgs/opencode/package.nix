@@ -1,4 +1,4 @@
 { stdenv }:
 
-(builtins.getFlake "github:anomalyco/opencode/014614d35b397775e5d397a490fc72368c894ec2")
+(builtins.getFlake "github:anomalyco/opencode/733b2c627e5aec39cb33cc22373bdce33053ef2c")
   .packages.${stdenv.hostPlatform.system}.opencode
