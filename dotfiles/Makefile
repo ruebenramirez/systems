@@ -30,7 +30,7 @@ git-config:
 
 jj-config: git-config
 	- jj config set --user user.name "Rueben Ramirez"
-	- jj config set --user user.email ruebenramirez@gmail.com
+	- jj config set --user user.email r3v2@rueb.dev
 
 customBins:
 	- sudo unlink ~/bin
