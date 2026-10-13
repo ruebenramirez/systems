@@ -1,0 +1,50 @@
+---
+config:
+  theme: base
+  themeVariables:
+    fontFamily: "DejaVu Sans, sans-serif"
+    fontSize: 16px
+    lineColor: "#334155"
+    primaryColor: "#e0e7ff"
+    primaryBorderColor: "#4338ca"
+    primaryTextColor: "#1e1b4b"
+---
+%% Packet flow through the download-vm-xps Tailscale exit node whose upstream is
+%% a Mullvad WireGuard tunnel (wg1). The fix is the `proto 66` policy rule that
+%% keeps tailnet-prefixed return traffic on table 52 (tailscale0) instead of
+%% letting wg-quick's catch-all default (table 51820) send it back to Mullvad.
+flowchart LR
+  client["tailnet client<br/>100.64.0.x / fd7a:115c:a1e0::x"]
+
+  subgraph exitnode["download-vm-xps · exit node"]
+    direction TB
+    ts0["tailscale0<br/>100.64.0.3 · fd7a:115c:a1e0::3"]
+    tbl52["table 52<br/>tailnet routes"]
+    wg1["wg1 · Mullvad<br/>fwmark 0xca6c · 10.64.240.37"]
+    tbl51820["table 51820<br/>default dev wg1"]
+  end
+
+  mullvad["Mullvad exit<br/>23.234.117.3:51820"]
+  internet["Internet"]
+
+  client ==>|"forward · dst 0.0.0.0/0"| ts0
+  ts0 ==>|"rule 5199 · lookup 51820"| tbl51820
+  tbl51820 ==> wg1
+  wg1 ==> mullvad
+  mullvad ==> internet
+
+  internet ==>|"reply · dst tailnet prefix"| mullvad
+  mullvad ==> wg1
+  wg1 ==>|"conntrack un-NAT"| ret{"ip rule to tailnet prefix<br/>proto 66 · pref = wg-quick − 1"}
+  ret ==>|"lookup 52"| tbl52
+  tbl52 ==> ts0
+  ts0 ==> client
+
+  wg1 -. "pre-fix misroute: reply re-sent to Mullvad" .-> tbl51820
+
+  classDef tunnel fill:#dcfce7,stroke:#15803d,color:#14532d;
+  classDef tailnet fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b;
+  classDef fix fill:#fef9c3,stroke:#a16207,color:#713f12;
+  class wg1,mullvad tunnel;
+  class ts0,tbl52,tbl51820 tailnet;
+  class ret fix;
