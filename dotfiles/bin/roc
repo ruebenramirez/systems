@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+mosh dev-vm-xps -- tmux new-session -A -s research -c /tmp/web-research/ "mkdir -p /tmp/web-research && oc"
