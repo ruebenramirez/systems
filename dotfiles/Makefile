@@ -28,7 +28,7 @@ git-config:
 	- git config --global init.defaultBranch master
 	- git config --global credential.helper store
 
-jj-config:
+jj-config: git-config
 	- jj config set --user user.name "Rueben Ramirez"
 	- jj config set --user user.email ruebenramirez@gmail.com
 
