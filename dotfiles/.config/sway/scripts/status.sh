@@ -4,6 +4,8 @@
 
 wifi_network=$(~/bin/display-connected-wifi-network)
 
+vpn_exit_node=$(sudo tailscale get | grep exit-node | egrep -v "allow-lan-access|advertise" | awk '{print "EN:" $2}')
+
 # Produces "21 days", for example
 uptime_formatted=$(uptime | cut -d ',' -f1 | awk '{$1=""; print $0}' | xargs echo)
 
@@ -26,4 +28,4 @@ date_formatted=$(date "+%b %F %a @ %H:%M")
 
 
 # swaybar text displayed
-echo -e "net" $wifi_network "|" disk used: $disk_space_used "|" uptime: $uptime_formatted ↑ "| BAT" $battery_status $power_remaining "|" load: $current_load "| Vol." $volume $sound_device "|" $date_formatted
+echo -e "net" $wifi_network " " $vpn_exit_node "|" disk used: $disk_space_used "|" uptime: $uptime_formatted ↑ "| BAT" $battery_status $power_remaining "|" load: $current_load "| Vol." $volume $sound_device "|" $date_formatted
