@@ -193,9 +193,19 @@
   };
 
   # ---------------------------------------------------------------------------
-  # Firewall: mail protocol listeners only. HTTP listeners remain on loopback.
+  # Firewall:
+  #   - mail protocol listeners only.
+  #   - HTTP listeners remain on loopback.
+  #   - normal email clients on tailnet
+  #   - forgejo container access to 587 for smtp (via br-82bac2f71626 bridge interface)
+  #   - see bulwark webmail nix module for JMAP 8080/TCP access via loopback
   # ---------------------------------------------------------------------------
-  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 25 465 587 993 4190 ];
+  networking.firewall.interfaces = lib.genAttrs
+    [ "tailscale0" "br-82bac2f71626" ]
+    (_: {
+      allowedTCPPorts = [ 25 465 587 993 4190 ];
+    });
+
 
   # ---------------------------------------------------------------------------
   # Storage directory setup.
