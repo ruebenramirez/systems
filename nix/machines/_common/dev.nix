@@ -33,4 +33,7 @@ in
     mode = "0440";
   };
 
+  # Base URL for Pi's built-in llama.cpp provider (router on fwai0).
+  environment.sessionVariables.LLAMA_BASE_URL = "http://fwai0.tailnet.rueb.dev:8080";
+
 }
