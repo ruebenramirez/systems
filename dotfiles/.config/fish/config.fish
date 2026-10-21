@@ -46,6 +46,7 @@ alias nethogs="sudo nethogs -b"
 alias nethogs="sudo nvtop"
 
 # aliases
+alias pi="pi --plan"
 alias nup="nix-update"
 alias nrs="nix-rebuild-switch-no-update"
 alias hf="hostname -f"
