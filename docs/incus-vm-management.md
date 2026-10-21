@@ -48,7 +48,7 @@ nup-fleet --upgrade dev-vm-xps   # flake update + rebuild
 nup-fleet dev-vm-xps             # rebuild only
 ```
 
-`nup-fleet` uses `ssh <name>` (the tailnet) and works for all three guests.
+`nup-fleet` uses `ssh <name>` (the tailnet) and works for all four guests.
 
 ### Changing CPU / RAM
 

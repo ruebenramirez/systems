@@ -9,9 +9,9 @@ the foundation for managing all of my machines declaratively.
 
 # systems
 
-A single NixOS flake defining 10 machines:
+A single NixOS flake defining 11 machines:
 - 7 physical boxes: laptops, servers, a VPS, and a Raspberry Pi
-- 3 Incus VMs on `xps17` (managed by OpenTofu).
+- 4 Incus VMs on `xps17` (managed by OpenTofu).
 
 ![Quarterly system flake commit volume and machine additions](docs/system-flake-commit-volume.svg)
 
