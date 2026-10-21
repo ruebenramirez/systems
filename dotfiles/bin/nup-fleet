@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Fleet-aware build: build on fwai0, deploy to targets.
+
 # Simple NixOS fleet updater
 # Just update your machines. Nothing fancy.
 
@@ -18,8 +20,27 @@ MACHINES=(
     "pi-syncoid-target"
 )
 
+# The fleet builder node. When running on it, build locally; otherwise
+# offload builds to it via --build-host.
+BUILDER_HOSTNAME="${BUILDER_HOSTNAME:-fwai0}"
+IS_BUILDER=false
+if [[ "$(hostname)" == "$BUILDER_HOSTNAME" ]]; then
+    IS_BUILDER=true
+fi
+
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
-SSH_USER="${SSH_USER:-rramirez}"
+# Optional SSH user override. If unset, SSH resolves the user per host
+# from ~/.ssh/config. Set SSH_USER=root to force a different user.
+SSH_USER="${SSH_USER:-}"
+
+# Build an ssh target string, honoring the SSH_USER override if set.
+ssh_target() {
+    if [[ -n "$SSH_USER" ]]; then
+        printf '%s@%s' "$SSH_USER" "$1"
+    else
+        printf '%s' "$1"
+    fi
+}
 
 nix_flake_update() {
     echo "updating nix flake"
@@ -31,10 +52,16 @@ update_machine() {
     local host_config="$1"
     IFS=':' read -r hostname config <<< "$host_config"
     echo "Updating $hostname ($config)..."
+    local builder=()
+    if [[ "$IS_BUILDER" != "true" ]]; then
+        builder=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
+    fi
     time nixos-rebuild switch \
         --flake "$FLAKE_DIR#$config" \
-        --target-host "$SSH_USER@$hostname" \
+        "${builder[@]}" \
+        --target-host "$(ssh_target "$hostname")" \
         --sudo \
+        --use-substitutes \
         --no-reexec
     echo "✓ $hostname updated"
 }
@@ -53,6 +80,10 @@ if [[ "$UPDATE" == "true" ]]; then
     nix_flake_update
 fi
 
+# nixos-rebuild-ng can choke when the CWD is inside the flake
+# (see nixpkgs#418868) during remote build/deploy. Run from a neutral dir.
+cd "$HOME"
+
 case "${args[0]:-all}" in
     "all")
         for machine in "${MACHINES[@]}"; do
@@ -60,16 +91,29 @@ case "${args[0]:-all}" in
         done
         ;;
     "build")
-        echo "Building all configurations locally..."
+        # Local-only build action (no deploy). Offload to the builder if
+        # we are not already running on it.
+        if [[ "$IS_BUILDER" == "true" ]]; then
+            echo "Building all configurations locally (on builder)..."
+        else
+            echo "Building all configurations on $BUILDER_HOSTNAME..."
+        fi
         for machine in "${MACHINES[@]}"; do
             IFS=':' read -r hostname config <<< "$machine"
             echo "Building $config..."
-            nixos-rebuild build --flake "$FLAKE_DIR#$config"
+            build_args=()
+            if [[ "$IS_BUILDER" != "true" ]]; then
+                build_args=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
+            fi
+            nixos-rebuild build \
+                --flake "$FLAKE_DIR#$config" \
+                "${build_args[@]}"
         done
         ;;
     *)
         # Update specific machine
         target="${args[0]}"
+        echo "Deploying to ${target}..."
         found=false
         for machine in "${MACHINES[@]}"; do
             IFS=':' read -r hostname config <<< "$machine"
