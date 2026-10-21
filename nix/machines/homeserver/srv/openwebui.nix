@@ -22,11 +22,21 @@
     # systemd reads EnvironmentFile as root, so the 0400 template is fine even
     # though the service itself is DynamicUser.
     environmentFile = config.sops.templates."openwebui.env".path;
-    package = pkgs-unstable.open-webui.overrideAttrs (oldAttrs: {
-      makeWrapperArgs = (oldAttrs.makeWrapperArgs or [ ]) ++ [
-        "--prefix PYTHONPATH : ${pkgs-unstable.python3Packages.makePythonPath [
+
+    package = pkgs-unstable.open-webui.overrideAttrs (_oldAttrs: {
+      # NOTE: replace, don't append. Upstream 0.12.3 sets
+      #   makeWrapperArgs = [ "--set FRONTEND_BUILD_DIR ..." ];
+      # as a single space-joined string, which makeWrapper rejects.
+      makeWrapperArgs = [
+        "--prefix"
+        "PYTHONPATH"
+        ":"
+        "${pkgs-unstable.python3Packages.makePythonPath [
           pkgs-unstable.python3Packages.youtube-transcript-api
         ]}"
+        "--set"
+        "FRONTEND_BUILD_DIR"
+        "${pkgs.open-webui.frontend}/share/open-webui"
       ];
     });
     environment = {
