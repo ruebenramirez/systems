@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, lib, pkgs, ... }:
 let
   # Host-mode ("nixos" label) jobs run `nup-fleet --upgrade`, which needs
   # nix, SSH access to the fleet, and passwordless sudo on the targets. The
@@ -47,6 +47,22 @@ in
     wants = [ "network-online.target" "sops-nix.service" ];
     requires = [ "docker.service" ];
     wantedBy = [ "multi-user.target" ];
+
+    # Host-mode jobs inherit the daemon's environment, and systemd's default
+    # PATH has no nix/ssh/git. Give the runner a normal system PATH so
+    # `nup-fleet`, `nixos-rebuild`, and `ssh` resolve inside job steps.
+    environment = {
+      HOME = deployHome;
+      PATH = lib.mkForce (lib.makeBinPath [
+        # `nix` first so `nix`, `nixos-rebuild`, and `nix-copy-closure` win
+        # over any stale user-profile copies.
+        pkgs.nix
+        pkgs.git
+        pkgs.openssh
+        pkgs.coreutils
+        pkgs.bash
+      ] + ":/run/wrappers/bin:/run/current-system/sw/bin:/usr/bin:/bin");
+    };
 
     serviceConfig = {
       ExecStart = "${pkgs.forgejo-runner}/bin/forgejo-runner daemon --config ${config.sops.templates."forgejo-runner-config.yaml".path}";
