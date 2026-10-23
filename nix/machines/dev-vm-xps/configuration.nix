@@ -2,6 +2,7 @@
 {
   imports = [
     ../_common/base/default.nix
+    ../_common/nix-deploy-user.nix
     ../_common/qemu-vm-guest.nix
     ../_common/dev.nix
     ../_common/tailscale-client.nix

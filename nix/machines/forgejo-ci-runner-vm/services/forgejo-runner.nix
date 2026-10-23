@@ -1,4 +1,14 @@
 { config, pkgs, ... }:
+let
+  # Host-mode ("nixos" label) jobs run `nup-fleet --upgrade`, which needs
+  # nix, SSH access to the fleet, and passwordless sudo on the targets. The
+  # dedicated `nixdeploy` user (see `_common/nix-deploy-user.nix`) has an
+  # `~/.ssh/config` for the fleet and holds the deploy key, so the daemon
+  # runs as that user. Docker jobs are unaffected -- they still run in
+  # containers and never touch the host identity.
+  deployUser = "nixdeploy";
+  deployHome = "/var/lib/nixdeploy";
+in
 {
   sops.secrets.forgejo_runner_uuid = { };
   sops.secrets.forgejo_runner_token = { };
@@ -13,6 +23,10 @@
         labels:
           - docker:docker://node:22-bookworm
           - ubuntu-latest:docker://node:22-bookworm
+          # Host-mode label: no docker:// scheme, so jobs run directly on
+          # this VM. Used by the nightly `nup-fleet --upgrade` workflow,
+          # which needs nix, SSH to the fleet, and a writable checkout.
+          - nixos
 
       server:
         connections:
@@ -22,8 +36,8 @@
             token: ${config.sops.placeholder.forgejo_runner_token}
     '';
     mode = "0400";
-    owner = "forgejo-runner";
-    group = "forgejo-runner";
+    owner = deployUser;
+    group = "nixdeploy";
     restartUnits = [ "forgejo-ci-runner.service" ];
   };
 
@@ -34,27 +48,14 @@
     requires = [ "docker.service" ];
     wantedBy = [ "multi-user.target" ];
 
-    environment.HOME = "/var/lib/forgejo-runner";
-
     serviceConfig = {
       ExecStart = "${pkgs.forgejo-runner}/bin/forgejo-runner daemon --config ${config.sops.templates."forgejo-runner-config.yaml".path}";
       Restart = "always";
       RestartSec = 10;
-      User = "forgejo-runner";
+      User = deployUser;
+      # The daemon needs the docker socket to launch containerized jobs.
       Group = "docker";
-      SupplementaryGroups = [ "docker" ];
-      StateDirectory = "forgejo-runner";
-      WorkingDirectory = "/var/lib/forgejo-runner";
+      WorkingDirectory = deployHome;
     };
   };
-
-  users.users.forgejo-runner = {
-    isSystemUser = true;
-    group = "forgejo-runner";
-    extraGroups = [ "docker" ];
-    home = "/var/lib/forgejo-runner";
-    createHome = true;
-  };
-
-  users.groups.forgejo-runner = {};
 }

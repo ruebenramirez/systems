@@ -20,12 +20,37 @@ MACHINES=(
     "pi-syncoid-target"
 )
 
-# The fleet builder node. When running on it, build locally; otherwise
-# offload builds to it via --build-host.
-BUILDER_HOSTNAME="${BUILDER_HOSTNAME:-fwai0}"
+# Optional space/comma-separated names to skip. Used by CI to avoid
+# updating the host the job itself runs on (`forgejo-ci-runner-vm`),
+# whose switch would restart the runner mid-deploy.
+EXCLUDE="${EXCLUDE:-}"
+read -r -a MACHINES_EXCLUDE <<< "${EXCLUDE//,/ }"
+
+skip_machine() {
+    local name="$1" excluded
+    for excluded in "${MACHINES_EXCLUDE[@]:-}"; do
+        [[ -n "$excluded" && "$name" == "$excluded" ]] && return 0
+    done
+    return 1
+}
+
+# The fleet builder node. Builds are always offloaded here via
+# `--build-host`; the only exception is when this script itself runs on the
+# builder, where a local build is the remote build. Set
+# ALLOW_LOCAL_BUILD=true to deliberately build on an underpowered host.
+BUILDER_HOSTNAME="${BUILDER_HOSTNAME-fwai0}"
 IS_BUILDER=false
-if [[ "$(hostname)" == "$BUILDER_HOSTNAME" ]]; then
+if [[ -n "$BUILDER_HOSTNAME" && "$(hostname)" == "$BUILDER_HOSTNAME" ]]; then
     IS_BUILDER=true
+fi
+
+# Refuse to compile locally on anything that is not the builder. There is no
+# silent fallback: if the builder is unreachable, `nixos-rebuild
+# --build-host` fails, which is the desired behaviour.
+if [[ "$IS_BUILDER" != "true" && "${ALLOW_LOCAL_BUILD:-false}" != "true" && -z "$BUILDER_HOSTNAME" ]]; then
+    echo "error: no BUILDER_HOSTNAME and not on the builder; refusing to build locally." >&2
+    echo "       set BUILDER_HOSTNAME=<host>, or ALLOW_LOCAL_BUILD=true to override." >&2
+    exit 2
 fi
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
@@ -48,6 +73,11 @@ nix_flake_update() {
     nix flake update
 }
 
+# Machines that failed this run. `all` keeps going past a failure so one
+# broken host does not leave the rest of the fleet un-deployed, then exits
+# non-zero so CI still reports the failure.
+FAILED=()
+
 update_machine() {
     local host_config="$1"
     IFS=':' read -r hostname config <<< "$host_config"
@@ -56,13 +86,18 @@ update_machine() {
     if [[ "$IS_BUILDER" != "true" ]]; then
         builder=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
     fi
-    time nixos-rebuild switch \
+    # Do not let a single failure abort the caller's loop; record it instead.
+    if ! time nixos-rebuild switch \
         --flake "$FLAKE_DIR#$config" \
         "${builder[@]}" \
         --target-host "$(ssh_target "$hostname")" \
         --sudo \
         --use-substitutes \
-        --no-reexec
+        --no-reexec; then
+        echo "✗ $hostname failed" >&2
+        FAILED+=("$hostname")
+        return 1
+    fi
     echo "✓ $hostname updated"
 }
 
@@ -87,8 +122,21 @@ cd "$HOME"
 case "${args[0]:-all}" in
     "all")
         for machine in "${MACHINES[@]}"; do
-            update_machine "$machine"
+            IFS=':' read -r hostname _config <<< "$machine"
+            if skip_machine "$hostname"; then
+                echo "Skipping $hostname (excluded)"
+                continue
+            fi
+            # Continue past failures; the run is summarised at the end.
+            update_machine "$machine" || true
         done
+        if [[ ${#FAILED[@]} -gt 0 ]]; then
+            echo
+            echo "Failed machines (${#FAILED[@]}): ${FAILED[*]}" >&2
+            exit 1
+        fi
+        echo
+        echo "All ${#MACHINES[@]} machines updated."
         ;;
     "build")
         # Local-only build action (no deploy). Offload to the builder if
@@ -118,7 +166,7 @@ case "${args[0]:-all}" in
         for machine in "${MACHINES[@]}"; do
             IFS=':' read -r hostname config <<< "$machine"
             if [[ "$hostname" == "$target" || "$config" == "$target" ]]; then
-                update_machine "$machine"
+                update_machine "$machine" || exit 1
                 found=true
                 break
             fi

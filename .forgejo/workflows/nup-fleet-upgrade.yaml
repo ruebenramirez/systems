@@ -1,0 +1,151 @@
+# Nightly fleet upgrade: `nup-fleet --upgrade`.
+#
+# Runs on the Forgejo runner VM *host* (the `nixos` self-hosted label, which
+# is a host-mode label -- no docker:// scheme), because `nup-fleet` needs:
+#   * nix + nixos-rebuild
+#   * SSH access to every machine in MACHINES, including the builder
+#   * passwordless sudo on the targets
+#   * a writable flake checkout for `nix flake update`
+#
+# All compilation is offloaded to `fwai0` via `nixos-rebuild --build-host`;
+# the runner only evaluates the flake. The preflight refuses to run if the
+# builder is unreachable, so a failed builder can never turn into a build on
+# the small runner VM.
+#
+# Host-mode jobs run as the dedicated `nixdeploy` user on
+# forgejo-ci-runner-vm (see `_common/nix-deploy-user.nix`). That user holds
+# a fleet deploy key (sops secret `forgejo_runner_ssh_key`) whose public
+# half every machine trusts, plus an `/etc/ssh/ssh_config` mapping the fleet
+# names to their MagicDNS FQDNs. `nixdeploy` is a nix `trusted-user` on
+# every target so `nix copy` can push unsigned closures.
+#
+# Forgejo evaluates schedules in UTC. The job is meant to fire at 03:30
+# America/Chicago, which is 09:30 UTC during CST and 08:30 UTC during CDT.
+# This workflow uses 09:30 UTC (03:30 CST). During daylight saving it runs
+# at 04:30 CDT. Adjust to `30 8 * * *` if you prefer 03:30 CDT year-round.
+name: nup-fleet upgrade
+
+on:
+  schedule:
+    - cron: "30 9 * * *" # 03:30 America/Chicago (CST); 04:30 during CDT
+  workflow_dispatch:
+    inputs:
+      machines:
+        description: "Space-separated machines to upgrade (empty = whole fleet)"
+        required: false
+        default: ""
+
+concurrency:
+  # Never let a nightly run overlap with a manual one.
+  group: nup-fleet
+  cancel-in-progress: false
+
+jobs:
+  # Fail fast if a NixOS config declares a sops secret that has no matching
+  # key in the external `systems-secrets` repo. This is exactly the class of
+  # error that otherwise only surfaces as a `manifest.json` build failure
+  # during the nightly deploy (`sops-install-secrets: ... the key '<name>'
+  # cannot be found`). Runs before the upgrade so a bad config never reaches
+  # the fleet.
+  check-sops-secrets:
+    runs-on: nixos
+    timeout-minutes: 30
+    steps:
+      - name: Check out the flake
+        uses: actions/checkout@v4
+
+      - name: Check declared sops secrets exist
+        # The script resolves `systems-secrets` from the revision the flake
+        # locks to (the repo is anonymously readable), so no separate
+        # checkout or cross-repo token is needed. Only encrypted YAML is
+        # read: secret *names* are cleartext in the sops file, so no age key
+        # is required (the script decrypts when possible and otherwise
+        # parses the encrypted file).
+        run: scripts/check-sops-secrets.sh
+
+  upgrade:
+    needs: check-sops-secrets
+    runs-on: nixos
+    timeout-minutes: 240
+    steps:
+      - name: Check out the flake
+        uses: actions/checkout@v4
+        with:
+          # nup-fleet runs `nix flake update`, which rewrites flake.lock.
+          # Keep the token so we can persist the lockfile afterwards.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Preflight
+        run: |
+          set -euo pipefail
+          echo "host: $(hostname)"
+          echo "user: $(whoami)"
+          command -v nix || { echo "nix not found on runner host" >&2; exit 1; }
+          command -v nixos-rebuild || { echo "nixos-rebuild not found on runner host" >&2; exit 1; }
+          # nup-fleet lives in the dotfiles repo, not on the system PATH;
+          # the job runs the checked-out copy below.
+          test -x dotfiles/bin/nup-fleet \
+            || { echo "dotfiles/bin/nup-fleet not executable" >&2; exit 1; }
+          test -r /run/secrets/forgejo_runner_ssh_key \
+            || { echo "fleet deploy key not readable" >&2; exit 1; }
+          ssh -G fwai0 | grep -q 'identityfile /run/secrets/forgejo_runner_ssh_key' \
+            || { echo "fleet ssh config missing fwai0 deploy key" >&2; exit 1; }
+          # Builds must run on fwai0, never on this small VM. Verify the
+          # builder is actually reachable as nixdeploy before deploying.
+          test "$(hostname)" != "fwai0" \
+            || { echo "refusing to run the nightly job on the builder itself" >&2; exit 1; }
+          ssh -o BatchMode=yes -o ConnectTimeout=10 fwai0 true \
+            || { echo "builder fwai0 unreachable; refusing to build locally" >&2; exit 1; }
+
+      - name: Upgrade the fleet
+        env:
+          FLAKE_DIR: ${{ github.workspace }}
+          # Never switch the host this job runs on: activating a new
+          # configuration restarts forgejo-ci-runner.service, which would
+          # kill the job mid-deploy. The runner VM is updated separately.
+          EXCLUDE: "${{ vars.NUP_FLEET_EXCLUDE || 'forgejo-ci-runner-vm' }}"
+          # Belt-and-braces: never fall back to compiling on the runner.
+          BUILDER_HOSTNAME: "fwai0"
+        run: |
+          set -euo pipefail
+          # nup-fleet intentionally `cd`s around; invoke the repo copy so we
+          # test exactly what was merged rather than a stale ~/bin/nup-fleet.
+          chmod +x dotfiles/bin/nup-fleet
+          machines="${{ github.event.inputs.machines }}"
+          if [[ -n "$machines" ]]; then
+            # shellcheck disable=SC2086
+            dotfiles/bin/nup-fleet --upgrade $machines
+          else
+            dotfiles/bin/nup-fleet --upgrade
+          fi
+
+      - name: Persist updated flake.lock
+        # Only on failure-free runs, and never on a manual single-machine
+        # run (the input is not an upgrade of the whole fleet).
+        if: ${{ success() && (github.event_name == 'schedule' || github.event.inputs.machines == '') }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- flake.lock; then
+            echo "flake.lock unchanged; nothing to commit."
+            exit 0
+          fi
+          git config user.name  "forgejo-ci-runner-vm"
+          git config user.email "forgejo-ci-runner-vm@code.rueb.dev"
+          git add flake.lock
+          git commit -m "nix flake update (nightly nup-fleet --upgrade)"
+          # Rebase onto the latest tip in case another push landed while the
+          # fleet was building (the job can run for hours).
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push origin "HEAD:${{ github.ref_name }}"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### nup-fleet upgrade"
+            echo ""
+            echo "- Host: \`$(hostname)\`"
+            echo "- Flake dir: \`${{ github.workspace }}\`"
+            echo "- Trigger: \`${{ github.event_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

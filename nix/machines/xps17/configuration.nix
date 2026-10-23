@@ -3,6 +3,7 @@
 {
   imports = [
     ../_common/base/default.nix
+    ../_common/nix-deploy-user.nix
     ../_common/tailscale-client.nix
     ../_common/services/virtualization-incus.nix
     ./hardware-configuration.nix

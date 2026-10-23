@@ -5,6 +5,7 @@
     [
       ../_common/android.nix
       ../_common/base/default.nix
+      ../_common/nix-deploy-user.nix
       ../_common/desktop/default.nix
       ../_common/dev.nix
       ../_common/fingerprint-reader.nix

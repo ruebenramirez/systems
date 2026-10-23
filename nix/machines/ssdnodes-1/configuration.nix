@@ -19,6 +19,7 @@
       ./srv/postfix.nix
       ./srv/sing-box.nix
       ../_common/base/default.nix
+      ../_common/nix-deploy-user.nix
       ../_common/services/kubernetes.nix
       ../_common/tailscale-client.nix
     ];
