@@ -36,8 +36,7 @@
           cmp-buffer  # Added for buffer completions
 
           # genAI stuffs
-          aider-nvim # https://github.com/joshuavial/aider.nvim/
-          gen-nvim # https://github.com/David-Kunz/gen.nvim/
+          codecompanion-nvim # https://github.com/olimorris/codecompanion.nvim
           plenary-nvim
 
           # Navigation and search
@@ -196,23 +195,46 @@
 
 
         -- ========================================
-        -- GEN.NVIM CONFIGURATION (Remote Ollama)
+        -- CODECOMPANION CONFIGURATION (Remote llama.cpp)
         -- ========================================
-        require('gen').setup({
-            model = "glm-4.7-flash:q4_K_M", -- Your specific model
-            host = "10.100.0.31",          -- Your remote server IP
-            port = "11434",                -- Default Ollama port
-            display_mode = "float",
-            show_prompt = true,
-            show_model = true,
-            no_auto_close = false,
-            -- We remove the 'init' function because Ollama is remote
-            debug = false
+        -- llama.cpp (llama-server) on fwai0 exposes an OpenAI-compatible API
+        -- at /v1. We extend the built-in 'openai' adapter and point it at the
+        -- tailnet DNS name. Auth reads the bearer token straight from the
+        -- sops-nix secret file, mirroring Pi and OpenCode's config.
+        require('codecompanion').setup({
+          adapters = {
+            http = {
+              llamacpp = function()
+                return require('codecompanion.adapters').extend('openai', {
+                  name = 'llamacpp',
+                  url = 'http://fwai0.tailnet.rueb.dev:8080/v1/chat/completions',
+                  env = { api_key = 'cmd:cat /run/secrets/llama-cpp-api-key' },
+                  schema = {
+                    model = {
+                      default = 'qwen3.8-27b-mtp',
+                    },
+                  },
+                })
+              end,
+            },
+          },
+          strategies = {
+            -- Default chat and inline adapters
+            chat = { adapter = 'llamacpp' },
+            inline = { adapter = 'llamacpp' },
+          },
+          display = {
+            chat = {
+              -- Render the chat in a vertical split
+              window = { layout = 'vertical' },
+            },
+          },
         })
 
-        -- Keymaps for Gen
-        vim.keymap.set({ 'n', 'v' }, '<leader>gg', ':Gen<CR>', { desc = "Gen Menu" })
-        vim.keymap.set({ 'n', 'v' }, '<leader>ge', ':Gen Chat<CR>', { desc = "Gen Chat" })
+        -- Keymaps for CodeCompanion
+        vim.keymap.set({ 'n', 'v' }, '<leader>gg', '<cmd>CodeCompanionChat Toggle<cr>', { desc = "CodeCompanion Chat" })
+        vim.keymap.set({ 'n', 'v' }, '<leader>ge', '<cmd>CodeCompanion<cr>', { desc = "CodeCompanion Inline" })
+        vim.keymap.set('n', '<leader>ga', '<cmd>CodeCompanionActions<cr>', { desc = "CodeCompanion Actions" })
 
 
 
