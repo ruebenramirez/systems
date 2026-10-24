@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, tailnet, ... }:
 # Give the Forgejo CI runner everything it needs to run
 # `nup-fleet --upgrade` against the whole fleet from host-mode jobs.
 #
@@ -26,14 +26,13 @@ let
     "pi-syncoid-target"
   ];
 
-  # Tailscale MagicDNS suffix for the self-hosted headscale (hs.rueb.dev).
-  magicDnsSuffix = "tailnet.rueb.dev";
-
+  # The MagicDNS suffix comes from the shared tailnet constant
+  # (nix/lib/tailnet.nix), which is also headscale's own base_domain.
   deployUser = "nixdeploy";
 
   fleetSshConfig = lib.concatMapStrings (host: ''
     Host ${host}
-      HostName ${host}.${magicDnsSuffix}
+      HostName ${host}.${tailnet.domain}
       User ${deployUser}
       IdentityFile ${config.sops.secrets.forgejo_runner_ssh_key.path}
       IdentitiesOnly yes

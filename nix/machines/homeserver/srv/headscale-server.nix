@@ -1,4 +1,4 @@
-{ config, pkgs, pkgs-unstable, ... }:
+{ config, pkgs, pkgs-unstable, tailnet, ... }:
 
 {
   users.users.nginx.extraGroups = [ "ruebdev-wildcard-tls" ];
@@ -24,7 +24,7 @@
 
       dns = {
         magic_dns = true;
-        base_domain = "tailnet.rueb.dev";
+        base_domain = tailnet.domain;
         override_local_dns = true;
         nameservers.global = [ "1.1.1.1" "1.0.0.1" ];
       };

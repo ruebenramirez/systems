@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, tailnet, ... }:
 
 let
   # `nousresearch/hermes-agent:stable`, digest-pinned (amd64 manifest). Verified
@@ -29,7 +29,7 @@ let
         secret: ${config.sops.placeholder.hermes-dashboard-basic-auth-secret}
     providers:
       halogen:
-        base_url: http://fwai0.tailnet.rueb.dev:8731/v1
+        base_url: http://${tailnet.host "fwai0"}:8731/v1
         key_env: HALOGEN_API_KEY
         api_mode: chat_completions
         models:

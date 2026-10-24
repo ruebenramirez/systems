@@ -1,4 +1,4 @@
-{ config, pkgs, pkgs-unstable, ... }:
+{ config, pkgs, pkgs-unstable, tailnet, ... }:
 
 {
   # Upstream credentials. Open WebUI matches OPENAI_API_KEYS to the
@@ -50,7 +50,7 @@
       ENABLE_PERSISTENT_CONFIG = "False";
       # Second endpoint is the fwai0 halogen-flash-server serving
       # Qwen3.8-Flash-Next (replaces the retired llama.cpp on :8080).
-      OPENAI_API_BASE_URLS = "https://openrouter.ai/api/v1;http://fwai0.tailnet.rueb.dev:8731/v1";
+      OPENAI_API_BASE_URLS = "https://openrouter.ai/api/v1;http://${tailnet.host "fwai0"}:8731/v1";
     };
   };
 

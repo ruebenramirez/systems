@@ -1,4 +1,4 @@
-{ config, pkgs, pkgs-unstable, ... }:
+{ config, pkgs, pkgs-unstable, tailnet, ... }:
 {
   environment.systemPackages = with pkgs; [
     # Core development tools
@@ -212,7 +212,7 @@
               halogen = function()
                 return require('codecompanion.adapters').extend('openai', {
                   name = 'halogen',
-                  url = 'http://fwai0.tailnet.rueb.dev:8731/v1/chat/completions',
+                  url = 'http://${tailnet.host "fwai0"}:8731/v1/chat/completions',
                   env = { api_key = 'halogen' },
                   schema = {
                     model = {

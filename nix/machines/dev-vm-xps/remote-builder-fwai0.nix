@@ -1,4 +1,4 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, tailnet, ... }:
 # Build only on fwai0; never compile locally.
 #
 # dev-vm-xps is a development VM, not a builder. All Nix builds must be
@@ -36,7 +36,7 @@ in
   # Pin fwai0's host key in the global known_hosts, which both the root-run
   # daemon and normal users read.
   programs.ssh.knownHosts.fwai0 = {
-    hostNames = [ "fwai0" "fwai0.tailnet.rueb.dev" "fwai0.homenet.rueb.dev" ];
+    hostNames = [ "fwai0" (tailnet.host "fwai0") ];
     publicKey = fwai0HostKey;
   };
 

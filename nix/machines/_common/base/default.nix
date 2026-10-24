@@ -12,6 +12,10 @@
     ./yubikey.nix
   ];
 
+  # Single source of truth for tailnet hostnames, made available to every
+  # module as the `tailnet` argument. See nix/lib/tailnet.nix.
+  _module.args.tailnet = import ../../../lib/tailnet.nix;
+
   environment.systemPackages = with pkgs; [
     awscli2
     bc

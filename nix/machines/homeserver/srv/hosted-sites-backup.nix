@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, tailnet, ... }:
 
 let
   backupRoot = "/tank/backups/ssdnodes-1";
@@ -19,7 +19,7 @@ let
       --delete-delay \
       --itemize-changes \
       --timeout=600 \
-      root@ssdnodes-1.tailnet.rueb.dev: \
+      root@${tailnet.host "ssdnodes-1"}: \
       ${backupRoot}/srv/
   '';
 in
@@ -31,7 +31,7 @@ in
   };
 
   programs.ssh.knownHosts.ssdnodes-1 = {
-    hostNames = [ "ssdnodes-1.tailnet.rueb.dev" ];
+    hostNames = [ (tailnet.host "ssdnodes-1") ];
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDNY0yujuHWiB+tE0StHp5mPwSofjtjquE5IHkrQP6AE";
   };
 

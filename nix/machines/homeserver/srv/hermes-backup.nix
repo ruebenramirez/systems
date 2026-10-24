@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, tailnet, ... }:
 
 let
   backupRoot = "/tank/backups/hermes-vm-xps";
@@ -11,7 +11,7 @@ let
       --delete-delay \
       --itemize-changes \
       --timeout=1800 \
-      root@hermes-vm-xps.tailnet.rueb.dev: \
+      root@${tailnet.host "hermes-vm-xps"}: \
       ${backupRoot}/
   '';
 in
@@ -23,7 +23,7 @@ in
   };
 
   programs.ssh.knownHosts.hermes-vm-xps = {
-    hostNames = [ "hermes-vm-xps.tailnet.rueb.dev" ];
+    hostNames = [ (tailnet.host "hermes-vm-xps") ];
     publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP4jV43bzjmNq4O59zN7KXBTA7q6fNf8nMsOD4apd6Ae";
   };
 

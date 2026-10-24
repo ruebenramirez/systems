@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, tailnet, ... }:
 
 let
   backupRoot = "/tank/backups/ssdnodes-1/matrix";
@@ -12,7 +12,7 @@ let
       --delete-delay \
       --itemize-changes \
       --timeout=1800 \
-      root@ssdnodes-1.tailnet.rueb.dev: \
+      root@${tailnet.host "ssdnodes-1"}: \
       ${backupRoot}/
   '';
 in
