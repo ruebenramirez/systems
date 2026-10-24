@@ -12,6 +12,7 @@
     #../_common/sunshine-headless.nix
     ./hardware-configuration.nix
     ./services/firewall.nix
+    ./services/nix-builder-access.nix
     #./services/llama-cpp-upstream.nix
     ./services/halogen-flash-server.nix
   ];
