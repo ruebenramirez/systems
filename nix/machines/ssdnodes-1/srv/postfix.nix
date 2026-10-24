@@ -8,7 +8,7 @@
   networking.firewall = {
     enable = true;
 
-    # Port 25 open on ALL interfaces (public + wg0)
+    # Port 25 open on all interfaces (public + tailscale0)
     allowedTCPPorts = [ 25 ];
 
     # Rate-limit new inbound SMTP connections on the public interface only.
@@ -23,7 +23,8 @@
   };
 
   # ============================================================
-  # Postfix — MX Relay to Stalwart (10.100.0.2) over WireGuard
+  # Postfix — MX relay to Stalwart on homeserver (100.64.0.1) over the tailnet.
+  # Routing is done with transport_maps below rather than a global relayhost.
   # ============================================================
   services.postfix = {
     enable = true;

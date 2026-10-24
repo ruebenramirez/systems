@@ -174,7 +174,7 @@ Use this on machines that hibernate, such as `driver`:
 boot.resumeDevice = "/dev/disk/by-uuid/<SWAP-UUID>";
 ```
 
-`x220` does not currently require `boot.resumeDevice` unless hibernate is enabled there.
+Machines that do not hibernate do not need `boot.resumeDevice`.
 
 ## Why The LUKS Config Matters
 
@@ -190,26 +190,28 @@ boot.resumeDevice = "/dev/disk/by-uuid/<SWAP-UUID>";
 
 `boot.resumeDevice` is needed for hibernate resume from encrypted swap.
 
-## x220 Validation Flow
+## Validation Flow
 
-Use `x220` as the first validation target before applying encrypted root to `driver`.
+Use a spare machine as the first validation target before applying encrypted root
+to `driver`. (This flow was originally validated on `x220`, which has since been
+retired from the fleet.)
 
-Run the encrypted flow on the x220 installer:
+Run the encrypted flow on the target's installer:
 
 ```bash
-sudo scripts/_bootstrap-nixos.sh <x220-disk> --luks
+sudo scripts/_bootstrap-nixos.sh <target-disk> --luks
 ```
 
 Update:
 
 ```text
-nix/machines/x220/hardware-configuration.nix
+nix/machines/<target>/hardware-configuration.nix
 ```
 
 Install:
 
 ```bash
-nixos-install --flake ~/code/systems#x220
+nixos-install --flake ~/code/systems#<target>
 ```
 
 Real validation checklist:
@@ -237,11 +239,12 @@ zpool get autotrim zroot
 cryptsetup luksDump /dev/disk/by-uuid/<LUKS-UUID>
 ```
 
-Do not treat the encrypted process as fully validated until this x220 install and boot testing succeeds.
+Do not treat the encrypted process as fully validated until this install and boot
+testing succeeds.
 
 ## Driver Rollout Flow
 
-After x220 validation succeeds, run the encrypted flow on `driver`:
+After validation succeeds, run the encrypted flow on `driver`:
 
 ```bash
 sudo scripts/_bootstrap-nixos.sh nvme0n1 --luks

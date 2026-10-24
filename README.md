@@ -24,9 +24,12 @@ A single NixOS flake defining 11 machines:
 - **Secrets.** Encrypted secrets live in a dedicated private repository
   imported as the `systems-secrets` flake input; `sops-nix` decrypts them on
   each machine.
-- **Networking.** `wgnet` is a WireGuard service network spanning the home
-  network, providing remote access from the daily-driver laptop and connecting
-  a VPS that exposes inbound SMTP.
+- **Networking.** The headscale-managed **tailnet** (`*.tailnet.rueb.dev`,
+  `100.64.0.0/20`) is the primary overlay and the standard way to reach every
+  machine. `wgnet` is a legacy WireGuard network retained for one purpose only:
+  [Jellyfin](https://github.com/jellyfin/jellyfin) on `homeserver` serves its
+  wgnet clients on `10.100.0.2`. The WireGuard server is a network appliance,
+  not a NixOS service, and no other machine joins wgnet.
 - **VMs.** [Incus](https://linuxcontainers.org/incus/) on `xps17` runs the guest
   VMs; instances and their CPU, memory, and networking are declared with
   OpenTofu in [`tofu/`](tofu/). Guests are NixOS systems updated in place via
@@ -124,12 +127,12 @@ available and otherwise the encrypted file's cleartext key names are used.
 | Machine | Role | config/services |
 |---------|------|-----------------|
 | `dev-vm-xps` | Dev VM | Docker, [k3d](https://github.com/k3d-io/k3d), Go, Python, Rust, [Hugo](https://github.com/gohugoio/hugo) |
-| `driver` | daily driver thin client | [Sway](https://github.com/swaywm/sway), [Mullvad](https://mullvad.net), `wgnet` |
+| `driver` | daily driver thin client | [Sway](https://github.com/swaywm/sway), gaming (ROCm), sing-box client, tailnet |
 | `forgejo-ci-runner-vm` | Forgejo runner | [Forgejo Runner](https://code.forgejo.org/forgejo/runner), docker + `nixos` host-mode labels, `nixdeploy` fleet deploy identity |
-| `fwai0` | Fleet builder and LLM inference server | [`halogen-flash-server`](https://github.com/peonist-ai/halogen-flash-server) (ROCm, AMD Strix Halo) serving [`Qwen3.8-Flash-Next`](https://huggingface.co/peonist-ai/halogen-qwen3.8-flash-next) over `wgnet` (llama.cpp module retained but disabled) |
+| `fwai0` | Fleet builder and LLM inference server | [`halogen-flash-server`](https://github.com/peonist-ai/halogen-flash-server) (ROCm, AMD Strix Halo) serving [`Qwen3.8-Flash-Next`](https://huggingface.co/peonist-ai/halogen-qwen3.8-flash-next) over the tailnet (llama.cpp module retained but disabled) |
 | `homeserver` | App, file, and mail server | [Stalwart](https://github.com/stalwartlabs/stalwart), [Gmail sync](https://github.com/imapsync/imapsync), [Jellyfin](https://github.com/jellyfin/jellyfin), [Immich](https://github.com/immich-app/immich), [Audiobookshelf](https://github.com/advplyr/audiobookshelf), [FreshRSS](https://github.com/FreshRSS/FreshRSS), [SearXNG](https://github.com/searxng/searxng), [Open WebUI](https://github.com/open-webui/open-webui) |
 | `pi-syncoid-target` | ZFS replication target | Hourly [`syncoid`](https://github.com/jimsalterjrs/sanoid) snapshot replication of `homeserver`'s `tank/data` dataset |
-| `ssdnodes-1` | Public MX relay and web host | [Postfix](https://github.com/vdukhovni/postfix) relay to [Stalwart](https://github.com/stalwartlabs/stalwart) over `wgnet`, nginx reverse proxy, containerized [WordPress](https://hub.docker.com/_/wordpress/) sites |
+| `ssdnodes-1` | Public MX relay and web host | [Postfix](https://github.com/vdukhovni/postfix) relay to [Stalwart](https://github.com/stalwartlabs/stalwart) over the tailnet, nginx reverse proxy, containerized [WordPress](https://hub.docker.com/_/wordpress/) sites |
 | `xps17` | Incus VM host | [Incus](https://linuxcontainers.org/incus/) VMs declared in [`tofu/`](tofu/), Incus `dir` pool on `devpool`, Docker, [k3d](https://github.com/k3d-io/k3d), ARM64 builds |
 
 ## Docs

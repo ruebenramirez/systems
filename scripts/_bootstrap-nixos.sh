@@ -324,7 +324,7 @@ Required LUKS NixOS snippet:
   boot.resumeDevice = "/dev/disk/by-uuid/${SWAP_UUID}";
 
 The boot.resumeDevice setting is needed on machines that hibernate, such as
-driver. x220 does not currently require it unless hibernate is enabled there.
+driver. Machines that do not hibernate do not need it.
 
 Verification commands:
 
@@ -334,8 +334,8 @@ Verification commands:
 
 After updating the target hardware config, install with the appropriate flake target, for example:
 
-  nixos-install --flake ~/code/systems#x220
   nixos-install --flake ~/code/systems#driver
+  nixos-install --flake ~/code/systems#homeserver
 EOF
 else
     cat <<EOF
@@ -370,7 +370,7 @@ Verification commands:
 
 After updating the target hardware config, install with the appropriate flake target, for example:
 
-  nixos-install --flake ~/code/systems#x220
   nixos-install --flake ~/code/systems#driver
+  nixos-install --flake ~/code/systems#homeserver
 EOF
 fi

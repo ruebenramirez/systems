@@ -217,21 +217,6 @@
           ];
         };
 
-        "x220" = nixpkgs.lib.nixosSystem {
-          modules = [
-            ./nix/machines/x220/configuration.nix
-            sops-nix.nixosModules.sops
-            nixpkgs.nixosModules.readOnlyPkgs
-            {
-              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
-              _module.args = {
-                pkgs-unstable = unstableFor."x86_64-linux";
-                inherit systems-secrets;
-              };
-            }
-          ];
-        };
-
         "hermes-vm-xps" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/hermes-vm-xps/configuration.nix
