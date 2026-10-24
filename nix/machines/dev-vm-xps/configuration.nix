@@ -9,6 +9,8 @@
     ../_common/rust-dev.nix
     ../_common/services/kubernetes.nix
     ../_common/vm-nfs-client.nix
+    # Offload all builds to fwai0; no local compilation.
+    ./remote-builder-fwai0.nix
   ];
 
   # Boot configuration
