@@ -12,8 +12,8 @@
     #../_common/sunshine-headless.nix
     ./hardware-configuration.nix
     ./services/firewall.nix
-    ./services/llama-cpp-upstream.nix
-    #./services/halogen-flash-server.nix
+    #./services/llama-cpp-upstream.nix
+    ./services/halogen-flash-server.nix
   ];
 
   networking = {
@@ -50,7 +50,6 @@
       "adbusers"
       "audio"
       "docker"
-      "llama-cpp"
       "render"
       "sound"
       "video"
@@ -84,6 +83,15 @@
     };
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
+
+  # Cap the ZFS ARC so the halogen engine can pin the ~62 GiB v2 checkpoint.
+  # The engine refuses to pin below a 16 GiB MemAvailable floor; with the
+  # default ARC max (about half of RAM) the ARC alone held ~48 GiB and the
+  # pre-flight check failed ~7 GiB short. 8 GiB leaves the engine comfortably
+  # above the floor.
+  boot.extraModprobeConfig = ''
+    options zfs zfs_arc_max=8589934592
+  '';
 
   # This value determines the NixOS release from which the default
   # settings for stateful data, like file locations and database versions

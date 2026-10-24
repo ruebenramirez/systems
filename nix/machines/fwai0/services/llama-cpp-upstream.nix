@@ -13,13 +13,10 @@ in
     home = "/var/cache/llama-cpp";
   };
 
-  # Bearer auth for the OpenAI-compatible endpoint on the tailnet. This unit is
-  # not DynamicUser, so owner-matching is reliable.
-  sops.secrets.llama-cpp-api-key = {
-    owner = "llama-cpp";
-    group = "llama-cpp";
-    mode = "0440";
-  };
+  # NOTE: this module is disabled (commented out in configuration.nix) after the
+  # move to halogen-flash-server, and its former bearer key (llama-cpp-api-key)
+  # has been retired. No API key is configured here; if this is re-enabled,
+  # restore an api-key file or accept an unauthenticated endpoint.
 
   environment.etc."llama-cpp/models.ini".text = ''
     [qwen3.8-27b-mtp]
@@ -105,7 +102,6 @@ in
         llamaServer
         "--host 100.64.0.8"
         "--port 8080"
-        "--api-key-file ${config.sops.secrets.llama-cpp-api-key.path}"
         "--models-preset /etc/llama-cpp/models.ini"
         "--models-max 2"
         "--models-autoload"

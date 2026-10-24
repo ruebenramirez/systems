@@ -39,6 +39,10 @@
           codecompanion-nvim # https://github.com/olimorris/codecompanion.nvim
           plenary-nvim
 
+          # Fuzzy picker; MiniPick.setup() overrides vim.ui.select so
+          # CodeCompanion's adapter/model pickers become searchable/scrollable.
+          mini-pick
+
           # Navigation and search
           telescope-nvim
           telescope-manix
@@ -195,33 +199,71 @@
 
 
         -- ========================================
-        -- CODECOMPANION CONFIGURATION (Remote llama.cpp)
+        -- CODECOMPANION CONFIGURATION (Remote halogen)
         -- ========================================
-        -- llama.cpp (llama-server) on fwai0 exposes an OpenAI-compatible API
-        -- at /v1. We extend the built-in 'openai' adapter and point it at the
-        -- tailnet DNS name. Auth reads the bearer token straight from the
-        -- sops-nix secret file, mirroring Pi and OpenCode's config.
+        -- halogen-flash-server on fwai0 exposes an OpenAI-compatible API at
+        -- /v1. We extend the built-in 'openai' adapter and point it at the
+        -- tailnet DNS name. The engine runs without an API key
+        -- (HALOGEN_API_KEY unset), so a static placeholder satisfies the
+        -- adapter's api_key field without reading a secret file.
         require('codecompanion').setup({
           adapters = {
             http = {
-              llamacpp = function()
+              halogen = function()
                 return require('codecompanion.adapters').extend('openai', {
-                  name = 'llamacpp',
-                  url = 'http://fwai0.tailnet.rueb.dev:8080/v1/chat/completions',
-                  env = { api_key = 'cmd:cat /run/secrets/llama-cpp-api-key' },
+                  name = 'halogen',
+                  url = 'http://fwai0.tailnet.rueb.dev:8731/v1/chat/completions',
+                  env = { api_key = 'halogen' },
                   schema = {
                     model = {
-                      default = 'qwen3.8-27b-mtp',
+                      default = 'halogen-qwen3.8-flash-next',
                     },
                   },
                 })
+              end,
+              openrouter = function()
+                local adapter = require('codecompanion.adapters').extend('openai', {
+                  name = 'openrouter',
+                  url = 'https://openrouter.ai/api/v1/chat/completions',
+                  env = { api_key = 'cmd:cat /run/secrets/openrouter-api-key' },
+                  schema = {
+                    model = {
+                      default = 'deepseek/deepseek-v4.1-flash',
+                      choices = {
+                        ['deepseek/deepseek-v4.1-flash'] = { formatted_name = 'DeepSeek V4.1 Flash' },
+                        ['z-ai/glm-5.3'] = { formatted_name = 'GLM 5.3' },
+                      },
+                    },
+                  },
+                })
+                -- extend() deep-merges schema, so the base 'openai' adapter's
+                -- hardcoded model choices leak in. Strip every inherited entry
+                -- so the picker lists only the OpenRouter models above.
+                local keep = { ['deepseek/deepseek-v4.1-flash'] = true, ['z-ai/glm-5.3'] = true }
+                local choices = adapter.schema.model.choices
+                local inherited_keys = {}
+                for id in pairs(choices) do
+                  if type(id) == 'string' and not keep[id] then
+                    inherited_keys[#inherited_keys + 1] = id
+                  end
+                end
+                for _, id in ipairs(inherited_keys) do
+                  choices[id] = nil
+                end
+                -- Drop any numeric (array-style) entries inherited from openai.
+                for i = #choices, 1, -1 do
+                  if type(choices[i]) == 'string' then
+                    choices[i] = nil
+                  end
+                end
+                return adapter
               end,
             },
           },
           strategies = {
             -- Default chat and inline adapters
-            chat = { adapter = 'llamacpp' },
-            inline = { adapter = 'llamacpp' },
+            chat = { adapter = 'halogen' },
+            inline = { adapter = 'halogen' },
           },
           display = {
             chat = {
@@ -231,10 +273,20 @@
           },
         })
 
+        -- ========================================
+        -- MINI.PICK CONFIGURATION
+        -- ========================================
+        -- setup() sets vim.ui.select = MiniPick.ui_select, giving every
+        -- vim.ui.select caller (CodeCompanion's adapter/model pickers, etc.)
+        -- a fuzzy-searchable, scrollable list instead of the built-in prompt.
+        require('mini.pick').setup()
+
         -- Keymaps for CodeCompanion
         vim.keymap.set({ 'n', 'v' }, '<leader>gg', '<cmd>CodeCompanionChat Toggle<cr>', { desc = "CodeCompanion Chat" })
         vim.keymap.set({ 'n', 'v' }, '<leader>ge', '<cmd>CodeCompanion<cr>', { desc = "CodeCompanion Inline" })
         vim.keymap.set('n', '<leader>ga', '<cmd>CodeCompanionActions<cr>', { desc = "CodeCompanion Actions" })
+        -- Pick adapters/models (e.g. switch to OpenRouter DeepSeek)
+        vim.keymap.set('n', '<leader>gm', '<cmd>CodeCompanionChat<cr>', { desc = "CodeCompanion Model/Adapter" })
 
 
 

@@ -1,16 +1,15 @@
 { config, pkgs, pkgs-unstable, ... }:
 
 {
-  # Upstream credentials. The two API keys are injected together as
-  # OPENAI_API_KEYS for the pipe-matched OPENAI_API_BASE_URLS below.
-  sops.secrets = {
-    openrouter-api-key = { };
-    llama-cpp-api-key = { };
-  };
+  # Upstream credentials. Open WebUI matches OPENAI_API_KEYS to the
+  # pipe-separated OPENAI_API_BASE_URLS by position. The fwai0 halogen
+  # endpoint runs without an API key (HALOGEN_API_KEY unset), but the slot
+  # still needs a non-empty value, so it gets a dummy.
+  sops.secrets.openrouter-api-key = { };
 
   sops.templates."openwebui.env" = {
     content = ''
-      OPENAI_API_KEYS=${config.sops.placeholder.openrouter-api-key};${config.sops.placeholder.llama-cpp-api-key}
+      OPENAI_API_KEYS=${config.sops.placeholder.openrouter-api-key};halogen
     '';
     mode = "0400";
     restartUnits = [ "open-webui.service" ];
@@ -49,7 +48,9 @@
       # otherwise the persisted webui.db config overrides it (it held the
       # retired WireGuard URL and an empty key).
       ENABLE_PERSISTENT_CONFIG = "False";
-      OPENAI_API_BASE_URLS = "https://openrouter.ai/api/v1;http://fwai0.tailnet.rueb.dev:8080/v1";
+      # Second endpoint is the fwai0 halogen-flash-server serving
+      # Qwen3.8-Flash-Next (replaces the retired llama.cpp on :8080).
+      OPENAI_API_BASE_URLS = "https://openrouter.ai/api/v1;http://fwai0.tailnet.rueb.dev:8731/v1";
     };
   };
 

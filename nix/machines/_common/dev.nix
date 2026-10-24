@@ -25,15 +25,12 @@ in
     pkgs-unstable.pi-coding-agent
   ];
 
-  # Bearer auth for the OpenAI-compatible endpoint on the tailnet. This unit is
-  # not DynamicUser, so owner-matching is reliable.
-  sops.secrets.llama-cpp-api-key = {
+  # OpenRouter API key, consumed by agent tooling (CodeCompanion, etc.) to
+  # reach hosted models such as deepseek/deepseek-v4.1-flash.
+  sops.secrets.openrouter-api-key = {
     owner = "rramirez";
     group = "users";
     mode = "0440";
   };
-
-  # Base URL for Pi's built-in llama.cpp provider (router on fwai0).
-  environment.sessionVariables.LLAMA_BASE_URL = "http://fwai0.tailnet.rueb.dev:8080";
 
 }

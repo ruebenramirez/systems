@@ -28,19 +28,20 @@ let
         password: ${config.sops.placeholder.hermes-dashboard-basic-auth-password}
         secret: ${config.sops.placeholder.hermes-dashboard-basic-auth-secret}
     providers:
-      llama-cpp:
-        base_url: http://100.64.0.8:8080/v1
-        key_env: LLAMA_CPP_API_KEY
+      halogen:
+        base_url: http://fwai0.tailnet.rueb.dev:8731/v1
+        key_env: HALOGEN_API_KEY
         api_mode: chat_completions
         models:
-          qwen3.8-27b-mtp: {}
-          qwen3.6-35b-a3b-mtp: {}
+          halogen-qwen3.8-flash-next: {}
   '';
 
   envFile = ''
     API_SERVER_KEY=${config.sops.placeholder.hermes-api-server-key}
     OPENROUTER_API_KEY=${config.sops.placeholder.openrouter-api-key}
-    LLAMA_CPP_API_KEY=${config.sops.placeholder.llama-cpp-api-key}
+    # The halogen engine runs without auth (HALOGEN_API_KEY unset); this is a
+    # static placeholder to satisfy the provider's key_env field.
+    HALOGEN_API_KEY=halogen
     MATRIX_ACCESS_TOKEN=${config.sops.placeholder.matrix-access-token}
     MATRIX_RECOVERY_KEY=${config.sops.placeholder.matrix-recovery-key}
   '';
@@ -52,7 +53,6 @@ in
     hermes-dashboard-basic-auth-secret = { };
     hermes-api-server-key = { };
     openrouter-api-key = { };
-    llama-cpp-api-key = { };
     matrix-access-token = { };
     matrix-recovery-key = { };
   };
