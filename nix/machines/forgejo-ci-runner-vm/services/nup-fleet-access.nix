@@ -50,6 +50,42 @@ in
     mode = "0400";
   };
 
+  # Read-only Forgejo access token for the private `systems-secrets` repo.
+  # `nix flake update` (and any flake evaluation) must fetch that input, and
+  # the repo requires auth. The token is used via `~/.netrc`, which both
+  # `nix`'s git fetcher and plain `git` honour for HTTPS.
+  sops.secrets.forgejo_secrets_token = {
+    owner = deployUser;
+    group = "nixdeploy";
+    mode = "0400";
+  };
+
+  # Netrc for the Forgejo host, rendered by sops-nix so the token never
+  # lands in the world-readable store. `machine` matches the git host;
+  # `login`/`password` carry the token.
+  #
+  # It is written to the default rendered path (/run/secrets/rendered/...)
+  # and exposed as nixdeploy's ~/.netrc via a symlink below, because both
+  # the Nix git fetcher and plain git look there for HTTPS credentials.
+  sops.templates."nixdeploy-netrc" = {
+    content = ''
+      machine code.rueb.dev
+        login "${config.sops.placeholder.forgejo_secrets_token}"
+        password "${config.sops.placeholder.forgejo_secrets_token}"
+    '';
+    owner = deployUser;
+    group = "nixdeploy";
+    mode = "0400";
+    restartUnits = [ "forgejo-ci-runner.service" ];
+  };
+
+  # Point nixdeploy at the rendered netrc. .netrc must not be group/world
+  # readable or curl refuses it, hence mode 0400 on the template.
+  systemd.tmpfiles.rules = [
+    "d /var/lib/nixdeploy 0700 nixdeploy nixdeploy -"
+    "L+ /var/lib/nixdeploy/.netrc - - - - ${config.sops.templates."nixdeploy-netrc".path}"
+  ];
+
   # `_common/base/ssh.nix` already sets the keepalive defaults; this only
   # adds the per-fleet host mappings.
   programs.ssh.extraConfig = fleetSshConfig;
