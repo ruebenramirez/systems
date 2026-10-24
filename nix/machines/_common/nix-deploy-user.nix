@@ -19,6 +19,14 @@
 # be narrowed to a specific command without breaking activation, so the
 # account gets NOPASSWD for ALL. The privilege boundary is therefore the SSH
 # key, which lives only on the CI runner host as a sops secret.
+#
+# BLAST RADIUS: this module is imported by every machine in the fleet, so the
+# key below is trusted-user + NOPASSWD-root on all of them. Treat
+# `forgejo_runner_ssh_key` as the single most sensitive credential in the
+# system. Anything that needs SSH to a host for a *narrower* purpose must get a
+# narrower account instead of reusing this key -- see
+# `nix/machines/fwai0/services/nix-builder-access.nix` for the pattern, and
+# `docs/fleet-keys.md` for the inventory and rotation procedure.
 let
   # Public half of the CI deploy key. The private half is the sops secret
   # `forgejo_runner_ssh_key`, decrypted only on forgejo-ci-runner-vm.

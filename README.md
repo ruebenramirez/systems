@@ -139,4 +139,7 @@ available and otherwise the encrypted file's cleartext key names are used.
 
 - [NixOS ZFS install](docs/nixos-zfs-install.md)
 - [Incus VM management](docs/incus-vm-management.md)
+- [Fleet keys: inventory, rotation, revocation](docs/fleet-keys.md)
+- [Host addressing](docs/host-addressing.md)
+- [Tailnet exit node](docs/tailnet-exit-node.md)
 - [System flake activity chart](docs/system-flake-activity.md)
