@@ -14,7 +14,7 @@
     commonArgs = [ "--compress=lzo" ];
     commands = {
       "backup-tank-data" = {
-        source = "rramirez@homeserver.homenet.rueb.dev:tank/data";
+        source = "rramirez@homeserver.tailnet.rueb.dev:tank/data";
         target = "tankbak/data";
         extraArgs = [ "--delete-target-snapshots" "--sshoption=StrictHostKeyChecking=no" ];
         sshKey = "/persist/secrets/syncoid-replication/id_ed25519_nop";
