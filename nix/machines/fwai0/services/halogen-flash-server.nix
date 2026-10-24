@@ -45,6 +45,12 @@ in
   };
 
   systemd.services.podman-halogen-flash-server = {
+    # Mutual exclusion with the llama.cpp server (llama-cpp-upstream.nix, now
+    # disabled in configuration.nix). Both are memory-heavy inference engines
+    # and cannot coexist on this 128 GiB box -- halogen needs ~62 GiB pinned
+    # plus a 16 GiB floor -- so whichever starts must stop the other. Harmless
+    # while llama-cpp.service does not exist; it only bites if that module is
+    # re-enabled, which is exactly when the interlock is wanted.
     conflicts = [ "llama-cpp.service" ];
     wants = [ "tailscaled-autoconnect.service" ];
     after = [ "tailscaled-autoconnect.service" ];
