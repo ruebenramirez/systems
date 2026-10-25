@@ -7,9 +7,7 @@
     ../_common/tailscale-client.nix
     ../_common/services/virtualization-incus.nix
     ./hardware-configuration.nix
-    ./services/firewall.nix
     #../_common/gpu-nvidia.nix
-    #./services/local-llm-Nvidia.nix
   ];
 
   # Use the systemd-boot EFI boot loader.
