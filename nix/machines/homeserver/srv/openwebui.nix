@@ -22,7 +22,7 @@
     # though the service itself is DynamicUser.
     environmentFile = config.sops.templates."openwebui.env".path;
 
-    package = pkgs-unstable.open-webui.overrideAttrs (_oldAttrs: {
+    package = pkgs.open-webui.overrideAttrs (_oldAttrs: {
       # NOTE: replace, don't append. Upstream 0.12.3 sets
       #   makeWrapperArgs = [ "--set FRONTEND_BUILD_DIR ..." ];
       # as a single space-joined string, which makeWrapper rejects.
