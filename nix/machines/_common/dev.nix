@@ -1,9 +1,14 @@
-{ config, pkgs, pkgs-unstable, ... }:
+{ pkgs, pkgs-unstable, ... }:
 
 let
   opencode = pkgs.callPackage ../../pkgs/opencode/package.nix { };
 in
 {
+  imports = [
+    # pi coding agent + its declarative extensions (see ./pi/default.nix)
+    ./pi/default.nix
+  ];
+
   environment.systemPackages = with pkgs; [
     harlequin # SQL TUI
     hugo
@@ -22,7 +27,6 @@ in
     pkgs-unstable.codex
     pkgs-unstable.goose-cli
     opencode
-    pkgs-unstable.pi-coding-agent
   ];
 
   # OpenRouter API key, consumed by agent tooling (CodeCompanion, etc.) to
@@ -32,5 +36,4 @@ in
     group = "users";
     mode = "0440";
   };
-
 }
