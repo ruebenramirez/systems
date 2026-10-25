@@ -4,7 +4,6 @@
   imports = [
     ../_common/base/default.nix
     ../_common/nix-deploy-user.nix
-    ../_common/dev.nix
     ../_common/gpu-amd.nix
     ../_common/home-vpn-client.nix
     ../_common/tailscale-client.nix
