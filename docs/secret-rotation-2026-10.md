@@ -385,3 +385,28 @@ Two durable rules from this:
 
 Also noted: `tailscale up` echoes the auth key back in its error output, so a
 failed re-auth leaks the key into whatever captured the output. Redact it.
+
+### Proof that the old fleet key cannot enroll nodes
+
+"Expired" is a state; the requirement is a capability. Tested directly: a second
+`tailscaled` was started on `fwai0` with a fresh state file, its own socket and
+`--tun=userspace-networking` (so it could not disturb the host's real tunnel),
+and asked to enroll with the old shared key.
+
+```
+key: 88 chars, prefix hskey-auth-9gy...
+rc=1
+backend error: authkey expired
+backend: "BackendState": "NeedsLogin"
+```
+
+Headscale node count was 14 before and after — no new node was created. Test
+artifacts and the temporary `tailscaled` were removed afterwards.
+
+Note the key is **expired, not deleted**: the row still exists in headscale's
+store but is inert. `headscale preauthkeys delete --id <n>` would remove the
+records (ids 1 and 3–15) for tidiness; it changes no security property.
+
+**Still open:** pre-auth key id 2 (user `moni`) is `reusable=true` with an
+expiry ~100 years out — the same pattern that made the fleet key dangerous, just
+scoped to one user. Left untouched deliberately; it may back family devices.
