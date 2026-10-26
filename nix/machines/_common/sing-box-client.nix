@@ -5,6 +5,13 @@ let
 in
 {
   # Secrets come from the per-host systems-secrets file (secrets/driver.yaml).
+  #
+  # These are the client half of the ssdnodes-1 proxy set and must match it.
+  # Like the server, sing-box renders them into its runtime config at unit
+  # start — so a rotation only lands when the unit restarts. This unit is
+  # deliberately on-demand (wantedBy = [ ]; sstunnel owns start/stop), so
+  # restartUnits is NOT set here; it would make every activation start the
+  # tunnel unbidden. After rotating any of these: sstunnel off && sstunnel on
   sops.secrets.vless_uuid = { };
   sops.secrets.reality_public_key = { };
   sops.secrets.reality_short_id = { };

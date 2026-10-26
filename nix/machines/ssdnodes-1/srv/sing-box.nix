@@ -7,11 +7,16 @@ in
   # ---------------------------------------------------------------------------
   # Secrets (from the systems-secrets flake input, per-host file)
   # ---------------------------------------------------------------------------
-  sops.secrets.vless_uuid = { };
-  sops.secrets.reality_private_key = { };
-  sops.secrets.reality_short_id = { };
-  sops.secrets.hy2_password = { };
-  sops.secrets.hy2_obfs_password = { };
+  # These are rendered into /run/sing-box/config.json by the module's
+  # ExecStartPre (jq-substituted plaintext), so a changed value only takes
+  # effect when the unit restarts. Without restartUnits sops-nix leaves the
+  # running process on the OLD values while /run/secrets holds the new ones —
+  # a rotation that looks deployed and is not.
+  sops.secrets.vless_uuid = { restartUnits = [ "sing-box.service" ]; };
+  sops.secrets.reality_private_key = { restartUnits = [ "sing-box.service" ]; };
+  sops.secrets.reality_short_id = { restartUnits = [ "sing-box.service" ]; };
+  sops.secrets.hy2_password = { restartUnits = [ "sing-box.service" ]; };
+  sops.secrets.hy2_obfs_password = { restartUnits = [ "sing-box.service" ]; };
 
   # sing-box must not start before sops has materialized the secrets it reads,
   # nor before the Hysteria2 certificate path exists (acme-<cert>.service writes
