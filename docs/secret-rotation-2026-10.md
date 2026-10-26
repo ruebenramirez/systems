@@ -663,3 +663,34 @@ but only acts inside the last 30 days. Left as-is deliberately: reworking
 certificate issuance to remove a low-probability race is a bad trade against the
 risk of breaking TLS on two public sites, which is the thing that actually bit
 this week.
+
+### Correction 2: why alert mail from ssdnodes-1 fails SPF/DKIM/DMARC
+
+The earlier caveat said alert mail "fails SPF, DKIM and DMARC" without saying why,
+which invites the wrong fix. The actual cause:
+
+- `rueb.dev` SPF is `v=spf1 ip4:172.93.51.14 -all` — the VPS's **public** address
+  is already authorized.
+- Postfix on `ssdnodes-1` relays to Stalwart **over the tailnet**, so Stalwart
+  evaluates the connecting IP as `100.64.0.4`, which is not in the record. Hence
+  `smtp.spf-ehlo-fail` / `smtp.spf-from-fail` / `dkim-fail` / `dmarc-fail` on a
+  legitimate local message. Delivery still succeeded (`message-ingest.ham`)
+  because DMARC is `p=quarantine` with relaxed alignment and enforcement is loose.
+
+The mail is not really unauthenticated; it is authenticated against an address
+Stalwart is not looking at. Options, in increasing order of correctness:
+
+1. Add `ip4:100.64.0.4` to the SPF record — works for this evaluation, but puts
+   carrier-NAT space in a public SPF record where it is meaningless to every
+   other receiver on the internet.
+2. Mark `100.64.0.0/10` as a trusted relay in Stalwart so inbound mail from it
+   skips authentication checks. Correct semantics; needs the right Stalwart key
+   for the installed version.
+3. Submit alerts over authenticated SMTP so client identity comes from auth
+   rather than IP.
+
+Deliberately **not** done: none of these fix broken behaviour — alerts are
+delivered today. Changing public SPF or the mail server's trust model to silence a
+warning on a working path is the same class of low-value risk that already caused
+one outage this session. Left as a documented follow-up with the diagnosis
+attached, so whoever picks it up starts from the cause rather than the symptom.
