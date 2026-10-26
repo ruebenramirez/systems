@@ -634,3 +634,32 @@ the absence of errors.
 instruction. It remains invisible to the adapter for the same reason, so E2EE
 backup restore is still not wired up. The pre-change profile file is preserved at
 `/var/lib/hermes/.env.bak-20261026114852`.
+
+### Correction: the "duplicate certificate" hazard was not real
+
+Earlier notes in this document claimed `homeserver` and `ssdnodes-1` both ordering
+certs for `monicarosephotography.com` / `monicaandrueben.com` created a
+duplicate-certificate rate-limit hazard. That was wrong, and it was wrong because
+I noticed both hosts ordered "the same domain" without checking the actual name
+sets.
+
+They are not the same:
+
+| Host | Issued SANs |
+|---|---|
+| `ssdnodes-1` (WordPress) | `*.monicarosephotography.com`, `monicarosephotography.com` |
+| `homeserver` (Stalwart SMTP) | `*.monicarosephotography.com` |
+
+Let's Encrypt's duplicate-certificate limit keys on the **exact set** of DNS
+names, so these are distinct certificates, not duplicates. Both are genuinely
+needed, by different services.
+
+The residual and much smaller risk is a DNS-01 race: both hosts write and delete
+the same `_acme-challenge` TXT record in the same zone, and both renewal timers
+are `OnCalendar=daily` with `RandomizedDelaySec=24h`, so a collision is possible
+if they ever fire together. In practice their renewal windows are offset by days
+because the certs were issued at different times, and each host re-checks daily
+but only acts inside the last 30 days. Left as-is deliberately: reworking
+certificate issuance to remove a low-probability race is a bad trade against the
+risk of breaking TLS on two public sites, which is the thing that actually bit
+this week.
