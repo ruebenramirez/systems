@@ -184,6 +184,8 @@ no-op.
 | 1 | `cloudflare-token` (ssdnodes-1) | ✅ | n/a — migrated, not rotated | ✅ ssdnodes-1 | ✅ `/run/secrets` byte-identical; token `active` |
 | 2 | sing-box proxy set (ssdnodes-1 + driver) | ✅ R1 | ✅ 9e493f62 | ✅ both hosts | ✅ egress `172.93.51.14` via rotated creds |
 | 3 | `forgejo_runner_ssh_key` (crown jewel) | ✅ R2 | ✅ bd4daf6b + 6d746afb | ✅ all 10 hosts | ✅ runner→`nixdeploy` works; old fp absent on all 10 |
+| 4 | backup pivot keys ×3 | ✅ R3 | ✅ 321d5b04 + 07d516ee | ✅ homeserver, ssdnodes-1, hermes-vm-xps | ✅ all 3 backup services ran `success`; old fps absent |
+| 5 | 3 orphan keys deleted | ✅ | ✅ 00c5a485 | n/a | ✅ reverse scan: 0 orphans, 0 missing |
 | — | (all others) | pending | | | |
 
 ## BLOCKER — `driver` cannot be built (pre-existing, unrelated to rotation)
@@ -282,3 +284,51 @@ Research findings that changed the procedure:
 Two transient build failures were hit and are worth remembering as noise, not
 config bugs: `homeserver` failed in `system-units` on `fwai0` twice while the
 identical derivation built fine locally, and succeeded on retry.
+
+### R3 / done — the three backup pivot keys
+
+`matrix_backup_ssh_private_key`, `hosted_sites_backup_ssh_private_key`,
+`hermes_backup_ssh_private_key` — all three live in `homeserver.yaml` and are
+**YAML block scalars**.
+
+How each works:
+
+| Key | Puller (homeserver) | Public half committed in | rrsync jail |
+|---|---|---|---|
+| matrix | `srv/matrix-backup.nix` → `root@ssdnodes-1:` | `ssdnodes-1/srv/matrix-backup-source.nix` | `rrsync -ro /srv/matrix` |
+| hosted-sites | `srv/hosted-sites-backup.nix` → `root@ssdnodes-1:` | `ssdnodes-1/srv/hosted-sites-backup-source.nix` | `rrsync -ro /srv` |
+| hermes | `srv/hermes-backup.nix` → `root@hermes-vm-xps:` | `hermes-vm-xps/services/hermes-backup-source.nix` | `rrsync -ro /srv/hermes` |
+
+Each public half sits in a `from="100.64.0.1/32",restrict,command="<wrapper>"`
+prefix on **root's** `authorized_keys`. That prefix is the entire safety model on
+a public VPS: drop `from=` and any host may connect, drop `restrict,command=`
+and the key becomes a full root shell instead of a read-only rsync of one
+directory. The rotation therefore replaced *only* the key material and comment,
+never the prefix.
+
+Notes found while researching:
+
+- The pullers use `ssh -F /dev/null -i <sops path> -o IdentitiesOnly=yes
+  -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/etc/ssh/ssh_known_hosts
+  -o UserKnownHostsFile=/dev/null`, so host keys are unaffected by this rotation.
+- `matrix-backup-source.nix` does **not** set `PermitRootLogin`; it relies on
+  `hosted-sites-backup-source.nix`'s `mkForce "forced-commands-only"` on the same
+  host. Removing the hosted-sites module would silently change root login
+  behaviour for the matrix key too.
+- **Pre-flight mattered**: all three backups were confirmed `result=success`
+  *before* rotating. Without that baseline, a post-rotation failure would have
+  been ambiguous.
+- Verification after deploy: each service run with `systemctl start --wait`
+  returned `success`/exit 0, and the old public fingerprints are absent from
+  `/etc/ssh/authorized_keys.d/root` on both source hosts.
+
+### Orphan cleanup
+
+Deleted via `scripts/delete-sops-keys.sh`: `homeserver:matrix_backup_ssh_public_key`,
+`ssdnodes-1:continuwuity-registration-token`, `ssdnodes-1:matrix_backup_ssh_private_key`.
+Reverse scan now reports zero orphans and zero missing across all 10 hosts.
+
+The delete guard asks Nix which keys are declared **for that host** rather than
+grepping the repo — `matrix_backup_ssh_private_key` is legitimately declared for
+`homeserver`, so a repo-wide grep wrongly refused to delete it from
+`ssdnodes-1.yaml`.
