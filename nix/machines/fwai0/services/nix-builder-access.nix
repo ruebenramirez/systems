@@ -23,7 +23,7 @@
 # dev-vm-xps.
 let
   builderPubKey =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIA07JmgY4C++rhodbHaZLGQjBnY+yqnpbNHP6qAHHAXT fwai0-nixbuilder@20261024";
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMkwJxZFfme+aFSy6S/of34ZXNhKfnbTZEFKCw45e7tt fwai0-nixbuilder@20261026";
 in
 {
   users.users.nixbuilder = {

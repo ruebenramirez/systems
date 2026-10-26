@@ -1,7 +1,9 @@
 { config, lib, pkgs, pkgs-unstable, systems-secrets, ... }: {
 
   # declare sops secret for searx-secret-key
-  sops.secrets.searx-secret-key = { };
+  # Without restartUnits the running searx keeps the old SEARXNG_SECRET after a
+  # rotation, because the unit only references the secret path.
+  sops.secrets.searx-secret-key = { restartUnits = [ "searx.service" ]; };
 
   services.searx = {
     enable = true;

@@ -501,3 +501,44 @@ shipped all three silently.
 **Known caveat:** alert mail from `ssdnodes-1` fails SPF/DKIM/DMARC on the
 Stalwart side. It is accepted as ham today, but a stricter policy would start
 dropping alerts. Fix by signing outbound or marking the tailnet relay trusted.
+
+### R6–R9 — remaining solo-rotatable secrets
+
+**R6 `freshrss-pass`, `searx-secret-key` (homeserver).** Both had the same defect
+sing-box had: the unit referenced only the secret *path*, so a rotated value
+changed no derivation and systemd never restarted the process — the rotation
+would have been silently cosmetic. Added `restartUnits` (`freshrss-config`,
+`searx`). Verified by reading the live `SEARXNG_SECRET` out of the running
+process environment and comparing to the repo value, and by confirming both
+units' `ActiveEnterTimestamp` moved to the deploy time.
+
+**R7 `bulwark-session-secret`, `bulwark-admin-password` (homeserver).** The admin
+password had been a **dead credential since Sep 17**: `ADMIN_PASSWORD` only
+bootstraps the stored hash when `admin.json` is absent, and `admin.json` existed.
+Rotating sops alone changes nothing. `admin.json` holds only `passwordHash`, so
+it was removed after deploy to force a re-bootstrap; proven by the stored hash
+changing (`14753eeb…` → `aacca9fc…`) and the container logging `Admin password
+hashed and saved to admin.json`.
+
+**R8 `hermes-dashboard-basic-auth-password` / `-secret`, `hermes-api-server-key`
+(hermes-vm-xps).** The dashboard username was left alone — it is an identifier,
+not a secret. Verified against the rendered managed config the container mounts,
+which is the file the app actually reads. The dashboard uses a JS form login
+rather than HTTP Basic, so a naive `curl -u` returns `302` for right and wrong
+passwords alike; that check was discarded rather than reported as a pass.
+
+**R9 `fwai0_builder_ssh_key`.** Rotated with a two-phase overlap so no build ever
+broke: trust both public halves on `fwai0` → swap the private half on
+`dev-vm-xps` → verify → remove the old half. Verified by forcing a derivation
+with no substitute available (a cached `nix build` proves nothing about the
+builder path), which offloaded over `ssh-ng`, and by `sshd` logging acceptance of
+the new fingerprint. Negative test: the old private key, recovered from git
+history, is now rejected with `Permission denied (publickey)` — and its
+fingerprint was checked against the retired public key first, so the rejection
+proves the right thing.
+
+### Where user-facing credentials went
+
+New FreshRSS, Bulwark and Hermes dashboard passwords were written to
+`~/.local/share/rotated-credentials-2026-10-26.txt` (mode 600) rather than
+printed into the transcript.
