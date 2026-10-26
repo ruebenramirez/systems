@@ -69,8 +69,36 @@ ssh_target() {
 
 nix_flake_update() {
     echo "updating nix flake"
-    cd $FLAKE_DIR
-    nix flake update
+    cd "$FLAKE_DIR"
+    # `nix flake update` exits 0 even when it cannot reach a private flake
+    # input. It prints
+    #   warning: could not get HEAD ref for repository '<url>'; using expired
+    #   cached ref 'refs/heads/...'
+    # and keeps the previously locked revision. For `systems-secrets` that
+    # means the whole fleet gets rebuilt against *stale* secret material while
+    # CI reports success -- exactly the failure mode that hid itself for a full
+    # fleet run on 2026-10-26. Treat the warning as fatal.
+    local log rc
+    log="$(mktemp)"
+    set +e
+    nix flake update 2>&1 | tee "$log"
+    rc=${PIPESTATUS[0]}
+    set -e
+    if (( rc != 0 )); then
+        echo "error: nix flake update failed (exit $rc)" >&2
+        rm -f "$log"
+        return 1
+    fi
+    if grep -qE "could not get HEAD ref|expired cached ref" "$log"; then
+        echo "error: nix flake update could not refresh an input and fell back to" >&2
+        echo "       an EXPIRED CACHED REF. A private flake input (systems-secrets)" >&2
+        echo "       is not reachable from this environment. The git fetcher reads" >&2
+        echo "       ~/.netrc, not nix's netrc-file setting, so HOME must point at" >&2
+        echo "       the deploy home (/var/lib/nixdeploy on the CI runner)." >&2
+        rm -f "$log"
+        return 1
+    fi
+    rm -f "$log"
 }
 
 # Machines that failed this run. `all` keeps going past a failure so one

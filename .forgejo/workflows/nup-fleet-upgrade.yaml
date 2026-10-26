@@ -97,6 +97,19 @@ jobs:
             || { echo "refusing to run the nightly job on the builder itself" >&2; exit 1; }
           ssh -o BatchMode=yes -o ConnectTimeout=10 fwai0 true \
             || { echo "builder fwai0 unreachable; refusing to build locally" >&2; exit 1; }
+          # Positive check that the private `systems-secrets` flake input is
+          # reachable over git from THIS environment. `nix flake update` does
+          # not fail when it cannot fetch it -- it warns and silently reuses an
+          # expired cached ref, so the fleet gets rebuilt against stale secret
+          # material while the job reports success. nup-fleet now also fails on
+          # that warning, but catching it here names the cause up front.
+          #
+          # HOME is pinned because the git fetcher reads ~/.netrc (NOT nix's
+          # netrc-file setting), and host-mode jobs get HOME set to the act
+          # workspace, where the deploy user's netrc symlink does not live.
+          export HOME=/var/lib/nixdeploy
+          git ls-remote https://code.rueb.dev/rueb/systems-secrets.git HEAD >/dev/null \
+            || { echo "cannot authenticate to systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
 
       - name: Upgrade the fleet
         env:
@@ -107,6 +120,12 @@ jobs:
           EXCLUDE: "${{ vars.NUP_FLEET_EXCLUDE || 'forgejo-ci-runner-vm' }}"
           # Belt-and-braces: never fall back to compiling on the runner.
           BUILDER_HOSTNAME: "fwai0"
+          # Host-mode jobs get HOME set to the act workspace, so the deploy
+          # user's ~/.netrc symlink is invisible and nix cannot fetch the
+          # private systems-secrets input. Pin it to the real deploy home
+          # (see nix/machines/forgejo-ci-runner-vm/services/nup-fleet-access.nix,
+          # which symlinks .netrc into that directory).
+          HOME: /var/lib/nixdeploy
         run: |
           set -euo pipefail
           # nup-fleet intentionally `cd`s around; invoke the repo copy so we
