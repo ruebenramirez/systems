@@ -161,4 +161,73 @@ for host in "${hosts[@]}"; do
   fi
 done
 
+# ---------------------------------------------------------------------------
+# Reverse scan: keys sitting in a secrets file that nothing declares.
+#
+# These are dead credentials. They still decrypt, still show up in audits, and
+# still widen the blast radius of a leaked secrets repo, but no service reads
+# them -- so they never get rotated and nobody notices when the upstream secret
+# is revoked. Three were found this way during the October 2026 rotation.
+#
+# A key is only orphaned if NO host declares it *against that file*: a shared
+# secrets file is legitimately consumed by another machine through an explicit
+# `sopsFile`, and treating that as orphaned would delete a live credential.
+# ---------------------------------------------------------------------------
+echo
+echo "reverse scan (secrets present but undeclared):"
+
+if ! referenced="$(
+  nix eval --raw --impure --expr "
+    let
+      flake = builtins.getFlake \"$FLAKE_DIR\";
+      cfgNames = builtins.attrNames flake.nixosConfigurations;
+      pairs = n:
+        let
+          cfg = flake.nixosConfigurations.\"\${n}\";
+          defaultFile = toString (cfg.config.sops.defaultSopsFile or \"\");
+          secrets = cfg.config.sops.secrets or {};
+          one = name:
+            let
+              s = secrets.\"\${name}\";
+              f = if s ? sopsFile then toString s.sopsFile else defaultFile;
+            in builtins.concatStringsSep \"\n\"
+                 (builtins.filter (x: x != \"\")
+                   [ (if f == \"\" then \"\" else builtins.baseNameOf f + \"\\t\" + name) ]);
+        in builtins.map one (builtins.attrNames secrets);
+    in builtins.concatStringsSep \"\\n\" (builtins.concatMap pairs cfgNames)
+  " 2>/dev/null || true
+)"; then
+  echo "FAIL  could not enumerate declared secrets for the reverse scan" >&2
+  fail=1
+elif [[ -z "$referenced" ]]; then
+  echo "FAIL  reverse scan produced no declarations; refusing to call anything orphaned" >&2
+  fail=1
+else
+  for f in "$SECRETS_DIR"/secrets/*.yaml; do
+    host="$(basename "$f" .yaml)"
+    [[ -f "$f" ]] || continue
+    if present="$(
+      nix shell nixpkgs#sops --command sops -d "$f" 2>/dev/null \
+        | grep -E '^[A-Za-z_][A-Za-z0-9_-]*:' | cut -d: -f1
+    )" && [[ -n "$present" ]]; then
+      :
+    else
+      present="$(awk '/^sops:/{exit} /^[A-Za-z_][A-Za-z0-9_-]*:/{sub(/:.*/,""); print}' "$f")"
+    fi
+    [[ -z "$present" ]] && continue
+    used="$(printf '%s\n' "$referenced" | awk -F'\t' -v f="$host.yaml" '$1==f{print $2}')"
+    orphans=()
+    while IFS= read -r k; do
+      [[ -z "$k" ]] && continue
+      grep -qxF "$k" <<<"$used" || orphans+=("$k")
+    done <<<"$present"
+    if [[ ${#orphans[@]} -gt 0 ]]; then
+      echo "ORPHAN  $host: present in $(basename "$f") but declared by no host:"
+      printf '          - %s\n' "${orphans[@]}"
+      fail=1
+    fi
+  done
+  [[ $fail -eq 0 ]] && echo "clean   no orphaned secrets"
+fi
+
 exit "$fail"
