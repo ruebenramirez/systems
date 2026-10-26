@@ -84,6 +84,10 @@ in
 
   systemd.tmpfiles.rules = [
     "d /var/lib/hermes 0700 10000 10000 -"
+    # SSH keypair the agent uses to reach this VM. Created here so the directory
+    # survives even if the state dir is re-staged; the private key itself is
+    # generated once by hand (never committed, never in the Nix store).
+    "d /var/lib/hermes/.ssh 0700 10000 10000 -"
   ];
 
   virtualisation.oci-containers.backend = "podman";
@@ -99,6 +103,12 @@ in
     volumes = [
       "/var/lib/hermes:/opt/data"
       "${config.sops.templates."hermes-managed-config".path}:/etc/hermes/config.yaml:ro"
+      # The container's HOME is /root, so `~/.ssh` would land in the overlay and
+      # be destroyed on every rebuild. Bind-mounting the persistent state dir
+      # over it means the agent's plain `ssh`/`scp` keep working while the key
+      # actually lives under /opt/data/.ssh (host: /var/lib/hermes/.ssh).
+      # Must come after the /opt/data mount so it wins on the subpath.
+      "/var/lib/hermes/.ssh:/root/.ssh"
     ];
     environment = {
       HERMES_DASHBOARD = "1";
