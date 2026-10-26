@@ -105,8 +105,65 @@ in
   };
 
   systemd.services.podman-hermes = {
-    wants = [ "network-online.target" ];
-    after = [ "network-online.target" "sops-install-secrets.service" ];
+    wants = [ "network-online.target" "hermes-profile-env-sync.service" ];
+    after = [
+      "network-online.target"
+      "sops-install-secrets.service"
+      "hermes-profile-env-sync.service"
+    ];
+    requires = [ "hermes-profile-env-sync.service" ];
     serviceConfig.RestartSec = "10s";
   };
+
+  # Hermes resolves platform credentials from the *profile* secret scope
+  # (~/.hermes/.env) and deliberately refuses to fall back to os.environ once a
+  # scope exists. Anything placed only in the container environment is invisible
+  # to the adapter: the Matrix bridge sat "enabled but unserved" this way, and
+  # with an empty allowlist it rejected every invite, including from users who
+  # were on the list.
+  #
+  # Upsert the Matrix values Nix owns into that scope before the container
+  # starts. The access token is read from the sops-rendered env file at runtime
+  # so it never lands in the Nix store; every other key in the file is left
+  # untouched.
+  systemd.services.hermes-profile-env-sync =
+    let
+      plain = {
+        MATRIX_HOMESERVER = "https://matrix.rueb.dev";
+        MATRIX_ALLOWED_USERS = "@r3v2:matrix.rueb.dev,@moni:matrix.rueb.dev";
+        MATRIX_ALLOWED_ROOMS = matrixRoom;
+        MATRIX_REQUIRE_MENTION = "true";
+        MATRIX_E2EE_MODE = "required";
+      };
+      upsert = key: value: ''
+        if grep -q "^${key}=" "$envf" 2>/dev/null; then
+          sed -i "s|^${key}=.*|${key}=${value}|" "$envf"
+        else
+          printf '%s=%s\n' "${key}" "${value}" >> "$envf"
+        fi
+      '';
+    in
+    {
+      description = "Sync Nix-owned Matrix values into the Hermes profile secret scope";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+      };
+      path = [ pkgs.gnused pkgs.gnugrep pkgs.coreutils ];
+      script = ''
+        envf=/var/lib/hermes/.env
+        src=${config.sops.templates."hermes.env".path}
+        ${lib.concatStringsSep "\n" (lib.mapAttrsToList upsert plain)}
+        tok="$(grep -m1 '^MATRIX_ACCESS_TOKEN=' "$src" | cut -d= -f2-)"
+        if [ -n "$tok" ]; then
+          if grep -q '^MATRIX_ACCESS_TOKEN=' "$envf" 2>/dev/null; then
+            sed -i "s|^MATRIX_ACCESS_TOKEN=.*|MATRIX_ACCESS_TOKEN=$tok|" "$envf"
+          else
+            printf 'MATRIX_ACCESS_TOKEN=%s\n' "$tok" >> "$envf"
+          fi
+        fi
+        chown 10000:10000 "$envf"
+        chmod 600 "$envf"
+      '';
+    };
 }

@@ -598,3 +598,39 @@ swallowed continuation is still valid syntax. Caught only by reading the scripts
 
 Final state: both sites 200 with content intact (2155 and 999 posts), old DB
 passwords rejected, no container env retains retired credentials.
+
+### Hermes Matrix bridge: enabled but unserved
+
+Surfaced while checking whether the Matrix recovery key was functional (it was
+not — the whole bridge was down).
+
+**Root cause: profile secret scoping.** Hermes runs with profile multiplexing,
+and `get_scoped_secret` is explicit that "an installed profile secret scope is
+authoritative: a scoped miss returns `default` (never borrow another profile's
+value from `os.environ`)". Our Nix config supplied every `MATRIX_*` value through
+the **container environment**, which the profile scope deliberately ignores. So:
+
+- `platforms.matrix.enabled: true`, a valid `@hermes` token in the container env,
+  and the bridge still never started — the exact "enabled yet silently unserved"
+  case upstream added a warning for.
+- Worse, the allowlist was read the same way, so it was **empty**, and the adapter
+  rejected every invite "from unauthorized user" — including `@r3v2`, who is
+  listed in `MATRIX_ALLOWED_USERS`. That made the misconfiguration look like an
+  authorization problem rather than a plumbing one.
+
+**Fix:** `hermes-profile-env-sync.service`, a oneshot `podman-hermes` depends on,
+upserts the Matrix values Nix owns into `/var/lib/hermes/.env` (the profile
+scope) before the container starts. The access token is read from the
+sops-rendered env file at runtime so it never enters the Nix store; unrelated keys
+in that 27 KB hand-managed file are left alone. Verified idempotent (key count
+unchanged across re-runs).
+
+**Verified from the homeserver side, not from logs:** `@hermes` shows
+`joined_rooms == [!G9nnRAWV…]` — the whitelisted room — and its device
+`last_seen` is current, proving an active sync rather than inferring health from
+the absence of errors.
+
+**Left alone deliberately:** `MATRIX_RECOVERY_KEY` was not synced, per
+instruction. It remains invisible to the adapter for the same reason, so E2EE
+backup restore is still not wired up. The pre-change profile file is preserved at
+`/var/lib/hermes/.env.bak-20261026114852`.
