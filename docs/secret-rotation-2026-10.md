@@ -410,3 +410,42 @@ records (ids 1 and 3–15) for tidiness; it changes no security property.
 **Still open:** pre-auth key id 2 (user `moni`) is `reusable=true` with an
 expiry ~100 years out — the same pattern that made the fleet key dangerous, just
 scoped to one user. Left untouched deliberately; it may back family devices.
+
+### R5 — `matrix-admin-access-token`: an outage, not a rotation
+
+**The stored token was already dead.** `matrix-snapshot.service` had failed 20
+consecutive runs with `401 M_UNKNOWN_TOKEN` and zero successes; the last good
+export was Oct 10 05:30. Because the script is `set -euo pipefail`, the failed
+`curl` aborted it *before* either rsync, so neither the RocksDB checkpoint nor
+the media copy ran. Continuwuity's own `database_backup_path` was equally frozen
+at Oct 10. Meanwhile `matrix-backup` on the homeserver reported `success` every
+day — rsyncing stale data is a success. **16 days of Matrix backups did not
+exist, and the pipeline's health check could not tell.**
+
+**Re-issue path (no outage needed).** Continuwuity's `admin users issue-token`
+requires the user's current password, and the admin console needs exclusive DB
+access (`--maintenance`) — which would have meant downtime. Ordinary
+`m.login.password` against `127.0.0.1:6167` worked instead and returned a valid
+token, so no password change and no outage. Syntax was proven first against a
+throwaway copy of the DB (`--option database_path=...` on a different listen
+port) so the production path had no unknowns.
+
+**Verification that counted:** not the exit code, but fresh bytes — export and
+`db-backups` moved from Oct 10 to Oct 26 10:21, and the homeserver pull at
+`/tank/backups/ssdnodes-1/matrix` showed the same fresh `.sst` files.
+
+**Cleanup:** the copy DB (which contained password hashes and a test password)
+and the temp token were shredded; the extra device session created by the
+verification login was deleted via UIA. `@r3v2`'s password was **not** changed
+on production.
+
+### Standing gaps this exposed
+
+1. **No alarm on `matrix-snapshot` failure.** 20 silent failures.
+2. **`matrix-backup` measures the wrong thing.** Success should require the
+   export to be *fresh* (newest file < ~12h), not merely rsync exit 0. A backup
+   that cannot distinguish stale from current is not a backup.
+3. Verification checks must distinguish *empty* from *zero*. Four separate checks
+   this session passed vacuously: an empty grep pattern, a key recovery that
+   returned 0 chars, a missing `strings` binary, and a `jq` boolean written as
+   `x and "A" or "B"`.
