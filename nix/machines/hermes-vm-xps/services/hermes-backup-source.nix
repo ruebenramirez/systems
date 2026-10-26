@@ -1,7 +1,7 @@
 { config, lib, pkgs, ... }:
 
 let
-  hermesBackupPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHRrRiykDMxSPHfm3WAmkgtAHh0Wsos5+7MIW+Bj98z/ homeserver-hermes-backup";
+  hermesBackupPubKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIP/uzaQKIugRF7fXMXaCiubZCYiUVcwW3XqMgDBX7OG homeserver-hermes-backup";
 
   restrictedRsync = pkgs.writeShellScript "hermes-backup-source" ''
     exec ${lib.getExe pkgs.rrsync} -ro /srv/hermes
