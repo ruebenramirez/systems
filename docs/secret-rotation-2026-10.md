@@ -736,3 +736,14 @@ backup-session MACs by hand proved nothing, because the construction was never
 validated against a known-good key. The test above uses the library's own
 functions, so it is valid by construction. Lesson repeated from elsewhere in this
 document: a check that cannot distinguish success from failure is not a check.
+
+All the conduwuit API behaviours discovered here (the useless `GET /keys`, the
+`keys/query` object form, UIA `identifier.type`, `new_password`, SSSS living in
+account_data) are written up in **`docs/matrix-conduwuit-quirks.md`**.
+
+**Follow-up carried out:** `@r3v2`'s password was rotated on 2026-10-26 to retire
+the credential that had been shared into this session. On this server that logged
+out every other session (see the quirks doc, §3), and the user confirmed they hold
+the real `@r3v2` recovery key, so cross-signing and the key backup are recoverable
+on re-login. The stale `matrix-recovery-key` in `hermes-vm-xps.yaml` remains a dead
+value matching no account and is a candidate for deletion.
