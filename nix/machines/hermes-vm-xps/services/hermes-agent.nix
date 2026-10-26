@@ -142,6 +142,25 @@ in
           printf '%s=%s\n' "${key}" "${value}" >> "$envf"
         fi
       '';
+      # Secrets that live in the sops-rendered env file and must be copied into
+      # the profile scope by name, never baked into the store.
+      secretKeys = [
+        "MATRIX_ACCESS_TOKEN"
+        "OPENROUTER_API_KEY"
+        "HALOGEN_API_KEY"
+      ];
+      copySecret = key: ''
+        val="$(grep -m1 '^${key}=' "$src" | cut -d= -f2- || true)"
+        if [ -n "$val" ]; then
+          if grep -q "^${key}=" "$envf" 2>/dev/null; then
+            sed -i "s|^${key}=.*|${key}=$val|" "$envf"
+          else
+            printf '%s=%s\n' "${key}" "$val" >> "$envf"
+          fi
+        else
+          echo "warning: ${key} not present in the rendered env file; leaving profile scope untouched" >&2
+        fi
+      '';
     in
     {
       description = "Sync Nix-owned Matrix values into the Hermes profile secret scope";
@@ -154,14 +173,7 @@ in
         envf=/var/lib/hermes/.env
         src=${config.sops.templates."hermes.env".path}
         ${lib.concatStringsSep "\n" (lib.mapAttrsToList upsert plain)}
-        tok="$(grep -m1 '^MATRIX_ACCESS_TOKEN=' "$src" | cut -d= -f2-)"
-        if [ -n "$tok" ]; then
-          if grep -q '^MATRIX_ACCESS_TOKEN=' "$envf" 2>/dev/null; then
-            sed -i "s|^MATRIX_ACCESS_TOKEN=.*|MATRIX_ACCESS_TOKEN=$tok|" "$envf"
-          else
-            printf 'MATRIX_ACCESS_TOKEN=%s\n' "$tok" >> "$envf"
-          fi
-        fi
+        ${lib.concatStringsSep "\n" (map copySecret secretKeys)}
         chown 10000:10000 "$envf"
         chmod 600 "$envf"
       '';
