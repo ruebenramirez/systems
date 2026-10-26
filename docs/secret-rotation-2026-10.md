@@ -183,6 +183,7 @@ no-op.
 |---|---|---|---|---|---|
 | 1 | `cloudflare-token` (ssdnodes-1) | ✅ | n/a — migrated, not rotated | ✅ ssdnodes-1 | ✅ `/run/secrets` byte-identical; token `active` |
 | 2 | sing-box proxy set (ssdnodes-1 + driver) | ✅ R1 | ✅ 9e493f62 | ✅ both hosts | ✅ egress `172.93.51.14` via rotated creds |
+| 3 | `forgejo_runner_ssh_key` (crown jewel) | ✅ R2 | ✅ bd4daf6b + 6d746afb | ✅ all 10 hosts | ✅ runner→`nixdeploy` works; old fp absent on all 10 |
 | — | (all others) | pending | | | |
 
 ## BLOCKER — `driver` cannot be built (pre-existing, unrelated to rotation)
@@ -251,3 +252,33 @@ it calls `exit_node_restore()`, which runs
 routes you through the tailnet exit node. To get true direct egress you must run
 `sudo tailscale set --exit-node=` afterwards. Any automation that toggles
 `sstunnel` and expects the prior network posture will be wrong.
+
+### R2 / done — `forgejo_runner_ssh_key` (fleet deploy key)
+
+Rotated at `systems-secrets@bd4daf6b` + `systems@6d746afb`. Old
+`SHA256:e/jYsZJhejkfYauyMI93QcWqHzknN6n2OU/2oajGWCU` → new
+`SHA256:1GHUNvwCTpziQ5WX8hI8kYsd+fwyTT4a3+UBS6sXyHM`.
+
+Research findings that changed the procedure:
+
+1. **Local `nup-fleet` does not use this key.** It resolves the SSH user from
+   `~/.ssh/config` (`rramirez` + `~/.ssh/id_ed25519`); only Forgejo host-mode
+   jobs use `nixdeploy` via `programs.ssh.extraConfig`. So rotation could not
+   lock out the operator — which is what made a single-pass swap acceptable
+   instead of a two-pass both-keys-authorized transition.
+2. **The value is a YAML block scalar**, not a single line. The first version of
+   `rotate-sops-key.sh` replaced only the `key:` header and would have left the
+   old key body in place, silently producing a corrupt key. The script now
+   detects `key: |` and replaces the header *and* its indented body.
+3. **NixOS writes `nixdeploy`'s authorized keys to
+   `/etc/ssh/authorized_keys.d/<user>`**, not `~/.ssh/authorized_keys`
+   (`AuthorizedKeysFile %h/.ssh/authorized_keys /etc/ssh/authorized_keys.d/%u`).
+   A rotation verifier that greps `~/.ssh/authorized_keys` reports "no keys" and
+   looks like a failure.
+4. Verification: runner's `/run/secrets` fingerprint matches the new key;
+   `sudo -u nixdeploy ssh nixdeploy@fwai0` returns `nixdeploy`/uid 990; all 10
+   hosts authorize exactly the new fingerprint and none authorize the old one.
+
+Two transient build failures were hit and are worth remembering as noise, not
+config bugs: `homeserver` failed in `system-units` on `fwai0` twice while the
+identical derivation built fine locally, and succeeded on retry.
