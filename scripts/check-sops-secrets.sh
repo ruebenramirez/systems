@@ -25,6 +25,17 @@ set -euo pipefail
 
 FLAKE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
+# Everything below shells out to `nix eval`. Check for it explicitly: the
+# SECRETS_DIR probe below swallows nix's stderr, so on a host with no nix it
+# silently falls through to the workstation-only sibling path and reports
+# "secrets repo not found at <path>" -- a misleading error that cost three
+# nightly CI runs before anyone could see the real cause.
+if ! command -v nix >/dev/null 2>&1; then
+  echo "error: nix is not on PATH; this script must evaluate the flake to find" >&2
+  echo "       the systems-secrets revision it locks to." >&2
+  exit 3
+fi
+
 # Prefer the `systems-secrets` revision the flake actually locks to. The
 # repo is publicly readable, so Nix fetches it anonymously into the store --
 # no cross-repo credentials and no separate checkout required.

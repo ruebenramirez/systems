@@ -747,3 +747,81 @@ out every other session (see the quirks doc, §3), and the user confirmed they h
 the real `@r3v2` recovery key, so cross-signing and the key backup are recoverable
 on re-login. The stale `matrix-recovery-key` in `hermes-vm-xps.yaml` remains a dead
 value matching no account and is a candidate for deletion.
+
+## Pending — `forgejo_secrets_token` (not yet rotated)
+
+Found while debugging the nightly CI on 2026-10-26. Worth rotating, and worth
+renaming, because its name badly understates what it can do.
+
+**What it is.** A 40-character Forgejo PAT, sops secret `forgejo_secrets_token`
+on `forgejo-ci-runner-vm`, wired in two places: `nix.settings.netrc-file` (so
+Nix's git fetcher can pull the private `systems-secrets` flake input) and a
+`~/.netrc` symlink for plain `git`.
+
+**Actual scope, measured — not what the docs claim.** The comment in
+`nup-fleet-access.nix` calls it a *"read-only Forgejo access token for the
+private `systems-secrets` repo."* Live probes say otherwise:
+
+| Probe | Result |
+|---|---|
+| `GET /repos/rueb/systems-secrets` | 200 (anonymous: 404) |
+| `GET /repos/rueb/systems` | 200 — **not** limited to `systems-secrets` |
+| `POST /repos/rueb/systems/actions/workflows/<f>/dispatches` | **204 — can trigger workflows** |
+| `GET /api/v1/user` | denied, missing `read:user` |
+
+So it is a repo read **and Actions write** credential, which means it can
+`workflow_dispatch` the nightly `nup-fleet --upgrade` and therefore deploy every
+machine in the fleet. Treat it as a fleet-root-adjacent credential, not a fetch
+token. Rename it when rotating so the next reader is not misled the way the
+`check-sops-secrets.sh` comment ("publicly readable", "no cross-repo credentials
+needed") already misled me — `systems-secrets` returns 404 anonymously.
+
+**Why rotate.** The value was pasted in plaintext into an agent chat session on
+2026-10-26. That session ran on the local `fwai0` halogen engine, so this is
+hygiene rather than third-party exposure — unlike the trigger for this whole
+document. Rotate anyway: the value is now in a transcript file on disk.
+
+**Order, and what it breaks.** Everything that consumes it is on
+`forgejo-ci-runner-vm`, and all of it breaks at once if the token is revoked
+before the new one is deployed — `nix flake update` cannot fetch
+`systems-secrets`, so the nightly fails at evaluation.
+
+1. Mint a replacement PAT (scope: repo read + Actions write; no `admin`).
+2. Update `forgejo_secrets_token` in `systems-secrets/secrets/forgejo-ci-runner-vm.yaml`
+   (decrypt → edit → re-encrypt to the recorded recipients; see `docs/fleet-keys.md`).
+3. `nup-fleet forgejo-ci-runner-vm` — sops re-renders the netrc and restarts
+   `forgejo-ci-runner.service` via `restartUnits`.
+4. Verify, in this order, because each proves a different consumer:
+   ```sh
+   # netrc + nix fetch of the private input
+   sudo -u nixdeploy nix eval --raw --impure --expr \
+     'builtins.toString (builtins.getFlake "/var/lib/nixdeploy/systems").inputs.systems-secrets.outPath'
+   # Actions write, without launching a run (400 = permission OK, bad ref)
+   curl -s -o /dev/null -w '%{http_code}\n' -X POST -H "Authorization: token $TOK" \
+     -d '{"ref":"refs/heads/nope"}' \
+     https://code.rueb.dev/api/v1/repos/rueb/systems/actions/workflows/nup-fleet-upgrade.yaml/dispatches
+   ```
+   Expect a store path, then `400`. A `403`/`404` on the second means the new
+   token is missing Actions write.
+5. Revoke the old token **last**, after both checks pass.
+
+**Also still open from the same session:** confirm whether the Hermes values that
+appeared in the transcript (`matrix-access-token`, `openrouter-api-key`,
+`hermes-api-server-key`, `matrix-recovery-key`) predate or postdate the R6–R9
+rotation, and rotate any that were rendered after it.
+
+## Teardown — destroy the agent session that handled these values
+
+**Reminder to self, recorded here deliberately:** an agent cannot carry a
+reminder into a future session, so the only place this survives is the repo.
+
+When every rotation above is done **and** the dependent services are confirmed
+working, destroy the pi session that held the plaintext token:
+
+```sh
+rm -f /home/rramirez/.pi/agent/sessions/--home-rramirez-code-systems--/2026-10-26T21-37-07-617Z_01a17a25-4e20-7185-bc3c-3f2a59a01654.jsonl
+```
+
+Session id `01a17a25-4e20-7185-bc3c-3f2a59a01654`, started 2026-10-26T21:37:07Z.
+Do not delete it earlier — it is the only record of the CI debugging above. Check
+for sibling sessions in the same directory before assuming this is the only one.

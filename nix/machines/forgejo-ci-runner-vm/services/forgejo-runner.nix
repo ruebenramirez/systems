@@ -23,10 +23,14 @@ in
         labels:
           - docker:docker://node:22-bookworm
           - ubuntu-latest:docker://node:22-bookworm
-          # Host-mode label: no docker:// scheme, so jobs run directly on
-          # this VM. Used by the nightly `nup-fleet --upgrade` workflow,
-          # which needs nix, SSH to the fleet, and a writable checkout.
-          - nixos
+          # Host-mode label: the `:host` scheme is what selects the host
+          # backend. A bare label (no `:scheme`) defaults to *docker* with the
+          # default image -- see internal/pkg/labels/labels.go, where Parse()
+          # sets Schema to "docker" and Arg to ArgDocker (//node:22-bookworm).
+          # Declaring this as bare `nixos` silently ran the nightly fleet job in
+          # a node:22-bookworm container that had no nix, no deploy key and no
+          # sudo. Used by the nightly `nup-fleet --upgrade` workflow.
+          - nixos:host
 
       server:
         connections:
@@ -51,6 +55,11 @@ in
     # Host-mode jobs inherit the daemon's environment, and systemd's default
     # PATH has no nix/ssh/git. Give the runner a normal system PATH so
     # `nup-fleet`, `nixos-rebuild`, and `ssh` resolve inside job steps.
+    #
+    # `nodejs` is not optional here: in host mode there is no container to
+    # supply one, and JS actions (`actions/checkout@v4`) are run as
+    # `node <action>/dist/index.js` against this PATH (act/runner/action.go).
+    # Without it every `uses:` step in a host-mode job dies immediately.
     environment = {
       HOME = deployHome;
       PATH = lib.mkForce (lib.makeBinPath [
@@ -61,6 +70,7 @@ in
         pkgs.openssh
         pkgs.coreutils
         pkgs.bash
+        pkgs.nodejs
       ] + ":/run/wrappers/bin:/run/current-system/sw/bin:/usr/bin:/bin");
     };
 
