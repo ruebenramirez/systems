@@ -186,6 +186,7 @@ no-op.
 | 3 | `forgejo_runner_ssh_key` (crown jewel) | ✅ R2 | ✅ bd4daf6b + 6d746afb | ✅ all 10 hosts | ✅ runner→`nixdeploy` works; old fp absent on all 10 |
 | 4 | backup pivot keys ×3 | ✅ R3 | ✅ 321d5b04 + 07d516ee | ✅ homeserver, ssdnodes-1, hermes-vm-xps | ✅ all 3 backup services ran `success`; old fps absent |
 | 5 | 3 orphan keys deleted | ✅ | ✅ 00c5a485 | n/a | ✅ reverse scan: 0 orphans, 0 missing |
+| 6 | `tailscale-auth-key` ×10 (was 1 shared key) | ✅ R4 | ✅ f185402e + 3c29df63 | ✅ all 10 | ✅ all Running; canary enrollment rc=0; old key expired |
 | — | (all others) | pending | | | |
 
 ## BLOCKER — `driver` cannot be built (pre-existing, unrelated to rotation)
@@ -332,3 +333,55 @@ The delete guard asks Nix which keys are declared **for that host** rather than
 grepping the repo — `matrix_backup_ssh_private_key` is legitimately declared for
 `homeserver`, so a repo-wide grep wrongly refused to delete it from
 `ssdnodes-1.yaml`.
+
+### R4 — headscale pre-auth keys
+
+**The finding that mattered most.** All 10 hosts carried the *same* headscale
+pre-auth key (user `rueb`, `reusable=true`, expiry effectively never — 156 years).
+One leak anywhere in the fleet meant unlimited permanent rogue-node enrollment
+into the tailnet. That is a worse standing exposure than any single service
+credential in this repo.
+
+**How the key is actually consumed** (`tailscaled-autoconnect`): it polls
+`BackendState` and runs `tailscale up --auth-key $(cat /run/secrets/tailscale-auth-key)`
+**only** when the state is `NeedsLogin`, `NeedsMachineAuth` or `Stopped`. A
+`Running` host never re-reads the key. Two consequences:
+
+- rotating a key cannot break an enrolled, healthy host;
+- rotating is meaningless unless the old key is **revoked in headscale** —
+  rewriting the sops value changes nothing about what headscale accepts.
+
+**Replacement:** per-host, non-reusable, 365-day expiry (headscale ids 16–25).
+Blast radius of a single leak drops from "unlimited nodes as rueb" to "one node,
+one host, expiring". Tradeoff accepted: a host that needs to re-enroll after its
+key expires needs a freshly minted one — `sudo headscale preauthkeys create -u 1
+-e 8760h -o json` on the homeserver, then rotate that host's sops value.
+
+**Verification:** all 10 hosts `BackendState=Running` and `/run/secrets` matches
+the minted value; a canary key enrolled `pi-syncoid-target` with `rc=0`, proving
+the mint→enroll path works; old shared key id 1 confirmed expired.
+
+### Incident during R4 — all ten host keys expired by mistake
+
+To decide which headscale keys to expire, I compared deployed key values against
+`headscale preauthkeys list`. **That can never work: headscale masks the key in
+`list` output** (`hskey-auth-XXXX***********`, 27 chars). Nothing matched, so the
+"expire everything that isn't a host key" loop expired the ten host keys along
+with the canaries.
+
+No host was displaced — node keys are independent of pre-auth keys, so every host
+stayed `Running` throughout — but the fleet was left unable to re-enroll until
+fixed. Remediation: minted a fresh set (ids 16–25), redeployed all ten hosts,
+re-verified.
+
+Two durable rules from this:
+
+1. **Capture the key id at creation.** `preauthkeys create -o json` returns the
+   `id`; that is the only reliable handle for later expiry. Value comparison
+   against `list` is not possible.
+2. A loop whose branches are "keep" vs "destroy", driven by a comparison whose
+   failure mode is silent non-matching, is the worst possible shape. It should
+   have had an assertion that at least one value matched before expiring anything.
+
+Also noted: `tailscale up` echoes the auth key back in its error output, so a
+failed re-auth leaks the key into whatever captured the output. Redact it.
