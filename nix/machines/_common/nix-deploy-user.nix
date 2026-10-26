@@ -32,7 +32,7 @@ let
   # `forgejo_runner_ssh_key`, decrypted only on forgejo-ci-runner-vm.
   # Rotate by regenerating the key pair and updating both places.
   deployPubKey =
-    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBt6TezkfAd+VA2N0dkNKnw50xM4YKNOpEVqdc8s7WpY forgejo-ci-runner-vm fleet deploy key";
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMOcbCRgikgRO4GYHrt6o7bBl+TYjtXm8FfQ8dIM/MSh forgejo-ci-runner-vm fleet deploy key";
 in
 {
   users.users.nixdeploy = {
