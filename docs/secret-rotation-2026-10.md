@@ -694,3 +694,38 @@ delivered today. Changing public SPF or the mail server's trust model to silence
 warning on a working path is the same class of low-value risk that already caused
 one outage this session. Left as a documented follow-up with the diagnosis
 attached, so whoever picks it up starts from the cause rather than the symptom.
+
+## Matrix recovery key: left alone, deliberately
+
+Decision: **do not rotate** `matrix-recovery-key` in `hermes-vm-xps.yaml`.
+
+The stored value is a genuine, checksum-valid Matrix recovery key (35 bytes,
+magic `0x8b`, version 1, XOR parity OK) — but it is inert on this stack:
+
+1. `@hermes` has no cross-signing keys (master/self/user all absent) and no room
+   key backup, so there is nothing for the key to unlock.
+2. Continuwuity is a **conduwuit** fork, not a Synapse fork. `GET
+   /keys/device_signing/` returns 404 for every account: SSSS retrieval is not
+   implemented, only an unstable `upload` route exists in the binary.
+3. Hermes reads the key in exactly one place — `olm.verify_with_recovery_key()`.
+   With no cross-signing keys present, `get_own_cross_signing_public_keys()`
+   returns empty-but-not-`None`, so the branch is skipped silently. Zero
+   cross-signing lines in the logs is the tell.
+4. mautrix implements no server-side restore for
+   `m.megolm_backup.v1.curve25519-aes-sha2`, so there is no second use.
+
+Rotating the string would change a value no code path can read. Cross-signing for
+`@hermes` is **unachievable** on this homeserver rather than misconfigured; the bot
+still works because it sets `share_keys_min_trust = UNVERIFIED`.
+
+**Inconclusive, recorded so it isn't mistaken for a finding:** an attempt to
+determine whether the key is actually `@r3v2`'s Element recovery key (backup v439,
+42 sessions) failed to verify any session MAC. That does *not* prove the key is
+unrelated — the MAC construction was never validated against a known-good key, so
+a negative from it proves nothing.
+
+**Separate lead worth chasing someday:** `@r3v2` currently has no cross-signing
+keys, yet backup v439 is signed by what looks like a master-key id
+(`ed25519:Kbm7Yh2HoV2/…`). That pattern suggests cross-signing existed and was
+later lost. If Element shows your own devices as unverified, that is a far more
+consequential E2EE problem than the bot's.
