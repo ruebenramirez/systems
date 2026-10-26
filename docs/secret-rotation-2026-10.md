@@ -182,6 +182,7 @@ no-op.
 | # | Secret | Researched | Rotated | Deployed | Verified |
 |---|---|---|---|---|---|
 | 1 | `cloudflare-token` (ssdnodes-1) | ✅ | n/a — migrated, not rotated | ✅ ssdnodes-1 | ✅ `/run/secrets` byte-identical; token `active` |
+| 2 | sing-box proxy set (ssdnodes-1 + driver) | ✅ R1 | ✅ 9e493f62 | ✅ both hosts | ✅ egress `172.93.51.14` via rotated creds |
 | — | (all others) | pending | | | |
 
 ## BLOCKER — `driver` cannot be built (pre-existing, unrelated to rotation)
@@ -230,3 +231,23 @@ it" is what caught this. The rotation was executed, verified on the server, and
 still had to be rolled back — because *deployability of the other end* was not
 itself a pre-flight check. Added to pre-flight: **confirm every host in the
 rotation set can actually build** before rotating anything it shares.
+
+## Completion notes
+
+### sing-box proxy set — done (re-run after Launchpad recovered)
+
+Executed at `systems-secrets@9e493f62`, superseding the revert. Server deployed
+first (`restartUnits` restarted `sing-box` automatically), then the client.
+Because the client unit is on-demand and was inactive, no client restart was
+needed — the new values render on next start.
+
+Verified: all five server values and all six client values match the repo
+byte-for-byte at `/run/secrets`; `sstunnel on` produced egress `172.93.51.14`
+through the rotated Reality/VLESS credentials; state restored afterward.
+
+**`sstunnel` gotcha worth knowing:** `sstunnel off` does not mean "no exit node" —
+it calls `exit_node_restore()`, which runs
+`tailscale set --exit-node=download-vm-xps`. So toggling the proxy off silently
+routes you through the tailnet exit node. To get true direct egress you must run
+`sudo tailscale set --exit-node=` afterwards. Any automation that toggles
+`sstunnel` and expects the prior network posture will be wrong.
