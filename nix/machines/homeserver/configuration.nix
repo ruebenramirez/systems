@@ -17,6 +17,7 @@
 
     # homeserver services
     ./srv/acme-wildcard.nix
+    ./srv/alerting.nix
     ./srv/audiobookshelf.nix
     ./srv/firewall.nix
     ./srv/forgejo-reverse-proxy.nix

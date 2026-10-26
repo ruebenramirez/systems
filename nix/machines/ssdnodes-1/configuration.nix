@@ -7,6 +7,7 @@
     [
       (modulesPath + "/profiles/qemu-guest.nix")
       ./disk-config.nix
+      ./srv/alerting.nix
       ./srv/derp-relay.nix
       ./srv/firewall.nix
       ./srv/haproxy.nix

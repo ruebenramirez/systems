@@ -3,6 +3,7 @@
   imports = [
     ./dns.nix
     ./editor.nix
+    ./failure-mail.nix
     ./gpg.nix
     ./nix-cache.nix
     ./nix-settings.nix

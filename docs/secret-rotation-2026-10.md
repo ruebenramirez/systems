@@ -449,3 +449,55 @@ on production.
    this session passed vacuously: an empty grep pattern, a key recovery that
    returned 0 chars, a missing `strings` binary, and a `jq` boolean written as
    `x and "A" or "B"`.
+
+### Guards added after the silent-backup failure
+
+**1. `rueb.failureMail` (`nix/machines/_common/base/failure-mail.nix`)**
+
+Opt-in per machine and per unit: watched units get
+`OnFailure=failure-mail@%n`, and the template unit mails a `systemctl status`
+plus journal excerpt to `r3v2@rueb.dev`. systemd has no global `OnFailure`, so
+the watch list is explicit — deliberately so, because a laptop that briefly
+loses a mount should not send mail.
+
+Transports differ by host: `ssdnodes-1` uses its postfix sendmail wrapper;
+`homeserver` has no mailer, so it submits to Stalwart over loopback with msmtp
+(local `rueb.dev` mail never touches the SMTP2GO outbound route).
+
+Watched: on `ssdnodes-1` — `matrix-snapshot`, `continuwuity`,
+`sops-install-secrets`, and every `acme-order-renew-*`; on `homeserver` —
+`matrix-backup`, `matrix-backup-freshness`, `hosted-sites-backup`,
+`hermes-backup`, `headscale`, `sops-install-secrets`, and every
+`acme-order-renew-*`. ACME is included because renewal failure is otherwise
+invisible until a certificate expires.
+
+**2. `matrix-backup-freshness.service`**
+
+Judges freshness by a **proof-of-run marker**, not by data mtime. `matrix-snapshot`
+writes `/srv/matrix/.snapshot-success` only after both rsyncs complete; the
+homeserver pulls it and fails if it is older than 18h (three missed 6h runs).
+This distinction matters: an idle Matrix server legitimately produces unchanged
+files, so mtime staleness would cry wolf, while "the copy command exited 0" —
+what the old check measured — cannot tell fresh from frozen.
+
+It is a separate unit so a freshness alarm can fail loudly without ever being in
+a position to skip a real backup.
+
+**Verified by negative tests, not just happy paths:**
+
+| Test | Result |
+|---|---|
+| marker missing | freshness `rc=1` ✅ |
+| marker 30 days old | freshness `rc=1`, message names the broken job ✅ |
+| marker fresh | `rc=0` ✅ |
+| real failure → mail | `failure-mail@…` `Result=success`, Stalwart `delivery.completed` to `r3v2@rueb.dev` ✅ |
+
+Three bugs were caught only because of those negative tests: `systemd.services`
+keys omit `.service` (so the first version watched `matrix-snapshot.service.service`
+and alerted on nothing), `%n` already includes the suffix, and Stalwart rejects a
+non-FQDN EHLO with `550 Invalid EHLO domain`. A happy-path-only test would have
+shipped all three silently.
+
+**Known caveat:** alert mail from `ssdnodes-1` fails SPF/DKIM/DMARC on the
+Stalwart side. It is accepted as ham today, but a stricter policy would start
+dropping alerts. Fix by signing outbound or marking the tailnet relay trusted.

@@ -39,6 +39,13 @@ let
     # Continuwuity's RocksDB online backup is a structured tree
     # (meta/ private/ shared_checksum/), so mirror the whole thing.
     ${pkgs.rsync}/bin/rsync -a --delete "''${dbBackups}/" ${exportRoot}/db-backup/
+
+    # Proof-of-run marker, pulled along by the homeserver's rsync. This records
+    # that a snapshot actually completed, which a data mtime cannot: an idle
+    # Matrix server legitimately produces unchanged data, so "nothing changed"
+    # is not evidence of breakage and "something is new" is not evidence of
+    # health. Only a run marker distinguishes the two.
+    ${pkgs.coreutils}/bin/date -u +%Y-%m-%dT%H:%M:%SZ > ${exportRoot}/.snapshot-success
   '';
 in
 {
