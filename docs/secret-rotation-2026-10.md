@@ -579,3 +579,22 @@ statement's own exit status.
 covered by sops or the flake. New values were written to
 `ssdnodes-1:/root/wp-rotate-creds.txt` (mode 600). Giving them declarative
 coverage is a separate piece of work.
+
+**Each stack is two containers, and both had to be handled.** Rotating the MariaDB
+users is not sufficient: the `mariadb` container's own config still carried
+`MYSQL_ROOT_PASSWORD`/`MYSQL_PASSWORD` from its creation, so the retired
+passwords remained readable via `docker inspect`. Both containers in both stacks
+were recreated from their `deploy-site.sh` (image pulls stripped) so nothing
+retains old credentials. Order matters — the WordPress container's `--link`
+bakes in the `mysql` host entry, so the DB container must be recreated before the
+app container.
+
+**Self-inflicted bug found and fixed while doing this:** my `sed` used
+`s|WORDPRESS_DB_PASSWORD=.*|...|`, and `.*` swallowed the trailing ` \` line
+continuation on three lines per script, leaving both `deploy-site.sh` files
+silently truncated mid-command — a later run would have created containers with
+no port mapping and no volumes. `bash -n` reported the files as fine, because a
+swallowed continuation is still valid syntax. Caught only by reading the scripts.
+
+Final state: both sites 200 with content intact (2155 and 999 posts), old DB
+passwords rejected, no container env retains retired credentials.
