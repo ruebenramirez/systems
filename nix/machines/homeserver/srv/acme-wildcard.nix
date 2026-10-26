@@ -1,7 +1,11 @@
 { config, lib, systems-secrets, ... }: {
 
-  # declare sops secret for cloudflare-token secret
-  sops.secrets.cloudflare-token = { };
+  # Cloudflare token for DNS-01 on *.rueb.dev and the two photography wildcards.
+  # Lives in a shared secrets file (recipient-listed per machine) rather than
+  # homeserver.yaml, because the same token also authorises ssdnodes-1's zones.
+  sops.secrets.cloudflare-token = {
+    sopsFile = "${systems-secrets}/secrets/cloudflare-dns-management.yaml";
+  };
 
   # ---------------------------------------------------------------------------
   # Shared Group for Wildcard TLS Certificate

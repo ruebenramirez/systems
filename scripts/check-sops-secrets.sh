@@ -59,11 +59,46 @@ else
   hosts=("${config_hosts[@]}")
 fi
 
-# Warn about secrets files that no longer back a config.
+# Every (secrets-file-basename, key) pair declared anywhere in the flake. Used
+# twice: to tell a shared secrets file apart from a retired one, and by the
+# reverse orphan scan at the end.
+if ! referenced="$(
+  nix eval --raw --impure --expr "
+    let
+      flake = builtins.getFlake \"$FLAKE_DIR\";
+      cfgNames = builtins.attrNames flake.nixosConfigurations;
+      pairs = n:
+        let
+          cfg = flake.nixosConfigurations.\"\${n}\";
+          defaultFile = toString (cfg.config.sops.defaultSopsFile or \"\");
+          secrets = cfg.config.sops.secrets or {};
+          one = name:
+            let
+              s = secrets.\"\${name}\";
+              f = if s ? sopsFile then toString s.sopsFile else defaultFile;
+            in builtins.concatStringsSep \"\n\"
+                 (builtins.filter (x: x != \"\")
+                   [ (if f == \"\" then \"\" else builtins.baseNameOf f + \"\\t\" + name) ]);
+        in builtins.map one (builtins.attrNames secrets);
+    in builtins.concatStringsSep \"\\n\" (builtins.concatMap pairs cfgNames)
+  " 2>/dev/null || true
+)"; then
+  echo "FAIL  could not enumerate declared sops secrets" >&2
+  exit 1
+fi
+
+# Warn about secrets files that back neither a config nor any declaration.
+# A file with no matching host is only suspicious if nothing references it: a
+# deliberately shared file (e.g. cloudflare-dns-management.yaml) is consumed by
+# several hosts through an explicit `sopsFile`.
 for f in "$SECRETS_DIR"/secrets/*.yaml; do
   h="$(basename "$f" .yaml)"
   if ! printf '%s\n' "${config_hosts[@]}" | grep -qxF "$h"; then
-    echo "NOTE  $h: secrets file present but no nixosConfigurations entry"
+    if printf '%s\n' "$referenced" | cut -f1 | grep -qxF "$h.yaml"; then
+      echo "SHARED  $h.yaml: no host config of that name, but referenced by a sopsFile declaration"
+    else
+      echo "NOTE    $h: secrets file present but no nixosConfigurations entry and nothing references it"
+    fi
   fi
 done
 
@@ -176,30 +211,7 @@ done
 echo
 echo "reverse scan (secrets present but undeclared):"
 
-if ! referenced="$(
-  nix eval --raw --impure --expr "
-    let
-      flake = builtins.getFlake \"$FLAKE_DIR\";
-      cfgNames = builtins.attrNames flake.nixosConfigurations;
-      pairs = n:
-        let
-          cfg = flake.nixosConfigurations.\"\${n}\";
-          defaultFile = toString (cfg.config.sops.defaultSopsFile or \"\");
-          secrets = cfg.config.sops.secrets or {};
-          one = name:
-            let
-              s = secrets.\"\${name}\";
-              f = if s ? sopsFile then toString s.sopsFile else defaultFile;
-            in builtins.concatStringsSep \"\n\"
-                 (builtins.filter (x: x != \"\")
-                   [ (if f == \"\" then \"\" else builtins.baseNameOf f + \"\\t\" + name) ]);
-        in builtins.map one (builtins.attrNames secrets);
-    in builtins.concatStringsSep \"\\n\" (builtins.concatMap pairs cfgNames)
-  " 2>/dev/null || true
-)"; then
-  echo "FAIL  could not enumerate declared secrets for the reverse scan" >&2
-  fail=1
-elif [[ -z "$referenced" ]]; then
+if [[ -z "$referenced" ]]; then
   echo "FAIL  reverse scan produced no declarations; refusing to call anything orphaned" >&2
   fail=1
 else
