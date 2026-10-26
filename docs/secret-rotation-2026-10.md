@@ -542,3 +542,40 @@ proves the right thing.
 New FreshRSS, Bulwark and Hermes dashboard passwords were written to
 `~/.local/share/rotated-credentials-2026-10-26.txt` (mode 600) rather than
 printed into the transcript.
+
+### R10 — WordPress DB credentials and salts (ssdnodes-1)
+
+Two independent stacks, each `wordpress:latest` + `mariadb:latest` under
+`/srv/<site>--wordpress`, created by a hand-written `deploy-site.sh` (not
+declarative, not in sops). Per site the DB password lives in three places that
+must agree: the MariaDB user, `wp-config.php`, and the container env.
+
+Rotated for both sites: `wpuser`, MariaDB `root` (both hosts), the 8 salts, and
+`deploy-site.sh` so future recreations match.
+
+**Two things that are not obvious and cost an outage:**
+
+1. **The official wordpress image does not rewrite an existing `wp-config.php`.**
+   Recreating the container with a new `WORDPRESS_DB_PASSWORD` leaves the old
+   password in the file, so the site 500s on a DB auth failure. The file has to
+   be updated explicitly.
+2. **The two sites store salts differently.** `monicarosephotography.com` has
+   literal `define('AUTH_KEY', '…')` values, so the file is the place to change.
+   `monicaandrueben.com` still has the image template form
+   `define('AUTH_KEY', getenv_docker('WORDPRESS_AUTH_KEY', '…'))`, so its salts
+   come from container env and must be rotated as `WORDPRESS_*` env vars —
+   editing the file there does nothing.
+
+**Incident.** The first attempt aborted the rotation but left the site down for
+several minutes. The script piped the `ALTER USER` through `grep | head` and then
+tested `$?`, which is `head`'s status — so the SQL had actually succeeded while
+the script believed it failed and stopped before updating `wp-config.php` and the
+container env. Result: MariaDB had new credentials nothing else knew. Recovery
+needed a `--skip-grant-tables` rescue container on the same volume to reset the
+users to the value the running site expected. Corrected scripts check each SQL
+statement's own exit status.
+
+**Still true:** these credentials are plaintext in `deploy-site.sh` and are not
+covered by sops or the flake. New values were written to
+`ssdnodes-1:/root/wp-rotate-creds.txt` (mode 600). Giving them declarative
+coverage is a separate piece of work.
