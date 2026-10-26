@@ -8,3 +8,6 @@ result/**
 result
 .stfolder/**
 .stignore
+
+# lego ACME state (never commit: holds account private keys)
+.lego/
