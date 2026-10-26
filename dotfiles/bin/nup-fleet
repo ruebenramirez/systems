@@ -92,9 +92,12 @@ nix_flake_update() {
     if grep -qE "could not get HEAD ref|expired cached ref" "$log"; then
         echo "error: nix flake update could not refresh an input and fell back to" >&2
         echo "       an EXPIRED CACHED REF. A private flake input (systems-secrets)" >&2
-        echo "       is not reachable from this environment. The git fetcher reads" >&2
-        echo "       ~/.netrc, not nix's netrc-file setting, so HOME must point at" >&2
-        echo "       the deploy home (/var/lib/nixdeploy on the CI runner)." >&2
+        echo "       is not reachable from this environment. Two usual causes:" >&2
+        echo "         1. HOME is not the deploy home -- git reads ~/.netrc, not" >&2
+        echo "            nix's netrc-file setting (CI: /var/lib/nixdeploy)." >&2
+        echo "         2. An http.<host>/.extraheader in the enclosing repo's local" >&2
+        echo "            config (actions/checkout sets one) is overriding the" >&2
+        echo "            netrc; blank it with GIT_CONFIG_KEY_0/GIT_CONFIG_VALUE_0." >&2
         rm -f "$log"
         return 1
     fi

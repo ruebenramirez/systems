@@ -77,6 +77,14 @@ jobs:
           fetch-depth: 0
 
       - name: Preflight
+        env:
+          # See "Upgrade the fleet" below: both explain why a plain git fetch of
+          # systems-secrets fails from inside the workspace, and this step needs
+          # the same treatment to be a truthful check.
+          HOME: /var/lib/nixdeploy
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
         run: |
           set -euo pipefail
           echo "host: $(hostname)"
@@ -104,10 +112,18 @@ jobs:
           # material while the job reports success. nup-fleet now also fails on
           # that warning, but catching it here names the cause up front.
           #
-          # HOME is pinned because the git fetcher reads ~/.netrc (NOT nix's
-          # netrc-file setting), and host-mode jobs get HOME set to the act
-          # workspace, where the deploy user's netrc symlink does not live.
-          export HOME=/var/lib/nixdeploy
+          # Two independent things have to be right for this to pass, and both
+          # are set in this step's `env`:
+          #   * HOME must be the deploy home, because git's credential lookup
+          #     uses ~/.netrc (NOT nix's netrc-file setting, which only covers
+          #     Nix's own libcurl fetches). Host-mode jobs default HOME to the
+          #     act workspace, where the symlink does not live.
+          #   * actions/checkout leaves an http.https://code.rueb.dev/.extraheader
+          #     (GITHUB_TOKEN basic auth) in the workspace repo's LOCAL config.
+          #     Any git fetch to code.rueb.dev made from inside the workspace
+          #     inherits it, it wins over the netrc, and Forgejo rejects it for
+          #     systems-secrets with 403 "User permission denied". The
+          #     GIT_CONFIG_* override blanks it for this process tree only.
           git ls-remote https://code.rueb.dev/rueb/systems-secrets.git HEAD >/dev/null \
             || { echo "cannot authenticate to systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
 
@@ -126,6 +142,15 @@ jobs:
           # (see nix/machines/forgejo-ci-runner-vm/services/nup-fleet-access.nix,
           # which symlinks .netrc into that directory).
           HOME: /var/lib/nixdeploy
+          # Blank the extraheader actions/checkout left in the workspace repo's
+          # local config, for this step only. Without it every git fetch of
+          # systems-secrets from inside the workspace authenticates as the CI
+          # token and is refused (403), and `nix flake update` then falls back
+          # to an expired cached ref while exiting 0. Deliberately NOT set on
+          # "Persist updated flake.lock", which needs that header to push.
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
         run: |
           set -euo pipefail
           # nup-fleet intentionally `cd`s around; invoke the repo copy so we
