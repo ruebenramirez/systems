@@ -14,6 +14,7 @@
       ./srv/matrix.nix
       ./srv/matrix-backup-source.nix
       ./srv/matrix-snapshot.nix
+      ./srv/cloudflare-dns-token.nix
       ./srv/monicaandrueben.com-reverse-proxy.nix
       ./srv/monicarosephotography.com-reverse-proxy.nix
       ./srv/postfix.nix

@@ -20,7 +20,7 @@
       extraDomainNames = [ "*.monicaandrueben.com" ];
       dnsProvider = "cloudflare";
       credentialFiles = {
-        CLOUDFLARE_DNS_API_TOKEN_FILE = "/persist/secrets/cloudflare-token";
+        CLOUDFLARE_DNS_API_TOKEN_FILE = config.sops.secrets.cloudflare-token.path;
       };
       group = "monicaandrueben-tls";
     };
