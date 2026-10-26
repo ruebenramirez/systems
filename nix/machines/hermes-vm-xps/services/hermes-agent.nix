@@ -27,6 +27,15 @@ let
         username: ${config.sops.placeholder.hermes-dashboard-basic-auth-username}
         password: ${config.sops.placeholder.hermes-dashboard-basic-auth-password}
         secret: ${config.sops.placeholder.hermes-dashboard-basic-auth-secret}
+    # Default the agent at the local halogen engine on fwai0 instead of
+    # OpenRouter. `providers.<name>` with a base_url is a custom-endpoint
+    # definition (hermes_cli/providers.py:resolve_user_provider), and the
+    # provider is selected by that key name. `model.base_url` is set as well so
+    # the two cannot disagree about where inference goes.
+    model:
+      default: halogen-qwen3.8-flash-next
+      provider: halogen
+      base_url: http://${tailnet.host "fwai0"}:8731/v1
     providers:
       halogen:
         base_url: http://${tailnet.host "fwai0"}:8731/v1
