@@ -13,12 +13,10 @@
     ../_common/nix-deploy-user.nix
   ];
 
-  # Boot configuration
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
-  # Disk layout (disko), plus room for the CI flake checkout and Nix store
-  # growth from nightly fleet builds.
+  # Disk layout (disko); sized for the CI flake checkout and nix store growth.
   boot.growPartition = true;
   disko.memSize = 8192;
   disko.imageBuilder.imageFormat = "qcow2";
@@ -64,10 +62,7 @@
   };
   security.sudo.wheelNeedsPassword = false;
 
-  # Host-mode (`nixos` label) jobs run as the dedicated `nixdeploy` user
-  # defined in `_common/nix-deploy-user.nix`; its home comes from
-  # `createHome`. Host-mode jobs need nix and nixos-rebuild on PATH, which
-  # `dev.nix` (imported above) already provides system-wide.
+  # host-mode CI jobs need nixos-rebuild on PATH (nix comes from dev.nix)
   environment.systemPackages = [ pkgs.nixos-rebuild-ng ];
 
   system.stateVersion = "25.11";

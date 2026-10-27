@@ -1,16 +1,11 @@
-# pi-md-export — `/md` slash command for the pi coding agent.
+# pi-md-export -- `/md` slash command for the pi coding agent: exports the
+# current session to a Markdown transcript. Vendored from the npm registry
+# rather than `pi install npm:...`, which would mutate ~/.pi/agent/settings.json
+# and run npm at install time.
 #
-# Exports the current pi session to a readable Markdown transcript. Shipped as
-# an npm pi package, but it is just one TypeScript extension file plus a single
-# runtime dependency, so it is vendored here from the npm registry instead of
-# being installed with `pi install npm:pi-md-export` (which would mutate
-# ~/.pi/agent/settings.json and run npm at install time).
-#
-# Layout of $out is what pi's agent-directory extension discovery expects:
-#   <dir>/index.ts                                  the extension entry point
-#   <dir>/node_modules/@mariozechner/clipboard/     its one runtime dependency
-# Linking that directory into ~/.pi/agent/extensions/ makes pi load it with no
-# settings change. See nix/machines/_common/pi/extensions.nix.
+# $out matches pi's agent-directory layout (index.ts + node_modules/<dep>), so
+# linking it into ~/.pi/agent/extensions/ needs no settings change. See
+# nix/machines/_common/pi/extensions.nix.
 {
   lib,
   nodejs,

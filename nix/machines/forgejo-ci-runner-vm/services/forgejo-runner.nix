@@ -1,11 +1,7 @@
 { config, lib, pkgs, ... }:
 let
-  # Host-mode ("nixos" label) jobs run `nup-fleet --upgrade`, which needs
-  # nix, SSH access to the fleet, and passwordless sudo on the targets. The
-  # dedicated `nixdeploy` user (see `_common/nix-deploy-user.nix`) has an
-  # `~/.ssh/config` for the fleet and holds the deploy key, so the daemon
-  # runs as that user. Docker jobs are unaffected -- they still run in
-  # containers and never touch the host identity.
+  # Host-mode jobs run as the deploy user so they get the fleet ssh config and
+  # deploy key; docker jobs are unaffected.
   deployUser = "nixdeploy";
   deployHome = "/var/lib/nixdeploy";
 in
@@ -23,13 +19,8 @@ in
         labels:
           - docker:docker://node:22-bookworm
           - ubuntu-latest:docker://node:22-bookworm
-          # Host-mode label: the `:host` scheme is what selects the host
-          # backend. A bare label (no `:scheme`) defaults to *docker* with the
-          # default image -- see internal/pkg/labels/labels.go, where Parse()
-          # sets Schema to "docker" and Arg to ArgDocker (//node:22-bookworm).
-          # Declaring this as bare `nixos` silently ran the nightly fleet job in
-          # a node:22-bookworm container that had no nix, no deploy key and no
-          # sudo. Used by the nightly `nup-fleet --upgrade` workflow.
+          # `:host` selects the host backend; a bare label silently means docker
+          # with the default image, which has no nix, no deploy key, no sudo.
           - nixos:host
 
       server:
@@ -52,19 +43,13 @@ in
     requires = [ "docker.service" ];
     wantedBy = [ "multi-user.target" ];
 
-    # Host-mode jobs inherit the daemon's environment, and systemd's default
-    # PATH has no nix/ssh/git. Give the runner a normal system PATH so
-    # `nup-fleet`, `nixos-rebuild`, and `ssh` resolve inside job steps.
-    #
-    # `nodejs` is not optional here: in host mode there is no container to
-    # supply one, and JS actions (`actions/checkout@v4`) are run as
-    # `node <action>/dist/index.js` against this PATH (act/runner/action.go).
-    # Without it every `uses:` step in a host-mode job dies immediately.
+    # Host-mode jobs inherit this PATH; nodejs is required for JS actions
+    # (`uses:` steps run as `node <action>/dist/index.js`) since there is no
+    # container to supply one.
     environment = {
       HOME = deployHome;
       PATH = lib.mkForce (lib.makeBinPath [
-        # `nix` first so `nix`, `nixos-rebuild`, and `nix-copy-closure` win
-        # over any stale user-profile copies.
+        # nix first, to beat stale user-profile copies
         pkgs.nix
         pkgs.git
         pkgs.openssh
@@ -79,7 +64,7 @@ in
       Restart = "always";
       RestartSec = 10;
       User = deployUser;
-      # The daemon needs the docker socket to launch containerized jobs.
+      # docker socket is needed for containerized jobs
       Group = "docker";
       WorkingDirectory = deployHome;
     };

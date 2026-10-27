@@ -50,12 +50,6 @@
       # Primary hostname for this mail server instance.
       server.hostname = "mail.rueb.dev";
 
-      # Admin UI fallback credentials.
-      # authentication.fallback-admin = {
-      #   user   = "admin";
-      #   secret = "REDACTED";
-      # };
-
       # TLS: Server Name Indication (SNI) setup for multiple domains
       certificate."rueb-dev" = {
         cert        = "%{file:/var/lib/acme/rueb.dev/cert.pem}%";
@@ -79,10 +73,7 @@
         version     = "TLSv1.2";
       };
 
-      # -----------------------------------------------------------------------
-      # Disable Local DKIM Signing & Global DMARC Reporting
-      # SMTP2GO handles DKIM signing natively via Verified Senders.
-      # -----------------------------------------------------------------------
+      # SMTP2GO signs DKIM itself via Verified Senders; no global DMARC reports.
       auth.dkim.sign = false;
       report.dkim.sign = false;
       report.dsn.sign = false;
@@ -192,14 +183,8 @@
     };
   };
 
-  # ---------------------------------------------------------------------------
-  # Firewall:
-  #   - mail protocol listeners only.
-  #   - HTTP listeners remain on loopback.
-  #   - normal email clients on tailnet
-  #   - forgejo container access to 587 for smtp (via br-82bac2f71626 bridge interface)
-  #   - see bulwark webmail nix module for JMAP 8080/TCP access via loopback
-  # ---------------------------------------------------------------------------
+  # Mail protocols only, on the tailnet plus the forgejo docker bridge (587 for
+  # smtp). HTTP listeners stay on loopback; JMAP 8080 comes from bulwark.
   networking.firewall.interfaces = lib.genAttrs
     [ "tailscale0" "br-82bac2f71626" ]
     (_: {

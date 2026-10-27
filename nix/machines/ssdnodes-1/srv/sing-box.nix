@@ -4,14 +4,9 @@ let
   acmeCertDir = "/var/lib/acme/hy.rueb.dev";
 in
 {
-  # ---------------------------------------------------------------------------
-  # Secrets (from the systems-secrets flake input, per-host file)
-  # ---------------------------------------------------------------------------
-  # These are rendered into /run/sing-box/config.json by the module's
-  # ExecStartPre (jq-substituted plaintext), so a changed value only takes
-  # effect when the unit restarts. Without restartUnits sops-nix leaves the
-  # running process on the OLD values while /run/secrets holds the new ones —
-  # a rotation that looks deployed and is not.
+  # Secrets from the systems-secrets flake input. They are jq-substituted into
+  # /run/sing-box/config.json at ExecStartPre, so a rotation only lands when the
+  # unit restarts -- hence restartUnits on each.
   sops.secrets.vless_uuid = { restartUnits = [ "sing-box.service" ]; };
   sops.secrets.reality_private_key = { restartUnits = [ "sing-box.service" ]; };
   sops.secrets.reality_short_id = { restartUnits = [ "sing-box.service" ]; };
@@ -26,10 +21,8 @@ in
     after = [ "sops-nix.service" "acme-hy.rueb.dev.service" ];
   };
 
-  # ---------------------------------------------------------------------------
-  # Hysteria2 TLS certificate (HTTP-01 via nginx on :80).
-  # Shared group so both nginx (8444 SSL listener) and sing-box can read it.
-  # ---------------------------------------------------------------------------
+  # Hysteria2 TLS cert (HTTP-01 via nginx :80); shared group so nginx's 8444
+  # listener and sing-box can both read it.
   users.groups.hy2-tls = { };
   users.users.sing-box.extraGroups = [ "hy2-tls" ];
   users.users.nginx.extraGroups = [ "hy2-tls" ];
@@ -49,10 +42,7 @@ in
     locations."/".return = "404";
   };
 
-  # ---------------------------------------------------------------------------
-  # sing-box: VLESS+Reality+Vision (loopback, fronted by HAProxy on :443)
-  #           Hysteria2 (public UDP :443)
-  # ---------------------------------------------------------------------------
+  # VLESS+Reality+Vision on loopback (HAProxy fronts :443); Hysteria2 on UDP :443.
   services.sing-box = {
     enable = true;
     package = pkgs-unstable.sing-box;

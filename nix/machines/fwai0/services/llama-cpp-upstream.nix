@@ -13,10 +13,9 @@ in
     home = "/var/cache/llama-cpp";
   };
 
-  # NOTE: this module is disabled (commented out in configuration.nix) after the
-  # move to halogen-flash-server, and its former bearer key (llama-cpp-api-key)
-  # has been retired. No API key is configured here; if this is re-enabled,
-  # restore an api-key file or accept an unauthenticated endpoint.
+  # Disabled in configuration.nix since the move to halogen; its bearer key
+  # (llama-cpp-api-key) is retired, so re-enabling means restoring an api-key
+  # file or accepting an unauthenticated endpoint.
 
   environment.etc."llama-cpp/models.ini".text = ''
     [qwen3.8-27b-mtp]

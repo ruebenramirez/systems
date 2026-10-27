@@ -16,12 +16,10 @@
     ];
   };
 
-  # tailscaled can get stuck in BackendState=NoState when its control stream is
-  # disturbed by a simultaneous tailscaled/networkd restart (e.g. nixos-rebuild
-  # switch or boot). The upstream tailscaled-autoconnect only acts on auth-needed
-  # states and gives up on timeout, and tailscaled's Restart=on-failure does not
-  # fire because the process stays alive. This bounded watchdog restarts
-  # tailscaled once if the backend has not reached Running/Stopped in ~60s.
+  # tailscaled can stick at BackendState=NoState when a simultaneous
+  # tailscaled/networkd restart disturbs its control stream; autoconnect only
+  # handles auth-needed and Restart=on-failure never fires because the process
+  # stays alive. This restarts tailscaled once if the backend is not up in ~60s.
   systemd.services.tailscale-watchdog = {
     after = [ "tailscaled.service" "tailscaled-autoconnect.service" ];
     wants = [ "tailscaled.service" ];

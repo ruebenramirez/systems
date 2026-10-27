@@ -1,16 +1,10 @@
 #!/usr/bin/env bash
 
 # Ref: https://gist.github.com/mx00s/ea2462a3fe6fdaa65692fe7ee824de3e
-# NixOS install script synthesized from:
+# From: grahamc.com/blog/erase-your-darlings, grahamc.com/blog/nixos-on-zfs,
+# and the NixOS manual. Takes the block device to partition and install onto:
 #
-#   - Erase Your Darlings (https://grahamc.com/blog/erase-your-darlings)
-#   - ZFS Datasets for NixOS (https://grahamc.com/blog/nixos-on-zfs)
-#   - NixOS Manual (https://nixos.org/nixos/manual/)
-#
-# It expects the name of the block device (e.g. 'nvme0n1') to partition
-# and install NixOS on.
-#
-# Example: `setup.sh nvme0n1`
+#   setup.sh nvme0n1
 #
 
 set -euo pipefail
@@ -275,10 +269,8 @@ zfs set com.sun:auto-snapshot=true "$ZFS_DS_PERSIST"
 info "Creating persistent directory for host SSH keys ..."
 mkdir -p /mnt/persist/etc/ssh
 
-# Generate the hardware-configuration.nix
-# Copy this file out to nixosConfigurations if hardware is new
-# Otherwise flake will use its own module
-# wont touch configuration.nix if it already exists
+# Generate hardware-configuration.nix; copy it into nixosConfigurations only if
+# the hardware is new. Leaves an existing configuration.nix alone.
 info "Generating NixOS configuration (/mnt/etc/nixos/*.nix) just in case"
 nixos-generate-config --root /mnt
 

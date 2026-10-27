@@ -85,20 +85,11 @@
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
 
-  # Cap the ZFS ARC so the halogen engine can pin the ~62 GiB v2 checkpoint.
-  # The engine refuses to pin below a 16 GiB MemAvailable floor; with the
-  # default ARC max (about half of RAM) the ARC alone held ~48 GiB and the
-  # pre-flight check failed ~7 GiB short. 8 GiB leaves the engine comfortably
-  # above the floor.
+  # Cap the ARC so halogen can pin its ~62 GiB checkpoint: at the default ARC
+  # max the pre-flight check failed ~7 GiB short of the 16 GiB floor.
   boot.extraModprobeConfig = ''
     options zfs zfs_arc_max=8589934592
   '';
 
-  # This value determines the NixOS release from which the default
-  # settings for stateful data, like file locations and database versions
-  # on your system were taken. It's perfectly fine and recommended to leave
-  # this value at the release version of the first install of this system.
-  # Before changing this value read the documentation for this option
-  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "25.11"; # Did you read the comment?
+  system.stateVersion = "25.11";
 }

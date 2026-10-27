@@ -27,11 +27,8 @@ let
         username: ${config.sops.placeholder.hermes-dashboard-basic-auth-username}
         password: ${config.sops.placeholder.hermes-dashboard-basic-auth-password}
         secret: ${config.sops.placeholder.hermes-dashboard-basic-auth-secret}
-    # Default the agent at the local halogen engine on fwai0 instead of
-    # OpenRouter. `providers.<name>` with a base_url is a custom-endpoint
-    # definition (hermes_cli/providers.py:resolve_user_provider), and the
-    # provider is selected by that key name. `model.base_url` is set as well so
-    # the two cannot disagree about where inference goes.
+    # Custom endpoint (providers.<name> + base_url); both are set so they cannot
+    # disagree about where inference goes.
     model:
       default: halogen-qwen3.8-flash-next
       provider: halogen
@@ -102,11 +99,8 @@ in
     volumes = [
       "/var/lib/hermes:/opt/data"
       "${config.sops.templates."hermes-managed-config".path}:/etc/hermes/config.yaml:ro"
-      # The container's HOME is /root, so `~/.ssh` would land in the overlay and
-      # be destroyed on every rebuild. Bind-mounting the persistent state dir
-      # over it means the agent's plain `ssh`/`scp` keep working while the key
-      # actually lives under /opt/data/.ssh (host: /var/lib/hermes/.ssh).
-      # Must come after the /opt/data mount so it wins on the subpath.
+      # ~/.ssh must live on the persistent dir or the overlay wipes it each
+      # rebuild; must follow the /opt/data mount to win on the subpath.
       "/var/lib/hermes/.ssh:/root/.ssh"
     ];
     environment = {
@@ -133,17 +127,11 @@ in
     serviceConfig.RestartSec = "10s";
   };
 
-  # Hermes resolves platform credentials from the *profile* secret scope
-  # (~/.hermes/.env) and deliberately refuses to fall back to os.environ once a
-  # scope exists. Anything placed only in the container environment is invisible
-  # to the adapter: the Matrix bridge sat "enabled but unserved" this way, and
-  # with an empty allowlist it rejected every invite, including from users who
-  # were on the list.
-  #
-  # Upsert the Matrix values Nix owns into that scope before the container
-  # starts. The access token is read from the sops-rendered env file at runtime
-  # so it never lands in the Nix store; every other key in the file is left
-  # untouched.
+  # Hermes reads platform credentials from the profile scope (~/.hermes/.env)
+  # and will not fall back to os.environ, so container env vars are invisible to
+  # it. Upsert the Matrix values Nix owns into that scope before start; the
+  # access token is read from the sops env file at runtime so it never lands in
+  # the store.
   systemd.services.hermes-profile-env-sync =
     let
       plain = {

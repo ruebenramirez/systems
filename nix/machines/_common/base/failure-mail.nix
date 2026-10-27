@@ -1,17 +1,13 @@
 { config, lib, pkgs, ... }:
 
-# Email an alert when a watched systemd unit fails.
+# Email an alert when a watched systemd unit fails. Journal entries are not an
+# alerting channel: matrix-snapshot.service failed 20 times with a 401 and
+# nothing told anyone.
 #
-# Motivation: matrix-snapshot.service failed 20 times in a row with a 401 and
-# nothing anywhere told anyone. Journal entries are not an alerting channel,
-# because nobody reads them until after the outage is over.
-#
-# This is deliberately opt-in per machine and per unit: a laptop that briefly
-# loses a mount should not email. Add the units whose silence would be costly.
-#
-# The transport is `sendmailCmd`, which must read an RFC822 message on stdin and
-# take recipients as trailing arguments. Machines with postfix use the sendmail
-# wrapper; machines without a mailer use msmtp pointed at the local SMTP server.
+# Opt-in per machine and per unit -- add only units whose silence is costly.
+# `sendmailCmd` must read RFC822 on stdin and take recipients as arguments:
+# postfix hosts use the sendmail wrapper, mailer-less ones use msmtp to the
+# local SMTP server.
 
 let
   cfg = config.rueb.failureMail;

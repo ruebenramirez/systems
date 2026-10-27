@@ -2,15 +2,11 @@
 
 let
   modelDir = "/home/rramirez/models/halogen";
-  # Pinned Hugging Face revision of peonist-ai/halogen-qwen3.8-flash-next.
-  # 647e3814 is the current main and carries the native v2 checkpoint
-  # (qwen38-flash-next-v2.hgn) plus its required lookup table
-  # (qwen38-flash-next-ngram.hgn).
+  # Pinned HF revision of peonist-ai/halogen-qwen3.8-flash-next; carries the
+  # native v2 checkpoint and its required lookup table.
   modelRevision = "647e3814953e8435d58f5d5aa13b97aca85a7d93";
-  # Native v2 checkpoint: the 0.15+ default, served with HALOGEN_CHECKPOINT
-  # unset. It is a single file that carries its own precision (no sidecar to
-  # keep in sync) and is the configuration every upstream perf/quality number
-  # is measured against -- the most stable, best-supported layout.
+  # v2 default (served with HALOGEN_CHECKPOINT unset): self-contained precision,
+  # and the layout upstream benchmarks against.
   checkpoint = "qwen38-flash-next-v2.hgn";
   lookupTable = "qwen38-flash-next-ngram.hgn";
 in
@@ -45,12 +41,8 @@ in
   };
 
   systemd.services.podman-halogen-flash-server = {
-    # Mutual exclusion with the llama.cpp server (llama-cpp-upstream.nix, now
-    # disabled in configuration.nix). Both are memory-heavy inference engines
-    # and cannot coexist on this 128 GiB box -- halogen needs ~62 GiB pinned
-    # plus a 16 GiB floor -- so whichever starts must stop the other. Harmless
-    # while llama-cpp.service does not exist; it only bites if that module is
-    # re-enabled, which is exactly when the interlock is wanted.
+    # Both engines are too big to coexist on 128 GiB, so whichever starts stops
+    # the other. Only matters if llama-cpp is re-enabled.
     conflicts = [ "llama-cpp.service" ];
     wants = [ "tailscaled-autoconnect.service" ];
     after = [ "tailscaled-autoconnect.service" ];
