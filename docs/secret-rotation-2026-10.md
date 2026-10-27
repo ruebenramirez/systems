@@ -810,6 +810,36 @@ appeared in the transcript (`matrix-access-token`, `openrouter-api-key`,
 `hermes-api-server-key`, `matrix-recovery-key`) predate or postdate the R6–R9
 rotation, and rotate any that were rendered after it.
 
+## Verified: how a rotated secret actually reaches a host
+
+Confirmed empirically on 2026-10-27 with an inert `systems-secrets` commit
+(`README.md` HTML comment only, no secret values touched), canary run #9:
+
+```
+before: /nix/store/akrirv8k5avqhq0yp3rxx7x2caaap2ph-source   (rev 5cdac68)
+after:  /nix/store/rv2d0519jzgr2ma4gj9wg6r8gwg80drp-source   (rev 0012917, probe present)
+```
+
+The new path was in the **activated** `/run/current-system` closure on
+`dev-vm-xps`, which then booted `running` with its three secrets rendered.
+The chain that has to work for any rotation to land:
+
+1. Commit the re-encrypted file to `systems-secrets` and push.
+2. CI's `nix flake update` fetches the new rev. **This is the fragile step.** It
+   needs `HOME=/var/lib/nixdeploy` (git reads `~/.netrc`, not nix's
+   `netrc-file` setting) and the `actions/checkout` `extraheader` blanked, or
+   it silently reuses an expired cached ref while exiting 0. Both are now
+   pinned in the workflow, and `nup-fleet` fails on that warning instead of
+   shrugging.
+3. `nixos-rebuild-ng` evaluates **on the runner** — `nix-instantiate` runs
+   local, then `copy_closure` pushes to the build host — so `fwai0` needs no
+   credentials for `systems-secrets` and only realises the `.drv`.
+4. The new source is copied to the target and activated.
+
+For a rotation applied by hand (`nup-fleet <host>` from the workstation), step
+2 is instead `nix flake update systems-secrets` locally. Skip it and the host
+gets the OLD locked rev, which looks exactly like a failed rotation.
+
 ## Teardown — destroy the agent session that handled these values
 
 **Reminder to self, recorded here deliberately:** an agent cannot carry a
