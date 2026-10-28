@@ -97,8 +97,7 @@ in
     pull = "never";
     autoStart = true;
     cmd = [ "gateway" "run" ];
-    # Host networking so the guest nftables firewall is what gates 8642/9119
-    # (podman-published ports bypass it). Both bind 0.0.0.0 inside the guest.
+    # Host networking; ports bind 0.0.0.0, access gated by firewall + headscale ACLs.
     extraOptions = [ "--network=host" "--shm-size=2g" ];
     volumes = [
       "/var/lib/hermes:/opt/data"

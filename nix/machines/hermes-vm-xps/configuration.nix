@@ -48,9 +48,10 @@
 
   networking = {
     hostName = "hermes-vm-xps";
-    # Hermes ports are reachable over the tailnet only. With the container on the
-    # host network namespace, these firewall rules are what enforce that.
-    firewall.interfaces.tailscale0.allowedTCPPorts = [ 8642 9119 ];
+    # Tailnet access is gated by headscale ACLs, not nftables.
+    firewall.extraInputRules = ''
+      iifname tailscale0 accept
+    '';
   };
 
   users.users.rramirez = {
