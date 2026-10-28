@@ -48,6 +48,7 @@ in
     # comms
     discord # projects/gaming chat app
     element-desktop #matrix chat desktop client
+    iamb #matrix chat TUI client
     pkgs-unstable.signal-desktop # signal chat app
     slack # work chat app
 
