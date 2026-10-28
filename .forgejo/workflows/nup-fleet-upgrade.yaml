@@ -193,3 +193,43 @@ jobs:
             echo "- Flake dir: \`${{ github.workspace }}\`"
             echo "- Trigger: \`${{ github.event_name }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Post the run result to the Hermes agent webhook so the outcome lands in
+  # the Matrix Hermes room the moment the run finishes (no morning poll).
+  # The route validates an HMAC-SHA256 signature and forwards the message
+  # verbatim; see hermes `webhook list` route `matrix-notify`.
+  notify:
+    needs: [check-sops-secrets, upgrade]
+    if: always()
+    runs-on: nixos
+    timeout-minutes: 5
+    steps:
+      - name: Notify Hermes
+        env:
+          HERMES_WEBHOOK_URL: "${{ vars.HERMES_WEBHOOK_URL }}"
+          HERMES_WEBHOOK_SECRET: "${{ secrets.HERMES_WEBHOOK_SECRET }}"
+          CHECK_RESULT: ${{ needs.check-sops-secrets.result }}
+          UPGRADE_RESULT: ${{ needs.upgrade.result }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${HERMES_WEBHOOK_URL:-}" || -z "${HERMES_WEBHOOK_SECRET:-}" ]]; then
+            echo "HERMES_WEBHOOK_URL / HERMES_WEBHOOK_SECRET not configured; skipping notify." >&2
+            exit 0
+          fi
+          # Map job results to a single run status. A skipped upgrade (e.g.
+          # the sops precheck failed) is a failed nightly.
+          case "$UPGRADE_RESULT" in
+            success)   STATUS=success ;;
+            cancelled) STATUS=cancelled ;;
+            *)         STATUS=failure ;;
+          esac
+          BODY=$(printf '{"workflow":"nup-fleet-upgrade","status":"%s","run_number":%s,"event":"%s","url":"%s","check_sops":"%s"}' \
+            "$STATUS" "$RUN_NUMBER" "$EVENT_NAME" "$RUN_URL" "$CHECK_RESULT")
+          SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$HERMES_WEBHOOK_SECRET" -hex | awk '{print $NF}')
+          curl -fsS -m 15 -X POST "$HERMES_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: sha256=$SIG" \
+            -d "$BODY"
