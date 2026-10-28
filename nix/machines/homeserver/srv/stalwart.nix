@@ -1,4 +1,79 @@
-{ config, lib, pkgs, systems-secrets, ... }: {
+{ config, lib, pkgs, systems-secrets, ... }:
+
+let
+  # Settings that live in the Stalwart datastore (RocksDB), not in the
+  # generated config file. `services.stalwart.settings` only seeds an empty
+  # store, so anything changed in the WebUI after first boot must be carried
+  # here to survive a rebuild-from-scratch. `stalwart-cli apply` upserts are
+  # idempotent: re-applying converges without duplicating objects.
+  plan = [
+    # Tailnet devices are exempt from HTTP rate limits and auto-bans.
+    {
+      "@type" = "upsert";
+      object = "AllowedIp";
+      matchOn = [ "address" ];
+      value.tailnet = {
+        address = "100.64.0.0/10";
+        reason = "Tailscale tailnet: exempt devices from rate limits and auto-bans";
+      };
+    }
+
+    # Parents first: resolves #dom-rueb to the existing rueb.dev domain id.
+    {
+      "@type" = "upsert";
+      object = "Domain";
+      matchOn = [ "name" ];
+      value."dom-rueb" = { name = "rueb.dev"; };
+    }
+
+    # The hermes service account bypasses per-account request rate limits
+    # (rateLimitAuthenticated, IMAP rateLimit) so CalDAV/IMAP sweeps never 429.
+    # Merge keeps inherited permissions; only the grant is declared.
+    {
+      "@type" = "upsert";
+      object = "Account";
+      matchOn = [ "name" "domainId" ];
+      value.hermes = {
+        "@type" = "User";
+        name = "hermes";
+        domainId = "#dom-rueb";
+        permissions = {
+          "@type" = "Merge";
+          enabledPermissions = { unlimitedRequests = true; };
+        };
+      };
+    }
+
+    # Reject authenticated submissions whose From: mismatches the login.
+    {
+      "@type" = "upsert";
+      object = "SieveSystemScript";
+      matchOn = [ "name" ];
+      value."from-header-policy" = {
+        name = "from-header-policy";
+        isActive = true;
+        contents = ''
+          require ["variables", "envelope", "reject"];
+          if allof(not string :is "''${env.authenticated_as}" "",
+                   not address :all :comparator "i;ascii-casemap" :is "from" "''${envelope.from}") {
+            reject "550 5.7.1 The From header must match the address you authenticated as.";
+          }
+        '';
+      };
+    }
+
+    # Attach the system script to the SMTP DATA stage.
+    {
+      "@type" = "update";
+      object = "MtaStageData";
+      value.script = { "else" = "'from-header-policy'"; };
+    }
+  ];
+
+  planFile = pkgs.writeText "stalwart-plan.ndjson"
+    (lib.concatMapStringsSep "\n" builtins.toJSON plan + "\n");
+in
+{
   # SOPS Secrets
   sops.secrets = {
     smtp2go_username = {
@@ -12,6 +87,11 @@
       group = "stalwart-mail";
       owner = "stalwart-mail";
       restartUnits = [ "stalwart.service" ];
+    };
+    # Admin API key (WebUI: Account > Credentials > API Keys). Bearer token
+    # for stalwart-cli in the provisioning oneshot below.
+    stalwart-api-key = {
+      mode = "0400";
     };
   };
 
@@ -181,6 +261,37 @@
         directory = "internal";
       };
     };
+  };
+
+  # ---------------------------------------------------------------------------
+  # Declarative convergence of datastore-resident settings (Allowed IPs,
+  # system Sieve) via an idempotent stalwart-cli plan applied on boot.
+  # ---------------------------------------------------------------------------
+  systemd.services.stalwart-provision = {
+    description = "Apply declarative Stalwart configuration plan";
+    requires = [ "stalwart.service" ];
+    after = [ "stalwart.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+      LoadCredential = "token:${config.sops.secrets.stalwart-api-key.path}";
+    };
+    script = ''
+      set -euo pipefail
+      export STALWART_URL=http://127.0.0.1:8081
+      export STALWART_TOKEN="$(cat "$CREDENTIALS_DIRECTORY/token")"
+
+      # Wait for the management API to answer (any HTTP code counts).
+      for _ in $(seq 1 30); do
+        code=$(${pkgs.curl}/bin/curl -s -o /dev/null -w '%{http_code}' "$STALWART_URL" || true)
+        [ "$code" != "000" ] && break
+        sleep 2
+      done
+
+      ${pkgs.stalwart-cli}/bin/stalwart-cli apply --file ${planFile}
+      ${pkgs.stalwart-cli}/bin/stalwart-cli create Action/ReloadSettings
+    '';
   };
 
   # Mail protocols only, on the tailnet plus the forgejo docker bridge (587 for
