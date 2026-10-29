@@ -6,6 +6,9 @@ on:
     - cron: "30 8 * * *" # 03:30 America/Chicago (02:30 in winter)
   push:
     branches: [master] # merged PRs upgrade the fleet immediately
+    # this job commits flake.lock back to master; don't re-trigger on it
+    paths-ignore:
+      - flake.lock
   workflow_dispatch:
     inputs:
       machines:

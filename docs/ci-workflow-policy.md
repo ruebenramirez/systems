@@ -59,6 +59,16 @@ touch nothing else. That exception is file-scoped, not person-scoped: it applies
 to any identity with write access, which is why the push still needs a credential
 of its own rather than riding on the task token.
 
+## Not re-triggering the workflow from its own lockfile commit
+
+That push lands on `master`, which is also what starts the workflow, so every run
+would schedule the next one. The `push` trigger carries
+`paths-ignore: [flake.lock]`, which Forgejo matches against every path changed
+between the pre-push and post-push tip: a lock-only push starts no run, a merge
+that touches anything else still does. So `Persist updated flake.lock` must keep
+committing `flake.lock` alone, and a merged PR that changes only the lockfile is
+left to the nightly schedule.
+
 ## See also
 
 - [`docs/private-flake-input-credentials.md`](private-flake-input-credentials.md)
