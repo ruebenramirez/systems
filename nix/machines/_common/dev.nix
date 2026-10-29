@@ -14,7 +14,7 @@ in
     hugo
 
     # agentic dev workflow tools
-    aider-chat-full
+    pkgs-unstable.aider-chat-full
     ansible
     ansible-lint
     awscli2
@@ -24,8 +24,8 @@ in
     # claude-code
     # claude-monitor
     pkgs-unstable.ccusage
-    pkgs-unstable.codex
-    pkgs-unstable.goose-cli
+    # pkgs-unstable.codex
+    # pkgs-unstable.goose-cli
     opencode
   ];
 
