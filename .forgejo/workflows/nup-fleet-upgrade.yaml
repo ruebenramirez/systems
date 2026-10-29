@@ -106,8 +106,17 @@ jobs:
           dotfiles/bin/nup-fleet --upgrade ${requested[@]+"${requested[@]}"} 2>&1 \
             | tee "$RUN_LOG"
 
+      # master is protected; the Actions task token authenticates as the
+      # forgejo-actions pseudo-user (uid -2), which the protected-branch hook
+      # cannot resolve, so the push must go out as the ci bot instead. See
+      # docs/ci-workflow-policy.md.
       - name: Persist updated flake.lock
         if: ${{ success() && (github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.machines == '') }}
+        env:
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
+          GIT_PUSH_HEADER: "Authorization: token ${{ secrets.CI_FLAKELOCK_PUSH }}"
         run: |
           set -euo pipefail
           if git diff --quiet -- flake.lock; then
@@ -118,8 +127,11 @@ jobs:
           git config user.email "forgejo-ci-runner-vm@code.rueb.dev"
           git add flake.lock
           git commit -m "nix flake update (nup-fleet --upgrade via CI workflow)"
-          git pull --rebase origin "${{ github.ref_name }}"
-          git push origin "HEAD:refs/heads/${{ github.ref_name }}"
+          # -c outranks both the blanked checkout header and GIT_CONFIG_*
+          git -c "http.https://code.rueb.dev/.extraheader=$GIT_PUSH_HEADER" \
+            pull --rebase origin "${{ github.ref_name }}"
+          git -c "http.https://code.rueb.dev/.extraheader=$GIT_PUSH_HEADER" \
+            push origin "HEAD:refs/heads/${{ github.ref_name }}"
 
       - name: Summary
         if: always()

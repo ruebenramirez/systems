@@ -40,6 +40,25 @@ tailnet, installed and configured by
 that dies at 03:30 and is only visible to someone who opens the Actions UI is
 not monitoring. A run that is merely cancelled or skipped stays quiet.
 
+## Pushing to the protected `master` branch
+
+`master` is protected, and the workflow's automatic `GITHUB_TOKEN` cannot push to
+it. That token is an Actions *task* token, not a personal access token: it
+authenticates as the `forgejo-actions` system user (uid `-2`), which has no row
+in the user table. The protected-branch hook looks the pusher up by id before any
+whitelist or file-pattern exception is consulted, so every push of a protected
+ref with that token fails with `Forgejo: Internal Server Error` — there is no
+branch protection setting that makes it work. `actions/checkout` installs the
+token as a git `extraheader`, so the credential has to be overridden explicitly
+at push time; the `Persist updated flake.lock` step blanks that header and
+authenticates with the `CI_FLAKELOCK_PUSH` secret instead.
+
+The protection rule keeps `master` closed to direct pushes and lists `flake.lock`
+as an unprotected file pattern, so the only commits that reach it are ones that
+touch nothing else. That exception is file-scoped, not person-scoped: it applies
+to any identity with write access, which is why the push still needs a credential
+of its own rather than riding on the task token.
+
 ## See also
 
 - [`docs/private-flake-input-credentials.md`](private-flake-input-credentials.md)
