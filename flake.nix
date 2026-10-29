@@ -13,7 +13,6 @@
       inputs.nixpkgs.follows = "nixpkgs-unstable";
     };
 
-
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -302,5 +301,9 @@
           "forgejo-ci-runner-vm-incus-image" = mkIncusImage self.nixosConfigurations."forgejo-ci-runner-vm";
           "hermes-vm-xps-incus-image" = mkIncusImage self.nixosConfigurations."hermes-vm-xps";
         };
+
+      # `nix fmt` target: the formatter RFC 166 names as canonical. It has to be
+      # named `nixfmt`; `pkgs.formatter` is an unrelated GUI app.
+      formatter = forAllSystems (system: nixpkgsFor.${system}.nixfmt);
     };
 }

@@ -1,0 +1,113 @@
+# The workflow name and the job id below form the status-check context
+# `flake check (PR) / check (pull_request)`, which `master` requires as a branch
+# protection rule. Renaming either orphans that rule: the required context stops
+# reporting and no PR can merge until the rule is updated. See
+# docs/ci-workflow-policy.md.
+name: flake check (PR)
+run-name: "flake check: ${{ github.event.pull_request.title || github.ref_name }}"
+
+# Gate every PR before it can merge: nothing here deploys or activates anything,
+# it only proves the tree parses, the flake evaluates, and every configuration
+# still builds. `synchronize` is the event a new push to an open PR fires, so
+# pushing a fix re-runs the check by itself.
+on:
+  pull_request:
+    branches: [master]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+# A push to a PR that is still being checked makes the older run pointless.
+# Grouped per PR so concurrent PRs do not cancel each other, and deliberately
+# *not* the nightly's `nup-fleet` group: a PR check must never block a fleet
+# upgrade, or be blocked by one.
+concurrency:
+  group: flake-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Its id, `check`, is part of the required status-check context; see above.
+  check:
+    runs-on: nixos
+    # Evaluation and builds both run on fwai0; a PR that moves flake.lock really
+    # does rebuild the fleet's inputs there, which is what the timeout is for.
+    timeout-minutes: 120
+    steps:
+      - name: Check out the PR
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Preflight
+        env:
+          HOME: /var/lib/nixdeploy
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
+          BUILDER_HOSTNAME: "fwai0"
+        run: |
+          set -euo pipefail
+          echo "host: $(hostname)"
+          echo "user: $(whoami)"
+          for cmd in nix nix-instantiate nix-store jq ssh; do
+            command -v "$cmd" >/dev/null || { echo "$cmd not found on runner host" >&2; exit 1; }
+          done
+          test -x dotfiles/bin/nup-fleet \
+            || { echo "dotfiles/bin/nup-fleet not executable" >&2; exit 1; }
+          test -f flake.nix || { echo "no flake.nix in the checkout" >&2; exit 1; }
+          test "$(hostname)" != "$BUILDER_HOSTNAME" \
+            || { echo "refusing to run this job on the builder itself" >&2; exit 1; }
+          ssh -o BatchMode=yes -o ConnectTimeout=10 "$BUILDER_HOSTNAME" true \
+            || { echo "builder $BUILDER_HOSTNAME unreachable; nowhere to offload builds" >&2; exit 1; }
+          git ls-remote https://code.rueb.dev/rueb/systems-secrets.git HEAD >/dev/null \
+            || { echo "cannot reach systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
+
+      # Parse every .nix file locally, then ship the flake source and its inputs
+      # to fwai0 and do the evaluating and the building there. The runner never
+      # compiles or evaluates: see the `check` action in dotfiles/bin/nup-fleet.
+      - name: Check the flake
+        env:
+          FLAKE_DIR: ${{ github.workspace }}
+          BUILDER_HOSTNAME: "fwai0"
+          HOME: /var/lib/nixdeploy
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
+          CHECK_LOG: /var/lib/nixdeploy/flake-check-${{ github.run_id }}.log
+        run: |
+          set -euo pipefail
+          dotfiles/bin/nup-fleet --check 2>&1 | tee "$CHECK_LOG"
+
+      # A check that rewrites the tree it is checking is a bug, not a result:
+      # `nix` is told not to touch the lock file, this is the belt.
+      - name: Verify the checkout is untouched
+        run: |
+          set -euo pipefail
+          git diff --quiet -- flake.lock \
+            || { echo "flake.lock was rewritten by the check; it must be committed in the PR" >&2; exit 1; }
+
+      - name: Report
+        if: always()
+        env:
+          CHECK_LOG: /var/lib/nixdeploy/flake-check-${{ github.run_id }}.log
+        run: |
+          set -uo pipefail
+          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          {
+            echo "### flake check"
+            echo ""
+            echo "- Builder: \`fwai0\` (builds land there, nothing is deployed)"
+            echo "- PR: \`${{ github.event.pull_request.number || 'n/a' }}\`"
+            echo "- Trigger: \`${{ github.event_name }}\`"
+          } >> "$summary"
+          if [[ -r "$CHECK_LOG" ]]; then
+            # nix prints renamed/deprecated options as evaluation warnings:
+            # worth a look, never worth failing a PR over.
+            grep -oE 'evaluation warning: .*' "$CHECK_LOG" | sort -u \
+              | while IFS= read -r line; do echo "::warning::${line#'evaluation warning: '}"; done
+            {
+              echo '```'
+              grep -E '^(✓|✗|Failed builds)' "$CHECK_LOG" || echo "(the check did not report)"
+              echo '```'
+            } >> "$summary"
+          else
+            echo "- no check log (the job failed before the check started)" >> "$summary"
+          fi
+          rm -f "$CHECK_LOG"

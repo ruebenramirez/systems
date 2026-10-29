@@ -28,6 +28,100 @@ git ls-remote --tags https://github.com/actions/checkout | grep 'refs/tags/v4'
 If the tag is annotated, `refs/tags/vX.Y.Z^{}` holds the commit; the SHA to pin
 is the commit, not the tag object.
 
+## Pull request checks
+
+[`pr-check`](../.forgejo/workflows/pr-check.yaml) runs on every push to an open
+PR (`opened`, `synchronize`, `reopened`) against `master`, and nothing else. It
+validates; it never deploys, never activates, and never pushes.
+
+It runs `nup-fleet --check`, which stops at the first failing phase:
+
+1. **parse** (locally) — `nix-instantiate --parse` over every `.nix` file in the
+   tree, including ones no configuration imports (templates, unpackaged
+   derivations): evaluation only parses what it reaches. Under a second.
+2. **ship** (locally) — `nix copy` the flake source and every locked input to
+   `fwai0`. After a nightly there is nothing to send.
+3. **evaluate** (on `fwai0`) — `nix flake check --no-build`, which forces every
+   `nixosConfigurations` entry to its toplevel derivation and validates the shape
+   of every other flake output. This is where a mistyped option, a bad type or a
+   broken module surfaces. About 26s.
+4. **build** (on `fwai0`) — each configuration's toplevel realised there, results
+   left there. Seconds per host once the nightly has built them.
+
+About a minute end to end for the whole fleet. A PR that moves `flake.lock` is
+the case that really builds, and that is the case worth the `timeout-minutes`.
+
+### Required status check
+
+`master` is protected and requires this context:
+
+    flake check (PR) / check (pull_request)
+
+Forgejo builds it as `<workflow name> / <job id> (<event>)`, so renaming the
+workflow's `name:` or the `check` job id orphans the rule: the required context
+stops reporting and PRs stall instead of gating. Update the rule in the same
+change that renames either:
+
+```bash
+curl --netrc -X PATCH \
+  https://code.rueb.dev/api/v1/repos/rueb/systems/branch_protections/master \
+  -H 'Content-Type: application/json' \
+  -d '{"enable_status_check": true,
+       "status_check_contexts": ["flake check (PR) / check (pull_request)"]}'
+```
+
+Note the rule has `apply_to_admins: false`, so the repository owner can still
+merge a red PR; flip that flag in the same call if the gate should bind everyone.
+The `flake.lock` commit the nightly pushes is unaffected either way: it is exempt
+through `unprotected_file_patterns`.
+
+### Everything heavy runs on `fwai0`
+
+The runner is a 4-core VM with 3845 MB, and the first version of this check
+evaluated the fleet on it. A single `nix flake check --no-build` forces every
+configuration into one process and peaks near 3.5G; that `nix` is a child of
+`forgejo-runner.service`, so the OOM killer took the runner down with the job
+(`forgejo-ci-runner.service: Failed with result 'oom-kill'`) and everything else
+in flight with it. Evaluating one configuration per process does fit — 1.0–1.8G
+for the largest host — but costs a minute of wall clock and gives up the
+flake-output checks, so that is not what runs.
+
+The invoking host therefore only parses and copies paths; the evaluation and
+every build happen on the builder, which has 32 cores and 128G. Two things make
+that work:
+
+- The builder has to resolve the lock, so the flake source *and every input* are
+  copied with `nix copy`. That includes the private `systems-secrets` input, for
+  which the builder holds no credential: the invoking host fetches it with its own
+  netrc and ships it over. Inputs the builder already has are skipped, so the
+  common case copies nothing.
+- Anything sent over ssh goes as a script on stdin (`ssh host bash -s`), because
+  the builder's login shell is fish and would otherwise try to expand the
+  `${ ... }` of a Nix expression passed as an argument.
+
+`nix build --store ssh://fwai0 <drv>` looks like a shortcut for all of this and is
+not: it treats the `.drv` as a store path to *copy*, builds nothing, and exits 0
+— a gate built on it would pass unconditionally. Passing a flake installable to a
+remote `--store` fails outright (`getFSAccessor is not supported by an ssh
+store`), and `--eval-store` does not help: building through a non-local primary
+store needs the remote-builds machinery, which is what copies the closure back.
+
+The invoking host still needs the inputs in its own store, to resolve
+`nix flake metadata` and to copy them on; the nightly keeps them warm.
+
+### What the check does not cover
+
+- **sops secret existence.** `scripts/check-sops-secrets.sh` still runs in the
+  nightly before the deploy. A PR can add a `sops.secrets.<name>` that no host
+  has a key for and stay green until it merges.
+- **Formatting.** The flake publishes a `formatter`, so
+  `nix fmt -- --check $(git ls-files '*.nix')` works, but most of the tree
+  predates nixfmt and is not clean, so the check does not gate on it. New code
+  should follow the RFC 166 style nixfmt defines; a repo-wide `nix fmt` is a
+  commit of its own.
+- **forks.** The private `systems-secrets` input has to be fetchable, so a PR
+  from a fork without a credential for `code.rueb.dev` fails at the preflight.
+
 ## Nightly upgrade monitoring
 
 The [`nup-fleet-upgrade`](../.forgejo/workflows/nup-fleet-upgrade.yaml) workflow

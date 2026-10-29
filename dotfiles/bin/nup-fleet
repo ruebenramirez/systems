@@ -271,11 +271,183 @@ update_machine() {
     echo "✓ $hostname updated"
 }
 
+# ---------------------------------------------------------------------------
+# check -- validate the flake; deploys nothing and switches nothing
+#
+# Everything heavy runs on the builder. The runner is a 4-core VM with 3.7G of
+# RAM and evaluating the whole fleet in it peaked at 3.5G, which is more than it
+# has: that nix is a child of forgejo-runner.service, so the OOM killer took the
+# runner down with the job. Here the invoking host only parses and ships paths;
+# the evaluation and every build happen on the builder and stay there.
+# ---------------------------------------------------------------------------
+
+# Set by the `check` action: the ssh target that does the heavy work, empty when
+# this host is the builder.
+CHECK_HOST=""
+
+# Run a command where the heavy lifting belongs: here when this is the builder,
+# over ssh otherwise.
+on_builder() {
+    if [[ -n "$CHECK_HOST" ]]; then
+        ssh "$CHECK_HOST" "$@"
+    else
+        "$@"
+    fi
+}
+
+# Parse every Nix file in the tree, including ones no configuration imports.
+# Evaluation only parses what it reaches, so a syntax error in a template or in
+# an unpackaged derivation is invisible to it.
+check_parse() {
+    local -a files=()
+    mapfile -d '' files < <(
+        find "$FLAKE_DIR" \( -name .git -o -name .jj -o -name result \) -prune \
+            -o -name '*.nix' -print0 | sort -z
+    )
+    if [[ ${#files[@]} -eq 0 ]]; then
+        echo "error: no .nix files found under $FLAKE_DIR" >&2
+        return 1
+    fi
+    echo "Parsing ${#files[@]} Nix file(s)..."
+    if ! nix-instantiate --parse "${files[@]}" >/dev/null; then
+        echo "✗ Nix syntax errors (listed above)" >&2
+        return 1
+    fi
+    echo "✓ ${#files[@]} file(s) parse"
+}
+
+# The flake source nix would evaluate, as a store path: what gets shipped to the
+# builder so it can do the evaluating. `nix flake metadata` resolves the lock
+# without evaluating any output.
+check_source() {
+    nix flake metadata --json "$FLAKE_DIR" | jq -r .path
+}
+
+# Ship the flake source and every locked input to the builder so the evaluation
+# there resolves exactly what flake.lock names -- including the private
+# systems-secrets input, which the builder may hold no credential for: this host
+# fetches it with its own netrc and copies it over. `nix copy` is a no-op for
+# whatever the builder already has, which after a nightly is everything.
+check_ship() {
+    local src="$1"
+    [[ -n "$CHECK_HOST" ]] || return 0
+    local inputs line
+    if ! inputs="$(
+        nix eval --raw --impure \
+            --extra-experimental-features 'nix-command flakes' \
+            --expr "
+                let flake = builtins.getFlake \"$FLAKE_DIR\";
+                in builtins.concatStringsSep \"\\n\"
+                     (map (i: i.outPath) (builtins.attrValues flake.inputs))
+            "
+    )"; then
+        echo "✗ could not resolve the flake inputs to ship to $CHECK_HOST" >&2
+        return 1
+    fi
+    local -a paths=("$src")
+    while IFS= read -r line; do
+        [[ -n "$line" ]] && paths+=("$line")
+    done <<< "$inputs"
+    echo "Shipping the flake source and $(( ${#paths[@]} - 1 )) input(s) to $CHECK_HOST..."
+    nix copy --to "ssh://$CHECK_HOST" "${paths[@]}"
+}
+
+# `nix flake check --no-build` on the builder: forces every nixosConfigurations
+# entry to its toplevel derivation -- where a mistyped option, a bad type or a
+# broken module shows up -- and validates the shape of every other output,
+# without compiling anything. Measured 26s at 5G on fwai0.
+check_eval() {
+    local src="$1"
+    echo "Checking the flake evaluates on ${CHECK_HOST:-$(hostname)} (nothing is built)..."
+    if ! on_builder nix flake check --no-build --no-write-lock-file "$src"; then
+        echo "✗ the flake does not evaluate" >&2
+        return 1
+    fi
+    echo "✓ flake evaluates"
+}
+
+# Runs on the builder: prints "config<TAB>drvPath" for each name in its
+# arguments, one process for the whole list because every `nix eval` re-imports
+# nixpkgs. Sent as a script on stdin rather than as ssh arguments because the
+# builder's login shell is fish, which would try to expand the `${...}` in the
+# Nix expression.
+readonly CHECK_DRVS_SCRIPT='
+set -euo pipefail
+src="$1"
+shift
+list=""
+for name in "$@"; do
+    list="$list\"$name\" "
+done
+nix eval --raw --impure \
+    --extra-experimental-features "nix-command flakes" \
+    --expr "
+        let
+          flake = builtins.getFlake \"$src\";
+          one = name:
+            \"\${name}\\t\${flake.nixosConfigurations.\"\${name}\".config.system.build.toplevel.drvPath}\";
+        in builtins.concatStringsSep \"\\n\" (builtins.map one [ $list ])
+"
+'
+
+# Configuration -> .drv path, filled in by check_drvs and used by check_build.
+# The .drv lands in the builder's store as a side effect of evaluating there, so
+# the build phase has nothing to ship.
+declare -A DRV_OF=()
+
+check_drvs() {
+    local src="$1"
+    shift
+    local -a configs=("$@")
+    local out name drv
+    echo "Evaluating ${#configs[@]} configuration(s) on ${CHECK_HOST:-$(hostname)}..."
+    if ! out="$(on_builder bash -s -- "$src" "${configs[@]}" <<< "$CHECK_DRVS_SCRIPT")"; then
+        echo "✗ could not evaluate the toplevel derivations for: ${configs[*]}" >&2
+        return 1
+    fi
+    while IFS=$'\t' read -r name drv; do
+        [[ -n "$name" ]] && DRV_OF["$name"]="$drv"
+    done <<< "$out"
+    local -a missing=()
+    for name in "${configs[@]}"; do
+        [[ -n "${DRV_OF[$name]:-}" ]] || missing+=("$name")
+    done
+    if [[ ${#missing[@]} -gt 0 ]]; then
+        echo "✗ no derivation was evaluated for: ${missing[*]}" >&2
+        return 1
+    fi
+    echo "✓ ${#configs[@]} configuration(s) evaluate"
+}
+
+# Realise each configuration on the builder and leave the result there, so the
+# invoking host never compiles and no system closure is shipped back to it. The
+# build log streams over ssh and the builder's exit status is what gets reported.
+# A builder warmed by the nightly realises an unchanged configuration in about a
+# second.
+#
+# `nix build --store ssh://<host> <drv>` looks like the same thing and is not:
+# it treats the .drv as a store path to copy, builds nothing and exits 0.
+check_build() {
+    local -a configs=("$@")
+    local -a failed=() name
+    for name in "${configs[@]}"; do
+        echo "Building $name on ${CHECK_HOST:-$(hostname)}..."
+        on_builder nix-store --realise "${DRV_OF[$name]}" || failed+=("$name")
+    done
+    if [[ ${#failed[@]} -gt 0 ]]; then
+        echo
+        echo "Failed builds (${#failed[@]}): ${failed[*]}" >&2
+        return 1
+    fi
+    echo "✓ ${#configs[@]} configuration(s) build on ${CHECK_HOST:-$(hostname)}"
+}
+
 usage() {
     cat <<'USAGE'
 usage: nup-fleet [--upgrade|--update] [machine ...]
        nup-fleet --flake-update-only
        nup-fleet build [machine ...]
+       nup-fleet check [--no-build] [machine ...]
        nup-fleet --list
 
   --upgrade / --update   run `nix flake update` first, then deploy
@@ -288,6 +460,12 @@ usage: nup-fleet [--upgrade|--update] [machine ...]
                          for the whole-fleet run only -- a machine named on the
                          command line is deployed exactly as asked.
   build                  build configurations without deploying
+  check / --check        validate without deploying: parse every .nix file, then
+                         evaluate the flake and build each configuration on the
+                         builder, leaving the results there. Only the parse runs
+                         locally. Stops at the first phase that fails; EXCLUDE
+                         is not consulted.
+  --no-build             with check: stop after evaluation (fastest local check)
   --list                 print every accepted machine name and exit
 USAGE
 }
@@ -296,6 +474,7 @@ UPDATE=false
 FLAKE_ONLY=false
 LIST=false
 ACTION="deploy"
+CHECK_BUILD=true
 args=()
 for arg in "$@"; do
     case "$arg" in
@@ -303,7 +482,10 @@ for arg in "$@"; do
         --flake-update-only) UPDATE=true; FLAKE_ONLY=true ;;
         --list)             LIST=true ;;
         -h|--help)          usage; exit 0 ;;
+        --check)            ACTION=check ;;
+        --no-build)         CHECK_BUILD=false ;;
         build)              ACTION=build ;;
+        check)              ACTION=check ;;
         all)                ACTION=deploy ;;
         *)                  args+=("$arg") ;;
     esac
@@ -373,6 +555,34 @@ fi
 cd "$HOME"
 
 case "$ACTION" in
+    "check")
+        CHECK_HOST=""
+        [[ "$IS_BUILDER" == "true" ]] || CHECK_HOST="$(ssh_target "$BUILDER_HOSTNAME")"
+        # A fleet entry is "host" or "host:config"; the flake-derived fleet has
+        # no colon, in which case the host name is the configuration name.
+        CHECK_CONFIGS=()
+        for target in "${TARGETS[@]}"; do
+            IFS=':' read -r hostname config <<< "$target"
+            CHECK_CONFIGS+=("${config:-$hostname}")
+        done
+        # Each phase is a superset of the previous one's work, so stop at the
+        # first failure instead of shipping and evaluating a tree that does not
+        # even parse.
+        check_parse || exit 1
+        CHECK_SRC="$(check_source)"
+        if [[ -z "$CHECK_SRC" ]]; then
+            echo "error: could not resolve the flake source of $FLAKE_DIR" >&2
+            exit 1
+        fi
+        check_ship "$CHECK_SRC" || exit 1
+        check_eval "$CHECK_SRC" || exit 1
+        check_drvs "$CHECK_SRC" "${CHECK_CONFIGS[@]}" || exit 1
+        if [[ "$CHECK_BUILD" == "true" ]]; then
+            check_build "${CHECK_CONFIGS[@]}"
+        else
+            echo "Skipping the build phase (--no-build)."
+        fi
+        ;;
     "build")
         # Build-only action (no deploy). Offload to the builder if we are not
         # already running on it.

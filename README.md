@@ -51,6 +51,8 @@ nup-fleet                        # rebuild + switch every machine in the fleet
 nup-fleet driver                 # one machine, by flake config name
 nup-fleet xps17 dev-vm-xps       # several machines, in order
 nup-fleet build                  # build all configs locally only (no deploy)
+nup-fleet check                  # parse, evaluate and build everything; deploy nothing
+nup-fleet check --no-build xps17 # parse and evaluate one config; build nothing
 nup-fleet --upgrade              # run `nix flake update` first, then deploy all
 nup-fleet --upgrade xps17        # flake update + one machine
 nup-fleet --flake-update-only    # just move flake.lock; build and deploy nothing
@@ -74,6 +76,14 @@ All compilation is offloaded to `fwai0` via `nixos-rebuild --build-host`;
 the invoking host only evaluates the flake. There is no silent fallback: if
 `fwai0` is unreachable the rebuild fails rather than compiling locally. Set
 `ALLOW_LOCAL_BUILD=true` only to deliberately build on an underpowered host.
+
+`nup-fleet check` is the same offloading without the deploy: it parses every
+`.nix` file locally, ships the flake source and its locked inputs to `fwai0`, and
+does the evaluating and the building there -- `nix flake check --no-build`, then
+one `toplevel` realise per host, results left on the builder. Nothing heavy runs
+on the invoking host: evaluating the whole fleet in one process peaks at ~3.5G,
+which is more than the CI runner has. It stops at the first phase that fails, and
+`--no-build` stops after evaluation.
 
 `nup-fleet --upgrade` needs a git credential for the private `systems-secrets`
 input; `scripts/setup-forgejo-netrc.sh` installs one. Deploying without
@@ -123,6 +133,22 @@ and imported by every machine:
 Rotating the deploy key means regenerating the pair, updating the literal
 in `nix-deploy-user.nix`, and adding the private key to the
 `systems-secrets` `forgejo-ci-runner-vm.yaml` file.
+
+### Pull request checks
+
+[`pr-check`](.forgejo/workflows/pr-check.yaml) runs `nup-fleet --check` on every
+push to an open PR against `master` (`opened`, `synchronize`, `reopened`), so a
+PR that does not parse, does not evaluate, or does not build is red before it
+merges. Nothing is deployed and nothing is pushed back.
+
+Evaluation and every build happen on `fwai0` and stay there; the runner only
+parses files and copies paths, so it neither compiles a system closure nor holds
+a fleet's worth of evaluation in RAM. A warm run takes about a minute. A new push
+cancels the run still in flight for that PR.
+
+It does not replace the nightly's sops preflight: a PR can still declare a
+`sops.secrets.<name>` that no host has a key for. See
+[CI workflow policy](docs/ci-workflow-policy.md).
 
 ### Secrets preflight
 
