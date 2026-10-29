@@ -14,7 +14,7 @@ in
     hugo
 
     # agentic dev workflow tools
-    pkgs-unstable.aider-chat-full
+    aider-chat-full
     ansible
     ansible-lint
     awscli2
