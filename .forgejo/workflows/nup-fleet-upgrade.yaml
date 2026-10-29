@@ -4,6 +4,8 @@ run-name: "nup-fleet upgrade (${{ github.event.inputs.machines || 'whole fleet' 
 on:
   schedule:
     - cron: "30 8 * * *" # 03:30 America/Chicago (02:30 in winter)
+  push:
+    branches: [master] # merged PRs (and direct pushes) upgrade the fleet immediately
   workflow_dispatch:
     inputs:
       machines:
@@ -129,7 +131,7 @@ jobs:
             | tee "$RUN_LOG"
 
       - name: Persist updated flake.lock
-        if: ${{ success() && (github.event_name == 'schedule' || github.event.inputs.machines == '') }}
+        if: ${{ success() && (github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.machines == '') }}
         run: |
           set -euo pipefail
           if git diff --quiet -- flake.lock; then
