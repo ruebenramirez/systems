@@ -8,8 +8,8 @@
     ../_common/services/kubernetes.nix
     ./services/forgejo-runner.nix
     ./services/nup-fleet-access.nix
-    # The runner is itself a `MACHINES` entry, so it must trust its own
-    # fleet deploy key to update itself as part of `nup-fleet all`.
+    ./services/ci-alert-mail.nix
+    # the runner is a fleet member too, so it must trust its own deploy key
     ../_common/nix-deploy-user.nix
   ];
 

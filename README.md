@@ -88,6 +88,9 @@ The workflow has two jobs:
    `NUP_FLEET_EXCLUDE`) so activating the new config cannot restart the
    runner and kill the job; that VM is updated manually.
 
+Either job failing mails `r3v2@rueb.dev` with the per-machine results and the
+tail of the run (see [CI workflow policy](docs/ci-workflow-policy.md)).
+
 Host-mode jobs run as the dedicated **`nixdeploy`** user, defined once in
 [`nix/machines/_common/nix-deploy-user.nix`](nix/machines/_common/nix-deploy-user.nix)
 and imported by every machine:
@@ -143,3 +146,4 @@ available and otherwise the encrypted file's cleartext key names are used.
 - [Host addressing](docs/host-addressing.md)
 - [Tailnet exit node](docs/tailnet-exit-node.md)
 - [System flake activity chart](docs/system-flake-activity.md)
+- [CI workflow policy](docs/ci-workflow-policy.md)

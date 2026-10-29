@@ -1,33 +1,9 @@
-# Nightly fleet upgrade: `nup-fleet --upgrade`.
-#
-# Runs on the Forgejo runner VM *host* (the `nixos` self-hosted label, which
-# is a host-mode label -- no docker:// scheme), because `nup-fleet` needs:
-#   * nix + nixos-rebuild
-#   * SSH access to every machine in MACHINES, including the builder
-#   * passwordless sudo on the targets
-#   * a writable flake checkout for `nix flake update`
-#
-# All compilation is offloaded to `fwai0` via `nixos-rebuild --build-host`;
-# the runner only evaluates the flake. The preflight refuses to run if the
-# builder is unreachable, so a failed builder can never turn into a build on
-# the small runner VM.
-#
-# Host-mode jobs run as the dedicated `nixdeploy` user on
-# forgejo-ci-runner-vm (see `_common/nix-deploy-user.nix`). That user holds
-# a fleet deploy key (sops secret `forgejo_runner_ssh_key`) whose public
-# half every machine trusts, plus an `/etc/ssh/ssh_config` mapping the fleet
-# names to their MagicDNS FQDNs. `nixdeploy` is a nix `trusted-user` on
-# every target so `nix copy` can push unsigned closures.
-#
-# Forgejo evaluates schedules in UTC. The job is meant to fire at 03:30
-# America/Chicago, which is 09:30 UTC during CST and 08:30 UTC during CDT.
-# This workflow uses 09:30 UTC (03:30 CST). During daylight saving it runs
-# at 04:30 CDT. Adjust to `30 8 * * *` if you prefer 03:30 CDT year-round.
 name: nup-fleet upgrade
+run-name: "nup-fleet upgrade (${{ github.event.inputs.machines || 'whole fleet' }})"
 
 on:
   schedule:
-    - cron: "30 9 * * *" # 03:30 America/Chicago (CST); 04:30 during CDT
+    - cron: "30 8 * * *" # 03:30 America/Chicago (02:30 in winter)
   workflow_dispatch:
     inputs:
       machines:
@@ -36,137 +12,123 @@ on:
         default: ""
 
 concurrency:
-  # Never let a nightly run overlap with a manual one.
   group: nup-fleet
   cancel-in-progress: false
 
 jobs:
-  # Fail fast if a NixOS config declares a sops secret that has no matching
-  # key in the external `systems-secrets` repo. This is exactly the class of
-  # error that otherwise only surfaces as a `manifest.json` build failure
-  # during the nightly deploy (`sops-install-secrets: ... the key '<name>'
-  # cannot be found`). Runs before the upgrade so a bad config never reaches
-  # the fleet.
   check-sops-secrets:
     runs-on: nixos
     timeout-minutes: 30
     steps:
       - name: Check out the flake
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Check declared sops secrets exist
-        # The script resolves `systems-secrets` from the revision the flake
-        # locks to (the repo is anonymously readable), so no separate
-        # checkout or cross-repo token is needed. Only encrypted YAML is
-        # read: secret *names* are cleartext in the sops file, so no age key
-        # is required (the script decrypts when possible and otherwise
-        # parses the encrypted file).
+        env:
+          HOME: /var/lib/nixdeploy
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
         run: scripts/check-sops-secrets.sh
+
+      - name: Email failure report
+        if: failure()
+        env:
+          RECIPIENT: "r3v2@rueb.dev"
+          JOB: "check-sops-secrets"
+          WORKFLOW: ${{ github.workflow }}
+          TRIGGER: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          if ! command -v msmtp >/dev/null 2>&1; then
+            echo "::warning title=Alert mail not sent::msmtp is not on PATH on $(hostname); see ci-alert-mail.nix"
+            exit 0
+          fi
+          {
+            printf 'From: root@rueb.dev\n'
+            printf 'To: %s\n' "$RECIPIENT"
+            printf 'Subject: [CI FAIL] %s / %s (%s) on %s\n' \
+              "${GITHUB_REPOSITORY:-systems}" "$JOB" "$TRIGGER" "$(hostname)"
+            printf 'Date: %s\n' "$(date -R)"
+            printf 'Content-Type: text/plain; charset=utf-8\n\n'
+            printf 'Workflow: %s\n' "$WORKFLOW"
+            printf 'Job:      %s\n' "$JOB"
+            printf 'Trigger:  %s\n' "$TRIGGER"
+            printf 'Actor:    %s\n' "$ACTOR"
+            printf 'Branch:   %s @ %s\n' "$BRANCH" "$SHA"
+            printf 'Run:      %s\n' "$RUN_URL"
+          } | msmtp "$RECIPIENT" \
+            || echo "::warning title=Alert mail not sent::msmtp could not submit to the mail server"
 
   upgrade:
     needs: check-sops-secrets
     runs-on: nixos
-    timeout-minutes: 240
+    timeout-minutes: 600
     steps:
       - name: Check out the flake
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          # nup-fleet runs `nix flake update`, which rewrites flake.lock.
-          # Keep the token so we can persist the lockfile afterwards.
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - name: Preflight
         env:
-          # See "Upgrade the fleet" below: both explain why a plain git fetch of
-          # systems-secrets fails from inside the workspace, and this step needs
-          # the same treatment to be a truthful check.
           HOME: /var/lib/nixdeploy
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
           GIT_CONFIG_VALUE_0: ""
+          MACHINES: ${{ github.event.inputs.machines }}
         run: |
           set -euo pipefail
           echo "host: $(hostname)"
           echo "user: $(whoami)"
           command -v nix || { echo "nix not found on runner host" >&2; exit 1; }
           command -v nixos-rebuild || { echo "nixos-rebuild not found on runner host" >&2; exit 1; }
-          # nup-fleet lives in the dotfiles repo, not on the system PATH;
-          # the job runs the checked-out copy below.
           test -x dotfiles/bin/nup-fleet \
             || { echo "dotfiles/bin/nup-fleet not executable" >&2; exit 1; }
+          read -r -a requested <<< "${MACHINES:-}"
+          if [[ ${#requested[@]} -gt 0 ]]; then
+            known="$(dotfiles/bin/nup-fleet --list)"
+            for m in "${requested[@]}"; do
+              grep -qxF "$m" <<<"$known" && continue
+              echo "unknown machine '$m'; refusing to start" >&2
+              echo "available: $(tr '\n' ' ' <<<"$known")" >&2
+              exit 1
+            done
+          fi
           test -r /run/secrets/forgejo_runner_ssh_key \
             || { echo "fleet deploy key not readable" >&2; exit 1; }
           ssh -G fwai0 | grep -q 'identityfile /run/secrets/forgejo_runner_ssh_key' \
             || { echo "fleet ssh config missing fwai0 deploy key" >&2; exit 1; }
-          # Builds must run on fwai0, never on this small VM. Verify the
-          # builder is actually reachable as nixdeploy before deploying.
           test "$(hostname)" != "fwai0" \
-            || { echo "refusing to run the nightly job on the builder itself" >&2; exit 1; }
+            || { echo "refusing to run this job on the builder itself" >&2; exit 1; }
           ssh -o BatchMode=yes -o ConnectTimeout=10 fwai0 true \
             || { echo "builder fwai0 unreachable; refusing to build locally" >&2; exit 1; }
-          # Positive check that the private `systems-secrets` flake input is
-          # reachable over git from THIS environment. `nix flake update` does
-          # not fail when it cannot fetch it -- it warns and silently reuses an
-          # expired cached ref, so the fleet gets rebuilt against stale secret
-          # material while the job reports success. nup-fleet now also fails on
-          # that warning, but catching it here names the cause up front.
-          #
-          # Two independent things have to be right for this to pass, and both
-          # are set in this step's `env`:
-          #   * HOME must be the deploy home, because git's credential lookup
-          #     uses ~/.netrc (NOT nix's netrc-file setting, which only covers
-          #     Nix's own libcurl fetches). Host-mode jobs default HOME to the
-          #     act workspace, where the symlink does not live.
-          #   * actions/checkout leaves an http.https://code.rueb.dev/.extraheader
-          #     (GITHUB_TOKEN basic auth) in the workspace repo's LOCAL config.
-          #     Any git fetch to code.rueb.dev made from inside the workspace
-          #     inherits it, it wins over the netrc, and Forgejo rejects it for
-          #     systems-secrets with 403 "User permission denied". The
-          #     GIT_CONFIG_* override blanks it for this process tree only.
           git ls-remote https://code.rueb.dev/rueb/systems-secrets.git HEAD >/dev/null \
-            || { echo "cannot authenticate to systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
+            || { echo "cannot reach systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
 
       - name: Upgrade the fleet
         env:
           FLAKE_DIR: ${{ github.workspace }}
-          # Never switch the host this job runs on: activating a new
-          # configuration restarts forgejo-ci-runner.service, which would
-          # kill the job mid-deploy. The runner VM is updated separately.
           EXCLUDE: "${{ vars.NUP_FLEET_EXCLUDE || 'forgejo-ci-runner-vm' }}"
-          # Belt-and-braces: never fall back to compiling on the runner.
           BUILDER_HOSTNAME: "fwai0"
-          # Host-mode jobs get HOME set to the act workspace, so the deploy
-          # user's ~/.netrc symlink is invisible and nix cannot fetch the
-          # private systems-secrets input. Pin it to the real deploy home
-          # (see nix/machines/forgejo-ci-runner-vm/services/nup-fleet-access.nix,
-          # which symlinks .netrc into that directory).
           HOME: /var/lib/nixdeploy
-          # Blank the extraheader actions/checkout left in the workspace repo's
-          # local config, for this step only. Without it every git fetch of
-          # systems-secrets from inside the workspace authenticates as the CI
-          # token and is refused (403), and `nix flake update` then falls back
-          # to an expired cached ref while exiting 0. Deliberately NOT set on
-          # "Persist updated flake.lock", which needs that header to push.
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
           GIT_CONFIG_VALUE_0: ""
+          MACHINES: ${{ github.event.inputs.machines }}
+          RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
         run: |
           set -euo pipefail
-          # nup-fleet intentionally `cd`s around; invoke the repo copy so we
-          # test exactly what was merged rather than a stale ~/bin/nup-fleet.
-          chmod +x dotfiles/bin/nup-fleet
-          machines="${{ github.event.inputs.machines }}"
-          if [[ -n "$machines" ]]; then
-            # shellcheck disable=SC2086
-            dotfiles/bin/nup-fleet --upgrade $machines
-          else
-            dotfiles/bin/nup-fleet --upgrade
-          fi
+          read -r -a requested <<< "${MACHINES:-}"
+          dotfiles/bin/nup-fleet --upgrade ${requested[@]+"${requested[@]}"} 2>&1 \
+            | tee "$RUN_LOG"
 
       - name: Persist updated flake.lock
-        # Only on failure-free runs, and never on a manual single-machine
-        # run (the input is not an upgrade of the whole fleet).
         if: ${{ success() && (github.event_name == 'schedule' || github.event.inputs.machines == '') }}
         run: |
           set -euo pipefail
@@ -177,15 +139,59 @@ jobs:
           git config user.name  "forgejo-ci-runner-vm"
           git config user.email "forgejo-ci-runner-vm@code.rueb.dev"
           git add flake.lock
-          git commit -m "nix flake update (nightly nup-fleet --upgrade)"
-          # Rebase onto the latest tip in case another push landed while the
-          # fleet was building (the job can run for hours).
+          git commit -m "nix flake update (nup-fleet --upgrade via CI workflow)"
           git pull --rebase origin "${{ github.ref_name }}"
-          git push origin "HEAD:${{ github.ref_name }}"
+          git push origin "HEAD:refs/heads/${{ github.ref_name }}"
+
+      - name: Email failure report
+        if: failure()
+        env:
+          RECIPIENT: "r3v2@rueb.dev"
+          JOB: "upgrade"
+          WORKFLOW: ${{ github.workflow }}
+          TRIGGER: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          REQUESTED: ${{ github.event.inputs.machines }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
+        run: |
+          set -uo pipefail
+          if ! command -v msmtp >/dev/null 2>&1; then
+            echo "::warning title=Alert mail not sent::msmtp is not on PATH on $(hostname); see ci-alert-mail.nix"
+            exit 0
+          fi
+          {
+            printf 'From: root@rueb.dev\n'
+            printf 'To: %s\n' "$RECIPIENT"
+            printf 'Subject: [CI FAIL] %s / %s (%s) on %s\n' \
+              "${GITHUB_REPOSITORY:-systems}" "$JOB" "$TRIGGER" "$(hostname)"
+            printf 'Date: %s\n' "$(date -R)"
+            printf 'Content-Type: text/plain; charset=utf-8\n\n'
+            printf 'Workflow:  %s\n' "$WORKFLOW"
+            printf 'Job:       %s\n' "$JOB"
+            printf 'Trigger:   %s\n' "$TRIGGER"
+            printf 'Actor:     %s\n' "$ACTOR"
+            printf 'Branch:    %s @ %s\n' "$BRANCH" "$SHA"
+            printf 'Machines:  %s\n' "${REQUESTED:-whole fleet}"
+            printf 'Run:       %s\n' "$RUN_URL"
+            printf 'Host:      %s\n' "$(hostname)"
+            if [[ -r "$RUN_LOG" ]]; then
+              printf '\n--- per-machine results ---\n'
+              grep -E '^(✓|✗|Skipping|Failed machines|All [0-9]+ machine)' "$RUN_LOG" \
+                || printf '(no per-machine lines found)\n'
+              printf '\n--- last 120 lines ---\n'
+              tail -n 120 "$RUN_LOG"
+            fi
+          } | msmtp "$RECIPIENT" \
+            || echo "::warning title=Alert mail not sent::msmtp could not submit to the mail server"
 
       - name: Summary
         if: always()
         run: |
+          set -uo pipefail
+          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
           {
             echo "### nup-fleet upgrade"
             echo ""
