@@ -6,6 +6,10 @@
   systemd.services."wg-quick@wg1" = {
     wants = [ "sops-nix.service" ];
     after = [ "sops-nix.service" ];
+    # A long-lived wg1 left over from a previous activation makes `wg-quick up`
+    # fail with "`wg1' already exists", which fails the whole switch. Delete the
+    # stale interface first; wg-quick recreates it from the config.
+    serviceConfig.ExecStartPre = [ "-${pkgs.iproute2}/bin/ip link del wg1" ];
   };
 
   networking.wg-quick.interfaces.wg1 = {
