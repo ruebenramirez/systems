@@ -94,9 +94,8 @@ The workflow has two jobs:
    fails if a host declares a `sops.secrets.<name>` that has no matching key
    in the `systems-secrets` repo -- the error that would otherwise only
    appear as a `manifest.json` build failure during the deploy. It reads the
-   `systems-secrets` revision the flake already locks to (anonymously
-   readable), so it needs no extra checkout or credentials, and no age key
-   (secret names are cleartext in the sops file).
+   `systems-secrets` revision the flake already locks to, so it needs no extra
+   checkout, and no age key (secret names are cleartext in the sops file).
 2. **`upgrade`** runs `nup-fleet --upgrade`, then commits and pushes the
    updated `flake.lock` back to the branch. It excludes
    `forgejo-ci-runner-vm` (override with the repo variable
@@ -137,8 +136,9 @@ scripts/check-sops-secrets.sh driver     # a subset
 ```
 
 It resolves `systems-secrets` from the revision the flake locks to, so no
-extra checkout is needed; decrypting is attempted when an age key is
-available and otherwise the encrypted file's cleartext key names are used.
+extra checkout is needed. Findings are split into blocking errors (the deploy
+does not run) and hygiene warnings (dead credentials worth rotating). See
+[sops secrets check](docs/sops-secrets-check.md).
 
 ### Machines
 
@@ -162,4 +162,5 @@ available and otherwise the encrypted file's cleartext key names are used.
 - [Tailnet exit node](docs/tailnet-exit-node.md)
 - [System flake activity chart](docs/system-flake-activity.md)
 - [Private flake input credentials](docs/private-flake-input-credentials.md)
+- [sops secrets check](docs/sops-secrets-check.md)
 - [CI workflow policy](docs/ci-workflow-policy.md)

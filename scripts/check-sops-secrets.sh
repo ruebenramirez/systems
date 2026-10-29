@@ -1,50 +1,56 @@
 #!/usr/bin/env bash
 #
-# check-sops-secrets.sh -- catch Nix-declared sops secrets that have no
-# matching key in the external `systems-secrets` repo.
+# check-sops-secrets.sh -- catch `sops.secrets.<name>` declarations in Nix that
+# have no matching key in the systems-secrets repo. sops-install-secrets only
+# checks this at build time, so a deploy breaks on a far-away host; this surfaces
+# it up front.
 #
-# `sops-install-secrets` only validates this at *build/deploy* time (it
-# fails the `manifest.json` derivation), which is exactly how a deploy can
-# break on a machine far from where the config change was made. This script
-# surfaces the same error up front.
+# Usage: scripts/check-sops-secrets.sh [host ...]   # default: every host
+# Requires: nix, sops, jq. An age key decrypts the secrets file when present;
+# otherwise the cleartext key names of the encrypted file are used.
 #
-# For each target host it:
-#   1. Evaluates the NixOS config and extracts every `sops.secrets.<name>`
-#      attribute that sops-nix will try to install.
-#   2. Decrypts `systems-secrets/secrets/<host>.yaml` (using SOPS_AGE_KEY_FILE
-#      or the configured age key) and lists its top-level keys.
-#   3. Reports any declared secret missing from the secrets file.
-#
-# Usage:
-#   scripts/check-sops-secrets.sh [host ...]     # default: all hosts with a secrets file
-#
-# Requires: nix, sops, jq. The age key that can decrypt the secrets file must
-# be available (SOPS_AGE_KEY_FILE, ~/.config/sops/age/keys.txt, or ssh keys).
+# Exit: 1 = a deploy would fail (blocks); 0 = hygiene warnings only.
 
 set -euo pipefail
 
+err() {
+  echo "FAIL  $*" >&2
+  echo "::error::$*"
+}
+
+warn() {
+  echo "WARN  $*"
+  echo "::warning::$*"
+}
+
 FLAKE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Everything below shells out to `nix eval`. Check for it explicitly: the
-# SECRETS_DIR probe below swallows nix's stderr, so on a host with no nix it
-# silently falls through to the workstation-only sibling path and reports
-# "secrets repo not found at <path>" -- a misleading error that cost three
-# nightly CI runs before anyone could see the real cause.
 if ! command -v nix >/dev/null 2>&1; then
   echo "error: nix is not on PATH; this script must evaluate the flake to find" >&2
   echo "       the systems-secrets revision it locks to." >&2
   exit 3
 fi
 
-# Prefer the `systems-secrets` revision the flake actually locks to. The
-# repo is publicly readable, so Nix fetches it anonymously into the store --
-# no cross-repo credentials and no separate checkout required.
+# Private input, fetched over git: needs ~/.netrc, not nix's netrc-file.
 if [[ -z "${SECRETS_DIR:-}" ]]; then
-  SECRETS_DIR="$(
-    nix eval --raw --impure --expr \
-      "builtins.toString (builtins.getFlake \"$FLAKE_DIR\").inputs.systems-secrets.outPath" \
-      2>/dev/null || true
-  )"
+  nix_fetch_err="$(mktemp)"
+  if ! SECRETS_DIR="$(
+    nix eval --raw --impure \
+      --extra-experimental-features 'nix-command flakes' \
+      --expr \
+        "builtins.toString (builtins.getFlake \"$FLAKE_DIR\").inputs.systems-secrets.outPath" \
+      2>"$nix_fetch_err"
+  )"; then
+    echo "error: could not fetch the systems-secrets flake input from $FLAKE_DIR" >&2
+    echo "       that repo is private and is fetched with git credentials: the" >&2
+    echo "       invoking user's ~/.netrc (so HOME must be the deploy home), not" >&2
+    echo "       nix's netrc-file setting." >&2
+    echo "       nix said:" >&2
+    sed 's/^/         /' "$nix_fetch_err" >&2
+    rm -f "$nix_fetch_err"
+    exit 2
+  fi
+  rm -f "$nix_fetch_err"
 fi
 SECRETS_DIR="${SECRETS_DIR:-$FLAKE_DIR/../systems-secrets}"
 
@@ -54,9 +60,8 @@ if [[ ! -d "$SECRETS_DIR/secrets" ]]; then
   exit 2
 fi
 
-# Hosts come from the flake's `nixosConfigurations`, not from the secrets
-# directory: a file with no matching config (e.g. a retired host) has
-# nothing to validate.
+# Hosts come from nixosConfigurations, not the secrets directory: a file with
+# no matching config has nothing to validate.
 mapfile -t config_hosts < <(
   nix eval --raw --impure --expr "
     let flake = builtins.getFlake \"$FLAKE_DIR\";
@@ -70,9 +75,8 @@ else
   hosts=("${config_hosts[@]}")
 fi
 
-# Every (secrets-file-basename, key) pair declared anywhere in the flake. Used
-# twice: to tell a shared secrets file apart from a retired one, and by the
-# reverse orphan scan at the end.
+# Every (secrets-file, key) pair declared in the flake: used to tell a shared
+# secrets file from a retired one, and by the orphan scan below.
 if ! referenced="$(
   nix eval --raw --impure --expr "
     let
@@ -94,21 +98,20 @@ if ! referenced="$(
     in builtins.concatStringsSep \"\\n\" (builtins.concatMap pairs cfgNames)
   " 2>/dev/null || true
 )"; then
-  echo "FAIL  could not enumerate declared sops secrets" >&2
+  err "could not enumerate declared sops secrets"
   exit 1
 fi
 
-# Warn about secrets files that back neither a config nor any declaration.
-# A file with no matching host is only suspicious if nothing references it: a
-# deliberately shared file (e.g. cloudflare-dns-management.yaml) is consumed by
-# several hosts through an explicit `sopsFile`.
+# A secrets file with no host config is only suspicious if nothing references
+# it: shared files (e.g. cloudflare-dns-management.yaml) are pulled in through
+# an explicit `sopsFile`.
 for f in "$SECRETS_DIR"/secrets/*.yaml; do
   h="$(basename "$f" .yaml)"
   if ! printf '%s\n' "${config_hosts[@]}" | grep -qxF "$h"; then
     if printf '%s\n' "$referenced" | cut -f1 | grep -qxF "$h.yaml"; then
       echo "SHARED  $h.yaml: no host config of that name, but referenced by a sopsFile declaration"
     else
-      echo "NOTE    $h: secrets file present but no nixosConfigurations entry and nothing references it"
+      warn "$h: secrets file present but no nixosConfigurations entry and nothing references it"
     fi
   fi
 done
@@ -117,9 +120,8 @@ fail=0
 for host in "${hosts[@]}"; do
   secrets_file="$SECRETS_DIR/secrets/$host.yaml"
   if [[ ! -f "$secrets_file" ]]; then
-    # A config with no secrets file is fine only if it declares no secrets.
-    # Determine that here instead of blindly skipping, so a new machine that
-    # declares secrets but has no secrets file yet is caught up front.
+    # No secrets file is fine only if nothing is declared; check rather than
+    # skip so a new host declaring secrets without a file is caught.
     declared="$(
       nix eval --raw --impure --expr "
         let
@@ -131,7 +133,7 @@ for host in "${hosts[@]}"; do
       " 2>/dev/null || true
     )"
     if [[ -n "$declared" ]]; then
-      echo "FAIL  $host: declares sops secrets but has no secrets file ($(basename "$secrets_file"))" >&2
+      err "$host: declares sops secrets but has no secrets file ($(basename "$secrets_file"))"
       printf '        - %s\n' $declared >&2
       fail=1
     else
@@ -140,12 +142,9 @@ for host in "${hosts[@]}"; do
     continue
   fi
 
-  # Secrets declared in Nix that resolve to THIS host's default secrets file
-  # (`sops.defaultSopsFile`). Secrets that set an explicit `sopsFile` (e.g.
-  # a shared file, or a different host's file) are excluded -- they are
-  # validated against their own file, not this one.
-  # A failure here is fatal: a config that cannot evaluate must not be
-  # mistaken for a config that declares no secrets.
+  # Only secrets resolving to this host's defaultSopsFile; an explicit
+  # `sopsFile` is validated against its own file. An eval failure is fatal --
+  # a config that won't evaluate must not read as "declares nothing".
   if ! declared="$(
     nix eval --raw --impure --expr "
       let
@@ -161,21 +160,14 @@ for host in "${hosts[@]}"; do
         builtins.concatStringsSep \"\n\" names
     "
   )"; then
-    echo "FAIL  $host: could not evaluate nixosConfigurations.$host" >&2
+    err "$host: could not evaluate nixosConfigurations.$host"
     fail=1
     continue
   fi
 
-  # Keys present in the secrets file (top-level only). Secret names may
-  # contain hyphens (e.g. `llama-cpp-api-key`), so the class includes `-`.
-  #
-  # Try to decrypt first (authoritative). If no age key is available (e.g.
-  # CI), fall back to reading the top-level keys straight from the
-  # *encrypted* file: sops keeps key names and the `sops:` metadata block in
-  # cleartext, and encrypts only the values -- so the name list is still
-  # exact. The encrypted-file parser must ignore the nested `sops:` metadata
-  # keys (age, lastmodified, mac, ...), which sit under the top-level `sops:`
-  # key and are indented.
+  # Top-level keys of the secrets file. Names may contain `-`. Decrypt when an
+  # age key exists; otherwise read the encrypted file, where sops leaves key
+  # names in cleartext -- skipping the indented `sops:` metadata block.
   if present="$(
     nix shell nixpkgs#sops --command sops -d "$secrets_file" 2>/dev/null \
       | grep -E '^[A-Za-z_][A-Za-z0-9_-]*:' \
@@ -199,8 +191,8 @@ for host in "${hosts[@]}"; do
   done <<<"$declared"
 
   if [[ ${#missing[@]} -gt 0 ]]; then
-    echo "FAIL  $host: declared but missing from $(basename "$secrets_file"):"
-    printf '        - %s\n' "${missing[@]}"
+    err "$host: declared but missing from $(basename "$secrets_file")"
+    printf '        - %s\n' "${missing[@]}" >&2
     fail=1
   else
     echo "OK    $host"
@@ -208,22 +200,18 @@ for host in "${hosts[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
-# Reverse scan: keys sitting in a secrets file that nothing declares.
+# Reverse scan: keys in a secrets file that no host declares -- dead credentials
+# that still decrypt, still show in audits, and never get rotated.
 #
-# These are dead credentials. They still decrypt, still show up in audits, and
-# still widen the blast radius of a leaked secrets repo, but no service reads
-# them -- so they never get rotated and nobody notices when the upstream secret
-# is revoked. Three were found this way during the October 2026 rotation.
-#
-# A key is only orphaned if NO host declares it *against that file*: a shared
-# secrets file is legitimately consumed by another machine through an explicit
-# `sopsFile`, and treating that as orphaned would delete a live credential.
+# Orphaned only if NO host declares the key against that file: shared files are
+# legitimately consumed via an explicit `sopsFile`.
 # ---------------------------------------------------------------------------
 echo
 echo "reverse scan (secrets present but undeclared):"
 
+orphans_total=0
 if [[ -z "$referenced" ]]; then
-  echo "FAIL  reverse scan produced no declarations; refusing to call anything orphaned" >&2
+  err "reverse scan produced no declarations; refusing to call anything orphaned"
   fail=1
 else
   for f in "$SECRETS_DIR"/secrets/*.yaml; do
@@ -245,12 +233,24 @@ else
       grep -qxF "$k" <<<"$used" || orphans+=("$k")
     done <<<"$present"
     if [[ ${#orphans[@]} -gt 0 ]]; then
-      echo "ORPHAN  $host: present in $(basename "$f") but declared by no host:"
+      warn "$host: present in $(basename "$f") but declared by no host (${#orphans[@]} key(s))"
       printf '          - %s\n' "${orphans[@]}"
-      fail=1
+      orphans_total=$(( orphans_total + ${#orphans[@]} ))
     fi
   done
-  [[ $fail -eq 0 ]] && echo "clean   no orphaned secrets"
+  if [[ $orphans_total -eq 0 ]]; then
+    echo "clean   no orphaned secrets"
+  else
+    echo "note    $orphans_total orphaned secret(s) reported as warnings; rotate them, they do not block the deploy"
+  fi
+fi
+
+if [[ $fail -eq 0 ]]; then
+  echo
+  echo "PASS  every declared sops secret resolves"
+else
+  echo
+  echo "BLOCKED  at least one declared sops secret is unresolvable; the fleet deploy must not run"
 fi
 
 exit "$fail"
