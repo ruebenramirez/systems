@@ -30,7 +30,7 @@
     ./srv/mail-sync.nix
     ./srv/matrix-backup.nix
     ./srv/nginx.nix
-    ./srv/openwebui.nix
+    # ./srv/openwebui.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
     ./srv/smb-shares.nix
