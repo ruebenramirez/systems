@@ -47,22 +47,37 @@ configurations to the fleet over SSH.
 ### Usage
 
 ```bash
-nup-fleet                # rebuild + switch every machine in the list
-nup-fleet driver         # one machine, by flake config name
-nup-fleet build          # build all configs locally only (no deploy)
-nup-fleet --upgrade       # run `nix flake update` first, then deploy all
-nup-fleet --upgrade xps17  # flake update + single machine
+nup-fleet                        # rebuild + switch every machine in the fleet
+nup-fleet driver                 # one machine, by flake config name
+nup-fleet xps17 dev-vm-xps       # several machines, in order
+nup-fleet build                  # build all configs locally only (no deploy)
+nup-fleet --upgrade              # run `nix flake update` first, then deploy all
+nup-fleet --upgrade xps17        # flake update + one machine
+nup-fleet --list                 # every name the dispatcher accepts
 ```
 
-`nup-fleet all` deploys the whole list even if a machine fails, then exits
-non-zero with the failed hosts; `nup-fleet <machine>` is fail-fast. Set
-`EXCLUDE="host1,host2"` to skip hosts (used by CI, which must not rebuild
-the runner it is executing on).
+The fleet is **read from the flake** at run time -- one `nixosConfigurations`
+attribute per machine -- so a host added to the flake is upgraded the next run
+without touching this script. `NUP_FLEET_MACHINES="host1 host2"` bypasses the
+flake for offline debugging.
+
+Any machine that fails is recorded and the run continues past it, so one broken
+host does not leave the rest of the selection un-deployed; the run then exits
+non-zero listing what failed. Names are resolved *before* `nix flake update`
+runs, so a typo fails immediately instead of after the lockfile has moved.
+Set `EXCLUDE="host1,host2"` to skip hosts on a whole-fleet run (used by CI,
+which must not rebuild the runner it is executing on); machines named
+explicitly on the command line are deployed as asked.
 
 All compilation is offloaded to `fwai0` via `nixos-rebuild --build-host`;
 the invoking host only evaluates the flake. There is no silent fallback: if
 `fwai0` is unreachable the rebuild fails rather than compiling locally. Set
 `ALLOW_LOCAL_BUILD=true` only to deliberately build on an underpowered host.
+
+`nup-fleet --upgrade` needs a git credential for the private `systems-secrets`
+input; `scripts/setup-forgejo-netrc.sh` installs one. Deploying without
+`--upgrade` needs no credential. See
+[Private flake input credentials](docs/private-flake-input-credentials.md).
 
 ### Automated upgrades
 
@@ -146,4 +161,5 @@ available and otherwise the encrypted file's cleartext key names are used.
 - [Host addressing](docs/host-addressing.md)
 - [Tailnet exit node](docs/tailnet-exit-node.md)
 - [System flake activity chart](docs/system-flake-activity.md)
+- [Private flake input credentials](docs/private-flake-input-credentials.md)
 - [CI workflow policy](docs/ci-workflow-policy.md)

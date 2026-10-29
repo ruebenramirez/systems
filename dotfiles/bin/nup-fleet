@@ -7,19 +7,6 @@
 
 set -e
 
-MACHINES=(
-    "xps17"
-    "dev-vm-xps"
-    "fwai0"
-    "homeserver"
-    "driver"
-    "ssdnodes-1"
-    "download-vm-xps"
-    "forgejo-ci-runner-vm"
-    "hermes-vm-xps"
-    "pi-syncoid-target"
-)
-
 # Optional space/comma-separated names to skip. Used by CI to avoid
 # updating the host the job itself runs on (`forgejo-ci-runner-vm`),
 # whose switch would restart the runner mid-deploy.
@@ -54,6 +41,38 @@ if [[ "$IS_BUILDER" != "true" && "${ALLOW_LOCAL_BUILD:-false}" != "true" && -z "
 fi
 
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
+
+# Fleet from the flake; NUP_FLEET_MACHINES overrides it.
+load_fleet() {
+    if [[ -n "${NUP_FLEET_MACHINES:-}" ]]; then
+        read -r -a MACHINES <<< "${NUP_FLEET_MACHINES//,/ }"
+        echo "using NUP_FLEET_MACHINES override: ${MACHINES[*]}"
+        return 0
+    fi
+    local names
+    if ! names="$(
+        nix eval --raw --impure \
+            --extra-experimental-features 'nix-command flakes' \
+            --expr "
+                let flake = builtins.getFlake \"$FLAKE_DIR\";
+                in builtins.concatStringsSep \"\\n\"
+                     (builtins.attrNames flake.nixosConfigurations)
+            "
+    )"; then
+        echo "error: could not evaluate nixosConfigurations from $FLAKE_DIR" >&2
+        echo "       nup-fleet refuses to guess the fleet. Fix the flake, or set" >&2
+        echo "       NUP_FLEET_MACHINES='host1 host2' to bypass it." >&2
+        exit 3
+    fi
+    mapfile -t MACHINES <<< "$names"
+    if [[ ${#MACHINES[@]} -eq 0 || -z "${MACHINES[0]}" ]]; then
+        echo "error: $FLAKE_DIR declares no nixosConfigurations; refusing to deploy nothing" >&2
+        exit 3
+    fi
+}
+
+load_fleet
+
 # Optional SSH user override. If unset, SSH resolves the user per host
 # from ~/.ssh/config. Set SSH_USER=root to force a different user.
 SSH_USER="${SSH_USER:-}"
@@ -67,9 +86,109 @@ ssh_target() {
     fi
 }
 
+# ---------------------------------------------------------------------------
+# Private flake inputs
+# ---------------------------------------------------------------------------
+
+# The host that serves the private `systems-secrets` flake input over https.
+# Override for a mirror or a different Forgejo host.
+PRIVATE_GIT_HOST="${PRIVATE_GIT_HOST:-code.rueb.dev}"
+
+# Never let git fall back to an interactive `Username for 'https://...'` prompt.
+# Exported (not just set for our own git calls) because the git subprocesses nix
+# spawns inherit it: that is the point. Without this, a missing or rejected
+# credential hangs the run -- and on 2026-10-27 an interrupted prompt left a
+# rewritten flake.lock behind on its way out. A private input that cannot
+# authenticate must fail loudly, not wait for a human at 03:30.
+export GIT_TERMINAL_PROMPT=0
+
+# Is there a credential git could use for a host? Checks the two places git
+# itself looks, in the order it looks: credential helpers, then ~/.netrc.
+# Note `git credential fill` does NOT read ~/.netrc (that is libcurl's job in
+# the http transport), so both checks are needed.
+has_git_credential() {
+    local host="$1" netrc="${NETRC:-$HOME/.netrc}"
+
+    if printf 'protocol=https\nhost=%s\n\n' "$host" |
+        git -c credential.interactive=false credential fill 2>/dev/null |
+        grep -q '^password=.'; then
+        return 0
+    fi
+
+    [[ -r "$netrc" ]] || return 1
+    awk -v host="$host" '
+        {
+            for (i = 1; i <= NF; i++) {
+                tok = $i
+                if (tok == "machine") {
+                    want = ($(i + 1) == host)
+                } else if (tok == "default" || tok == "account") {
+                    want = 1
+                } else if (want && tok == "password" && $(i + 1) != "") {
+                    found = 1
+                    exit
+                }
+            }
+        }
+        END { exit !found }
+    ' "$netrc"
+}
+
+# Fail before `nix flake update` rather than in the middle of it, with the fix
+# in the message. Workstations have no credential for the private input unless
+# someone puts the Forgejo token in ~/.netrc; only the CI runner gets one from
+# sops. See README, "Credentials for the private input".
+preflight_private_input() {
+    has_git_credential "$PRIVATE_GIT_HOST" && return 0
+    cat >&2 <<EOF
+error: no git credential for $PRIVATE_GIT_HOST, so 'nix flake update' cannot
+       resolve the private 'systems-secrets' input. Prompts are disabled
+       (GIT_TERMINAL_PROMPT=0), so this fails instead of hanging on
+       "Username for 'https://$PRIVATE_GIT_HOST':".
+
+       Give the invoking user a Forgejo token:
+
+         scripts/setup-forgejo-netrc.sh                      # prompt for one
+         scripts/setup-forgejo-netrc.sh --from-runner <host>  # copy the runner's
+
+       or write \$HOME/.netrc (mode 0600) by hand:
+
+         machine $PRIVATE_GIT_HOST
+           login <forgejo-user>
+           password <token>
+
+       Or skip the update and deploy the revision already in flake.lock:
+
+         nup-fleet ${NUP_FLEET_ARG_HINT:-<machine>}
+EOF
+    return 1
+}
+
+# Inputs whose locked revision moved *backwards* between two lock files. That is
+# what an expired cached ref looks like once it has been written down: nix
+# resolved the input from its shallow cache instead of the remote and locked an
+# older rev than the one already recorded. Detected on the lock file rather than
+# by grepping nix's warning text, so it also catches a warning that never made it
+# to the log because the run died fetching the tree it had just re-locked.
+lock_regressions() {
+    local before="$1" after="$2"
+    [[ -s "$before" && -s "$after" ]] || return 0
+    command -v jq >/dev/null 2>&1 || return 0
+    join -t$'\t' -j1 \
+        <(jq -r '.nodes | to_entries[]
+                 | select(.value.locked.lastModified != null)
+                 | "\(.key)\t\(.value.locked.lastModified)"' "$before" | sort) \
+        <(jq -r '.nodes | to_entries[]
+                 | select(.value.locked.lastModified != null)
+                 | "\(.key)\t\(.value.locked.lastModified)"' "$after" | sort) \
+        | awk -F'\t' '$2 > $3 { printf "%s (lastModified %s -> %s)\n", $1, $2, $3 }'
+}
+
 nix_flake_update() {
     echo "updating nix flake"
     cd "$FLAKE_DIR"
+    preflight_private_input || return 1
+
     # `nix flake update` exits 0 even when it cannot reach a private flake
     # input. It prints
     #   warning: could not get HEAD ref for repository '<url>'; using expired
@@ -78,30 +197,50 @@ nix_flake_update() {
     # means the whole fleet gets rebuilt against *stale* secret material while
     # CI reports success -- exactly the failure mode that hid itself for a full
     # fleet run on 2026-10-26. Treat the warning as fatal.
-    local log rc
+    #
+    # Keep the pre-update lock so none of these failures can leave a half-moved
+    # lock behind: the interrupted run on 2026-10-27 rewrote flake.lock with a
+    # *stale* systems-secrets rev (88 -> 86) while exiting 1, and a deploy from
+    # that lock would have shipped older secret material to the fleet.
+    local log lock_backup rc reason regressions
     log="$(mktemp)"
+    lock_backup="$(mktemp)"
+    [[ -f flake.lock ]] && cp flake.lock "$lock_backup"
     set +e
     nix flake update 2>&1 | tee "$log"
     rc=${PIPESTATUS[0]}
     set -e
+
+    regressions="$(lock_regressions "$lock_backup" flake.lock)"
+
+    reason=""
     if (( rc != 0 )); then
-        echo "error: nix flake update failed (exit $rc)" >&2
-        rm -f "$log"
+        reason="nix flake update failed (exit $rc)"
+    elif grep -qE "could not get HEAD ref|expired cached ref" "$log"; then
+        reason="nix flake update could not refresh an input and fell back to an
+               EXPIRED CACHED REF. A private flake input (systems-secrets) is not
+               reachable from this environment. Two usual causes:
+                 1. HOME is not the deploy home -- git reads ~/.netrc, not
+                    nix's netrc-file setting (CI: /var/lib/nixdeploy).
+                 2. An http.<host>/.extraheader in the enclosing repo's local
+                    config (actions/checkout sets one) is overriding the
+                    netrc; blank it with GIT_CONFIG_KEY_0/GIT_CONFIG_VALUE_0."
+    elif [[ -n "$regressions" ]]; then
+        reason="flake.lock moved at least one input BACKWARDS, i.e. nix locked a
+               stale cached revision instead of the remote head:
+                 $regressions"
+    fi
+
+    if [[ -n "$reason" ]]; then
+        echo "error: $reason" >&2
+        if [[ -s "$lock_backup" ]] && ! cmp -s "$lock_backup" flake.lock; then
+            cp "$lock_backup" flake.lock
+            echo "       flake.lock restored to its pre-update state." >&2
+        fi
+        rm -f "$log" "$lock_backup"
         return 1
     fi
-    if grep -qE "could not get HEAD ref|expired cached ref" "$log"; then
-        echo "error: nix flake update could not refresh an input and fell back to" >&2
-        echo "       an EXPIRED CACHED REF. A private flake input (systems-secrets)" >&2
-        echo "       is not reachable from this environment. Two usual causes:" >&2
-        echo "         1. HOME is not the deploy home -- git reads ~/.netrc, not" >&2
-        echo "            nix's netrc-file setting (CI: /var/lib/nixdeploy)." >&2
-        echo "         2. An http.<host>/.extraheader in the enclosing repo's local" >&2
-        echo "            config (actions/checkout sets one) is overriding the" >&2
-        echo "            netrc; blank it with GIT_CONFIG_KEY_0/GIT_CONFIG_VALUE_0." >&2
-        rm -f "$log"
-        return 1
-    fi
-    rm -f "$log"
+    rm -f "$log" "$lock_backup"
 }
 
 # Machines that failed this run. `all` keeps going past a failure so one
@@ -132,17 +271,83 @@ update_machine() {
     echo "✓ $hostname updated"
 }
 
+usage() {
+    cat <<'USAGE'
+usage: nup-fleet [--upgrade|--update] [machine ...]
+       nup-fleet build [machine ...]
+       nup-fleet --list
+
+  --upgrade / --update   run `nix flake update` first, then deploy
+  machine ...            host or flake config name(s); repeat as many as you
+                         like. Default: the whole fleet. EXCLUDE is consulted
+                         for the whole-fleet run only -- a machine named on the
+                         command line is deployed exactly as asked.
+  build                  build configurations without deploying
+  --list                 print every accepted machine name and exit
+USAGE
+}
+
 UPDATE=false
+LIST=false
+ACTION="deploy"
 args=()
 for arg in "$@"; do
-    if [[ "$arg" == "--update" || "$arg" == "--upgrade" ]]; then
-        UPDATE=true
-    else
-        args+=("$arg")
-    fi
+    case "$arg" in
+        --update|--upgrade) UPDATE=true ;;
+        --list)             LIST=true ;;
+        -h|--help)          usage; exit 0 ;;
+        build)              ACTION=build ;;
+        all)                ACTION=deploy ;;
+        *)                  args+=("$arg") ;;
+    esac
 done
 
+if [[ "$LIST" == "true" ]]; then
+    for machine in "${MACHINES[@]}"; do
+        IFS=':' read -r hostname config <<< "$machine"
+        printf '%s\n' "$hostname"
+        if [[ -n "$config" && "$config" != "$hostname" ]]; then
+            printf '%s\n' "$config"
+        fi
+    done
+    exit 0
+fi
+
+# Resolve one CLI name (host name or flake config name) to its MACHINES entry.
+resolve_machine() {
+    local target="$1" machine hostname config
+    for machine in "${MACHINES[@]}"; do
+        IFS=':' read -r hostname config <<< "$machine"
+        if [[ "$hostname" == "$target" || "$config" == "$target" ]]; then
+            printf '%s\n' "$machine"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Resolve names before `nix flake update` so typos fail fast.
+WHOLE_FLEET=false
+TARGETS=()
+if [[ ${#args[@]} -eq 0 ]]; then
+    WHOLE_FLEET=true
+    TARGETS=("${MACHINES[@]}")
+else
+    for target in "${args[@]}"; do
+        if machine="$(resolve_machine "$target")"; then
+            TARGETS+=("$machine")
+        else
+            echo "error: unknown machine '$target'" >&2
+            echo "       available: ${MACHINES[*]}" >&2
+            echo "       (or run: nup-fleet --list)" >&2
+            exit 1
+        fi
+    done
+fi
+
 if [[ "$UPDATE" == "true" ]]; then
+    # What to re-run without --upgrade, quoted in the credential preflight.
+    NUP_FLEET_ARG_HINT="${TARGETS[0]%%:*}"
     nix_flake_update
 fi
 
@@ -150,11 +355,31 @@ fi
 # (see nixpkgs#418868) during remote build/deploy. Run from a neutral dir.
 cd "$HOME"
 
-case "${args[0]:-all}" in
-    "all")
-        for machine in "${MACHINES[@]}"; do
+case "$ACTION" in
+    "build")
+        # Build-only action (no deploy). Offload to the builder if we are not
+        # already running on it.
+        if [[ "$IS_BUILDER" == "true" ]]; then
+            echo "Building ${#TARGETS[@]} configuration(s) locally (on builder)..."
+        else
+            echo "Building ${#TARGETS[@]} configuration(s) on $BUILDER_HOSTNAME..."
+        fi
+        for machine in "${TARGETS[@]}"; do
+            IFS=':' read -r hostname config <<< "$machine"
+            echo "Building $config..."
+            build_args=()
+            if [[ "$IS_BUILDER" != "true" ]]; then
+                build_args=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
+            fi
+            nixos-rebuild build \
+                --flake "$FLAKE_DIR#$config" \
+                "${build_args[@]}"
+        done
+        ;;
+    "deploy")
+        for machine in "${TARGETS[@]}"; do
             IFS=':' read -r hostname _config <<< "$machine"
-            if skip_machine "$hostname"; then
+            if [[ "$WHOLE_FLEET" == "true" ]] && skip_machine "$hostname"; then
                 echo "Skipping $hostname (excluded)"
                 continue
             fi
@@ -167,45 +392,6 @@ case "${args[0]:-all}" in
             exit 1
         fi
         echo
-        echo "All ${#MACHINES[@]} machines updated."
-        ;;
-    "build")
-        # Local-only build action (no deploy). Offload to the builder if
-        # we are not already running on it.
-        if [[ "$IS_BUILDER" == "true" ]]; then
-            echo "Building all configurations locally (on builder)..."
-        else
-            echo "Building all configurations on $BUILDER_HOSTNAME..."
-        fi
-        for machine in "${MACHINES[@]}"; do
-            IFS=':' read -r hostname config <<< "$machine"
-            echo "Building $config..."
-            build_args=()
-            if [[ "$IS_BUILDER" != "true" ]]; then
-                build_args=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
-            fi
-            nixos-rebuild build \
-                --flake "$FLAKE_DIR#$config" \
-                "${build_args[@]}"
-        done
-        ;;
-    *)
-        # Update specific machine
-        target="${args[0]}"
-        echo "Deploying to ${target}..."
-        found=false
-        for machine in "${MACHINES[@]}"; do
-            IFS=':' read -r hostname config <<< "$machine"
-            if [[ "$hostname" == "$target" || "$config" == "$target" ]]; then
-                update_machine "$machine" || exit 1
-                found=true
-                break
-            fi
-        done
-        if [[ "$found" == "false" ]]; then
-            echo "Machine '$target' not found"
-            echo "Available: ${MACHINES[*]}"
-            exit 1
-        fi
+        echo "All ${#TARGETS[@]} machine(s) updated."
         ;;
 esac
