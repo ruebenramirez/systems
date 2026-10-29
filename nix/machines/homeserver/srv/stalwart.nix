@@ -4,74 +4,62 @@ let
   # Settings that live in the Stalwart datastore (RocksDB), not in the
   # generated config file. `services.stalwart.settings` only seeds an empty
   # store, so anything changed in the WebUI after first boot must be carried
-  # here to survive a rebuild-from-scratch. `stalwart-cli apply` upserts are
-  # idempotent: re-applying converges without duplicating objects.
-  plan = [
+  # here to survive a rebuild-from-scratch. `server add-config` upserts, so
+  # re-applying converges without duplicating anything.
+  #
+  # These are 0.15.x settings keys. The 1.0 object/plan API that `stalwart-cli
+  # apply` speaks does not exist on the 0.15.5 server nixpkgs ships.
+  allowedIps = [
     # Tailnet devices are exempt from HTTP rate limits and auto-bans.
-    {
-      "@type" = "upsert";
-      object = "AllowedIp";
-      matchOn = [ "address" ];
-      value.tailnet = {
-        address = "100.64.0.0/10";
-        reason = "Tailscale tailnet: exempt devices from rate limits and auto-bans";
-      };
-    }
+    "100.64.0.0/10"
+    "127.0.0.1"
+  ];
 
-    # Parents first: resolves #dom-rueb to the existing rueb.dev domain id.
-    {
-      "@type" = "upsert";
-      object = "Domain";
-      matchOn = [ "name" ];
-      value."dom-rueb" = { name = "rueb.dev"; };
-    }
+  # Reject authenticated submissions whose From: mismatches the login. The id
+  # matches what the WebUI already wrote; changing it would leave the old script
+  # orphaned in the store.
+  fromHeaderScript = {
+    id = "fromheaderpolicy";
+    name = "require valid from header";
+    contents = ''
+      require ["variables", "envelope", "reject"];
+      if allof(not string :is "''${env.authenticated_as}" "",
+               not address :all :comparator "i;ascii-casemap" :is "from" "''${envelope.from}") {
+        reject "550 5.7.1 The From header must match the address you authenticated as.";
+      }
+    '';
+  };
 
-    # The hermes service account bypasses per-account request rate limits
-    # (rateLimitAuthenticated, IMAP rateLimit) so CalDAV/IMAP sweeps never 429.
-    # Merge keeps inherited permissions; only the grant is declared.
+  # Accounts that need permissions beyond what their role grants.
+  accountGrants = [
+    # Bypasses per-account request rate limits (rateLimitAuthenticated, IMAP
+    # rateLimit) so CalDAV/IMAP sweeps never 429.
     {
-      "@type" = "upsert";
-      object = "Account";
-      matchOn = [ "name" "domainId" ];
-      value.hermes = {
-        "@type" = "User";
-        name = "hermes";
-        domainId = "#dom-rueb";
-        permissions = {
-          "@type" = "Merge";
-          enabledPermissions = { unlimitedRequests = true; };
-        };
-      };
-    }
-
-    # Reject authenticated submissions whose From: mismatches the login.
-    {
-      "@type" = "upsert";
-      object = "SieveSystemScript";
-      matchOn = [ "name" ];
-      value."from-header-policy" = {
-        name = "from-header-policy";
-        isActive = true;
-        contents = ''
-          require ["variables", "envelope", "reject"];
-          if allof(not string :is "''${env.authenticated_as}" "",
-                   not address :all :comparator "i;ascii-casemap" :is "from" "''${envelope.from}") {
-            reject "550 5.7.1 The From header must match the address you authenticated as.";
-          }
-        '';
-      };
-    }
-
-    # Attach the system script to the SMTP DATA stage.
-    {
-      "@type" = "update";
-      object = "MtaStageData";
-      value.script = { "else" = "'from-header-policy'"; };
+      account = "hermes@rueb.dev";
+      permissions = [ "unlimited-requests" ];
     }
   ];
 
-  planFile = pkgs.writeText "stalwart-plan.ndjson"
-    (lib.concatMapStringsSep "\n" builtins.toJSON plan + "\n");
+  cli = "${pkgs.stalwart-cli}/bin/stalwart-cli";
+  curl = "${pkgs.curl}/bin/curl";
+
+  allowedIpLines = lib.concatMapStringsSep "\n"
+    (ip: "sw server add-config 'server.allowed-ip.${ip}' ''")
+    allowedIps;
+
+  # Principal permissions are not settings keys; they go through the REST API.
+  # PATCH takes a list of {action, field, value} updates and is idempotent.
+  grantLines = lib.concatMapStringsSep "\n"
+    (g: ''
+      ${curl} -fsS -X PATCH "$URL/api/principal/${g.account}" \
+        -H "Authorization: Bearer $token" -H 'Content-Type: application/json' \
+        -d '[{"action":"set","field":"enabledPermissions","value":[${
+          lib.concatMapStringsSep ", " (p: "\"${p}\"") g.permissions
+        }]}]'
+    '')
+    accountGrants;
+
+  sieveFile = pkgs.writeText "from-header-policy.sieve" fromHeaderScript.contents;
 in
 {
   # SOPS Secrets
@@ -88,8 +76,9 @@ in
       owner = "stalwart-mail";
       restartUnits = [ "stalwart.service" ];
     };
-    # Admin API key (WebUI: Account > Credentials > API Keys). Bearer token
-    # for stalwart-cli in the provisioning oneshot below.
+    # Admin API key (WebUI: Account > Credentials > API Keys) for the
+    # provisioning oneshot below. Used as a bearer token for curl and decoded
+    # to basic auth for stalwart-cli, which cannot take the api_ form.
     stalwart-api-key = {
       mode = "0400";
     };
@@ -264,11 +253,11 @@ in
   };
 
   # ---------------------------------------------------------------------------
-  # Declarative convergence of datastore-resident settings (Allowed IPs,
-  # system Sieve) via an idempotent stalwart-cli plan applied on boot.
+  # Declarative convergence of datastore-resident settings (allowed IPs,
+  # system Sieve, account grants) applied on boot and on every switch.
   # ---------------------------------------------------------------------------
   systemd.services.stalwart-provision = {
-    description = "Apply declarative Stalwart configuration plan";
+    description = "Apply declarative Stalwart configuration";
     requires = [ "stalwart.service" ];
     after = [ "stalwart.service" ];
     wantedBy = [ "multi-user.target" ];
@@ -279,18 +268,32 @@ in
     };
     script = ''
       set -euo pipefail
-      export STALWART_URL=http://127.0.0.1:8081
-      export STALWART_TOKEN="$(cat "$CREDENTIALS_DIRECTORY/token")"
+      URL=http://127.0.0.1:8081
+
+      token=$(< "$CREDENTIALS_DIRECTORY/token")
+      # stalwart-cli 0.15.x only speaks basic auth, and the api_ token is
+      # "api_" + base64("<name>:<secret>"). curl keeps using the bearer form.
+      creds=$(printf '%s' "''${token#api_}" | ${pkgs.coreutils}/bin/base64 -d)
+      sw() { ${cli} -u "$URL" -c "$creds" "$@" > /dev/null; }
 
       # Wait for the management API to answer (any HTTP code counts).
-      for _ in $(seq 1 30); do
-        code=$(${pkgs.curl}/bin/curl -s -o /dev/null -w '%{http_code}' "$STALWART_URL" || true)
+      for _ in {1..30}; do
+        code=$(${curl} -s -o /dev/null -w '%{http_code}' "$URL" || true)
         [ "$code" != "000" ] && break
         sleep 2
       done
 
-      ${pkgs.stalwart-cli}/bin/stalwart-cli apply --file ${planFile}
-      ${pkgs.stalwart-cli}/bin/stalwart-cli create Action/ReloadSettings
+      ${allowedIpLines}
+
+      sw server add-config 'sieve.trusted.scripts.${fromHeaderScript.id}.name' '${fromHeaderScript.name}'
+      sw server add-config 'sieve.trusted.scripts.${fromHeaderScript.id}.contents' "$(< ${sieveFile})"
+
+      # Attach the system script to the SMTP DATA stage.
+      sw server add-config 'session.data.script' "'${fromHeaderScript.id}'"
+
+      ${grantLines}
+
+      sw server reload-config
     '';
   };
 
