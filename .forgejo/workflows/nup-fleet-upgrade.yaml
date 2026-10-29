@@ -235,7 +235,7 @@ jobs:
           BODY=$(printf '{"workflow":"nup-fleet-upgrade","status":"%s","run_number":%s,"event":"%s","url":"%s","check_sops":"%s"}' \
             "$STATUS" "$RUN_NUMBER" "$EVENT_NAME" "$RUN_URL" "$CHECK_RESULT")
           SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$HERMES_WEBHOOK_SECRET" -hex | awk '{print $NF}')
-          curl -fsS -m 15 -X POST "$HERMES_WEBHOOK_URL" \
+          curl -fsS -m 15 --retry 3 --retry-delay 5 -X POST "$HERMES_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             -H "X-Hub-Signature-256: sha256=$SIG" \
             -d "$BODY"
