@@ -53,6 +53,7 @@ nup-fleet xps17 dev-vm-xps       # several machines, in order
 nup-fleet build                  # build all configs locally only (no deploy)
 nup-fleet --upgrade              # run `nix flake update` first, then deploy all
 nup-fleet --upgrade xps17        # flake update + one machine
+nup-fleet --flake-update-only    # just move flake.lock; build and deploy nothing
 nup-fleet --list                 # every name the dispatcher accepts
 ```
 
@@ -90,12 +91,14 @@ container.
 
 The workflow has two jobs:
 
-1. **`check-sops-secrets`** evaluates every `nixosConfigurations` entry and
-   fails if a host declares a `sops.secrets.<name>` that has no matching key
-   in the `systems-secrets` repo -- the error that would otherwise only
-   appear as a `manifest.json` build failure during the deploy. It reads the
-   `systems-secrets` revision the flake already locks to, so it needs no extra
-   checkout, and no age key (secret names are cleartext in the sops file).
+1. **`check-sops-secrets`** runs `nup-fleet --flake-update-only` so the lock
+   points at the revisions the deploy is about to use, then evaluates every
+   `nixosConfigurations` entry and fails if a host declares a
+   `sops.secrets.<name>` that has no matching key in the `systems-secrets` repo
+   -- the error that would otherwise only appear as a `manifest.json` build
+   failure during the deploy. It reads the `systems-secrets` revision the lock
+   names, so it needs no extra checkout, and no age key (secret names are
+   cleartext in the sops file).
 2. **`upgrade`** runs `nup-fleet --upgrade`, then commits and pushes the
    updated `flake.lock` back to the branch. It excludes
    `forgejo-ci-runner-vm` (override with the repo variable

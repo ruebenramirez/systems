@@ -5,7 +5,7 @@ on:
   schedule:
     - cron: "30 8 * * *" # 03:30 America/Chicago (02:30 in winter)
   push:
-    branches: [master] # merged PRs (and direct pushes) upgrade the fleet immediately
+    branches: [master] # merged PRs upgrade the fleet immediately
   workflow_dispatch:
     inputs:
       machines:
@@ -25,6 +25,15 @@ jobs:
       - name: Check out the flake
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      - name: Refresh the flake lock
+        env:
+          HOME: /var/lib/nixdeploy
+          FLAKE_DIR: ${{ github.workspace }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
+        run: dotfiles/bin/nup-fleet --flake-update-only
+
       - name: Check declared sops secrets exist
         env:
           HOME: /var/lib/nixdeploy
@@ -32,39 +41,6 @@ jobs:
           GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
           GIT_CONFIG_VALUE_0: ""
         run: scripts/check-sops-secrets.sh
-
-      - name: Email failure report
-        if: failure()
-        env:
-          RECIPIENT: "r3v2@rueb.dev"
-          JOB: "check-sops-secrets"
-          WORKFLOW: ${{ github.workflow }}
-          TRIGGER: ${{ github.event_name }}
-          BRANCH: ${{ github.ref_name }}
-          SHA: ${{ github.sha }}
-          ACTOR: ${{ github.actor }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: |
-          set -uo pipefail
-          if ! command -v msmtp >/dev/null 2>&1; then
-            echo "::warning title=Alert mail not sent::msmtp is not on PATH on $(hostname); see ci-alert-mail.nix"
-            exit 0
-          fi
-          {
-            printf 'From: root@rueb.dev\n'
-            printf 'To: %s\n' "$RECIPIENT"
-            printf 'Subject: [CI FAIL] %s / %s (%s) on %s\n' \
-              "${GITHUB_REPOSITORY:-systems}" "$JOB" "$TRIGGER" "$(hostname)"
-            printf 'Date: %s\n' "$(date -R)"
-            printf 'Content-Type: text/plain; charset=utf-8\n\n'
-            printf 'Workflow: %s\n' "$WORKFLOW"
-            printf 'Job:      %s\n' "$JOB"
-            printf 'Trigger:  %s\n' "$TRIGGER"
-            printf 'Actor:    %s\n' "$ACTOR"
-            printf 'Branch:   %s @ %s\n' "$BRANCH" "$SHA"
-            printf 'Run:      %s\n' "$RUN_URL"
-          } | msmtp "$RECIPIENT" \
-            || echo "::warning title=Alert mail not sent::msmtp could not submit to the mail server"
 
   upgrade:
     needs: check-sops-secrets
@@ -145,50 +121,6 @@ jobs:
           git pull --rebase origin "${{ github.ref_name }}"
           git push origin "HEAD:refs/heads/${{ github.ref_name }}"
 
-      - name: Email failure report
-        if: failure()
-        env:
-          RECIPIENT: "r3v2@rueb.dev"
-          JOB: "upgrade"
-          WORKFLOW: ${{ github.workflow }}
-          TRIGGER: ${{ github.event_name }}
-          BRANCH: ${{ github.ref_name }}
-          SHA: ${{ github.sha }}
-          ACTOR: ${{ github.actor }}
-          REQUESTED: ${{ github.event.inputs.machines }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
-        run: |
-          set -uo pipefail
-          if ! command -v msmtp >/dev/null 2>&1; then
-            echo "::warning title=Alert mail not sent::msmtp is not on PATH on $(hostname); see ci-alert-mail.nix"
-            exit 0
-          fi
-          {
-            printf 'From: root@rueb.dev\n'
-            printf 'To: %s\n' "$RECIPIENT"
-            printf 'Subject: [CI FAIL] %s / %s (%s) on %s\n' \
-              "${GITHUB_REPOSITORY:-systems}" "$JOB" "$TRIGGER" "$(hostname)"
-            printf 'Date: %s\n' "$(date -R)"
-            printf 'Content-Type: text/plain; charset=utf-8\n\n'
-            printf 'Workflow:  %s\n' "$WORKFLOW"
-            printf 'Job:       %s\n' "$JOB"
-            printf 'Trigger:   %s\n' "$TRIGGER"
-            printf 'Actor:     %s\n' "$ACTOR"
-            printf 'Branch:    %s @ %s\n' "$BRANCH" "$SHA"
-            printf 'Machines:  %s\n' "${REQUESTED:-whole fleet}"
-            printf 'Run:       %s\n' "$RUN_URL"
-            printf 'Host:      %s\n' "$(hostname)"
-            if [[ -r "$RUN_LOG" ]]; then
-              printf '\n--- per-machine results ---\n'
-              grep -E '^(✓|✗|Skipping|Failed machines|All [0-9]+ machine)' "$RUN_LOG" \
-                || printf '(no per-machine lines found)\n'
-              printf '\n--- last 120 lines ---\n'
-              tail -n 120 "$RUN_LOG"
-            fi
-          } | msmtp "$RECIPIENT" \
-            || echo "::warning title=Alert mail not sent::msmtp could not submit to the mail server"
-
       - name: Summary
         if: always()
         run: |
@@ -202,10 +134,9 @@ jobs:
             echo "- Trigger: \`${{ github.event_name }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
-  # Post the run result to the Hermes agent webhook so the outcome lands in
-  # the Matrix Hermes room the moment the run finishes (no morning poll).
-  # The route validates an HMAC-SHA256 signature and forwards the message
-  # verbatim; see hermes `webhook list` route `matrix-notify`.
+  # Run notifications: Hermes webhook (Matrix Hermes room) and the failure email.
+  # The webhook route checks an HMAC-SHA256 signature; see hermes route
+  # `matrix-notify`.
   notify:
     needs: [check-sops-secrets, upgrade]
     if: always()
@@ -227,8 +158,7 @@ jobs:
             echo "HERMES_WEBHOOK_URL / HERMES_WEBHOOK_SECRET not configured; skipping notify." >&2
             exit 0
           fi
-          # Map job results to a single run status. A skipped upgrade (e.g.
-          # the sops precheck failed) is a failed nightly.
+          # A skipped upgrade (sops precheck failed) is still a failed nightly.
           case "$UPGRADE_RESULT" in
             success)   STATUS=success ;;
             cancelled) STATUS=cancelled ;;
@@ -241,3 +171,64 @@ jobs:
             -H "Content-Type: application/json" \
             -H "X-Hub-Signature-256: sha256=$SIG" \
             -d "$BODY"
+
+      - name: Email failure report
+        if: ${{ needs.check-sops-secrets.result != 'success' || needs.upgrade.result != 'success' }}
+        env:
+          RECIPIENT: "r3v2@rueb.dev"
+          WORKFLOW: ${{ github.workflow }}
+          TRIGGER: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          REQUESTED: ${{ github.event.inputs.machines }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CHECK_RESULT: ${{ needs.check-sops-secrets.result }}
+          UPGRADE_RESULT: ${{ needs.upgrade.result }}
+          RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
+        run: |
+          set -uo pipefail
+          # A job skipped by an earlier failure is not itself a failure.
+          failed=""
+          case "$CHECK_RESULT" in
+            success|skipped) ;;
+            *) failed="check-sops-secrets" ;;
+          esac
+          case "$UPGRADE_RESULT" in
+            success|skipped) ;;
+            *) failed="${failed:+$failed, }upgrade" ;;
+          esac
+          if [[ -z "$failed" ]]; then
+            echo "nothing to report (check-sops-secrets=$CHECK_RESULT, upgrade=$UPGRADE_RESULT)"
+            exit 0
+          fi
+          if ! command -v msmtp >/dev/null 2>&1; then
+            echo "::warning title=Alert mail not sent::msmtp is not on PATH on $(hostname); see ci-alert-mail.nix"
+            exit 0
+          fi
+          {
+            printf 'From: root@rueb.dev\n'
+            printf 'To: %s\n' "$RECIPIENT"
+            printf 'Subject: [CI FAIL] %s / %s (%s) on %s\n' \
+              "${GITHUB_REPOSITORY:-systems}" "$failed" "$TRIGGER" "$(hostname)"
+            printf 'Date: %s\n' "$(date -R)"
+            printf 'Content-Type: text/plain; charset=utf-8\n\n'
+            printf 'Workflow:  %s\n' "$WORKFLOW"
+            printf 'Failed:    %s\n' "$failed"
+            printf 'Trigger:   %s\n' "$TRIGGER"
+            printf 'Actor:     %s\n' "$ACTOR"
+            printf 'Branch:    %s @ %s\n' "$BRANCH" "$SHA"
+            printf 'Machines:  %s\n' "${REQUESTED:-whole fleet}"
+            printf 'Run:       %s\n' "$RUN_URL"
+            printf 'Host:      %s\n' "$(hostname)"
+            printf 'Results:   check-sops-secrets=%s upgrade=%s\n' "$CHECK_RESULT" "$UPGRADE_RESULT"
+            # Written by the upgrade job via tee on the shared runner host.
+            if [[ "$UPGRADE_RESULT" != skipped && -r "$RUN_LOG" ]]; then
+              printf '\n--- per-machine results ---\n'
+              grep -E '^(✓|✗|Skipping|Failed machines|All [0-9]+ machine)' "$RUN_LOG" \
+                || printf '(no per-machine lines found)\n'
+              printf '\n--- last 120 lines ---\n'
+              tail -n 120 "$RUN_LOG"
+            fi
+          } | msmtp "$RECIPIENT" \
+            || echo "::warning title=Alert mail not sent::msmtp could not submit to the mail server"

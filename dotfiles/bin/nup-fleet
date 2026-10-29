@@ -274,10 +274,15 @@ update_machine() {
 usage() {
     cat <<'USAGE'
 usage: nup-fleet [--upgrade|--update] [machine ...]
+       nup-fleet --flake-update-only
        nup-fleet build [machine ...]
        nup-fleet --list
 
   --upgrade / --update   run `nix flake update` first, then deploy
+  --flake-update-only    run `nix flake update` and stop: no build, no deploy.
+                         The CI sops preflight uses it so the check reads the
+                         revisions the deploy is about to use, not whatever the
+                         committed lock happens to point at.
   machine ...            host or flake config name(s); repeat as many as you
                          like. Default: the whole fleet. EXCLUDE is consulted
                          for the whole-fleet run only -- a machine named on the
@@ -288,12 +293,14 @@ USAGE
 }
 
 UPDATE=false
+FLAKE_ONLY=false
 LIST=false
 ACTION="deploy"
 args=()
 for arg in "$@"; do
     case "$arg" in
         --update|--upgrade) UPDATE=true ;;
+        --flake-update-only) UPDATE=true; FLAKE_ONLY=true ;;
         --list)             LIST=true ;;
         -h|--help)          usage; exit 0 ;;
         build)              ACTION=build ;;
@@ -347,8 +354,18 @@ fi
 
 if [[ "$UPDATE" == "true" ]]; then
     # What to re-run without --upgrade, quoted in the credential preflight.
-    NUP_FLEET_ARG_HINT="${TARGETS[0]%%:*}"
+    if [[ "$FLAKE_ONLY" == "true" ]]; then
+        NUP_FLEET_ARG_HINT="all"
+    else
+        NUP_FLEET_ARG_HINT="${TARGETS[0]%%:*}"
+    fi
     nix_flake_update
+fi
+
+# The lock has moved and that is the whole request: nothing is built or deployed.
+if [[ "$FLAKE_ONLY" == "true" ]]; then
+    echo "flake.lock updated; --flake-update-only, deploying nothing."
+    exit 0
 fi
 
 # nixos-rebuild-ng can choke when the CWD is inside the flake

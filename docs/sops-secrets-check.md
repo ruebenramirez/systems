@@ -22,6 +22,12 @@ setting does not cover `git+https://` inputs). See
 [`scripts/setup-forgejo-netrc.sh`](../scripts/setup-forgejo-netrc.sh) installs
 it.
 
+Locally that means the check reads the *committed* lock. The nightly workflow
+runs `nup-fleet --flake-update-only` before it, so CI judges the declarations
+against the revisions the deploy is about to use rather than against whatever
+the last run left locked — a secret added to `systems-secrets` since then would
+otherwise read as missing and block a deploy that would have succeeded.
+
 Decrypting is attempted when an age key is available; otherwise the encrypted
 file's cleartext key names are used (sops leaves key names and the `sops:`
 metadata block unencrypted).
