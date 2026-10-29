@@ -3,7 +3,7 @@
   # declare sops secret for wgnet vpn client configuration
   sops.secrets.wgnet_mullvad_conf = { };
 
-  systemd.services."wg-quick@wg1" = {
+  systemd.services."wg-quick-wg1" = {
     wants = [ "sops-nix.service" ];
     after = [ "sops-nix.service" ];
     # A long-lived wg1 left over from a previous activation makes `wg-quick up`
