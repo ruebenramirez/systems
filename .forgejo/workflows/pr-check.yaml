@@ -58,6 +58,28 @@ jobs:
           git ls-remote https://code.rueb.dev/rueb/systems-secrets.git HEAD >/dev/null \
             || { echo "cannot reach systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
 
+      # Secrets are validated against the revision flake.lock points at. A
+      # declaration whose file or key is missing, or whose host is not a
+      # recipient of the file, is a boot failure on a machine nobody is standing
+      # next to -- so it has to fail here rather than in the nightly.
+      - name: Check sops secrets
+        env:
+          HOME: /var/lib/nixdeploy
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
+        run: scripts/check-sops-secrets.sh
+
+      # Docs carry the procedures; a stale secrets path or dead link in them is a
+      # wrong instruction handed to whoever debugs this next.
+      - name: Check doc references
+        env:
+          HOME: /var/lib/nixdeploy
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+          GIT_CONFIG_VALUE_0: ""
+        run: scripts/check-docs-paths.sh
+
       # Parse every .nix file locally, then ship the flake source and its inputs
       # to fwai0 and do the evaluating and the building there. The runner never
       # compiles or evaluates: see the `check` action in dotfiles/bin/nup-fleet.
