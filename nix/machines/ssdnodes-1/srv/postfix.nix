@@ -29,16 +29,16 @@
   services.postfix = {
     enable = true;
 
-    hostname = "mx1.rueb.dev";
+    settings.main = {
+      myhostname = "mx1.rueb.dev";
 
-    relayDomains = [
-      "rueb.dev"
-      "ruebenramirez.com"
-      "monicarosephotography.com"
-      "monicaandrueben.com"
-    ];
+      relay_domains = [
+        "rueb.dev"
+        "ruebenramirez.com"
+        "monicarosephotography.com"
+        "monicaandrueben.com"
+      ];
 
-    config = {
       smtpd_banner = "$myhostname ESMTP $mail_name";
       mail_name    = "Postfix";
 
