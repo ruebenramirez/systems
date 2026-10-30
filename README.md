@@ -165,9 +165,16 @@ scripts/check-sops-secrets.sh driver     # a subset
 ```
 
 It resolves `systems-secrets` from the revision the flake locks to, so no
-extra checkout is needed. Findings are split into blocking errors (the deploy
-does not run) and hygiene warnings (dead credentials worth rotating). See
-[sops secrets check](docs/sops-secrets-check.md).
+extra checkout is needed. It checks each declared secret against the file it names
+and that the host is a recipient of that file; findings are split into blocking
+errors (the deploy does not run) and hygiene warnings (dead credentials worth
+rotating). See [secrets](docs/secrets.md).
+
+To see the whole map at once — file, keys, consumers, recipients:
+
+```bash
+scripts/sops-map.sh
+```
 
 ### Machines
 
@@ -191,5 +198,6 @@ does not run) and hygiene warnings (dead credentials worth rotating). See
 - [Tailnet exit node](docs/tailnet-exit-node.md)
 - [System flake activity chart](docs/system-flake-activity.md)
 - [Private flake input credentials](docs/private-flake-input-credentials.md)
-- [sops secrets check](docs/sops-secrets-check.md)
+- [Secrets](docs/secrets.md)
+- [Alerting](docs/alerting.md)
 - [CI workflow policy](docs/ci-workflow-policy.md)

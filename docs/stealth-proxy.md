@@ -153,9 +153,14 @@ Ports on `ssdnodes-1`:
 | 8444 | TCP | nginx HTTPS (loopback only) |
 | 25, 3478, 40000 | TCP/UDP | postfix, derper (unchanged) |
 
-Credentials (VLESS UUID, Reality keypair, Hysteria2 password/obfs, Clash API
-secret) live in the private `systems-secrets` flake input and are decrypted per
-host by sops-nix.
+Credentials live in the private `systems-secrets` flake input, decrypted per host
+by sops-nix: the values both ends need (`vless_uuid`, `hy2_password`,
+`hy2_obfs_password`, `reality_short_id`) are one file,
+`secrets/sing-box-shared.yaml`; the client's view (`reality_public_key`, Clash API
+secret) is `secrets/sing-box-client-driver.yaml`; and `reality_private_key` is
+`secrets/sing-box-server-ssdnodes-1.yaml`, deliberately readable by `ssdnodes-1`
+and the admin key only — the client never needs the private half of the Reality
+pair.
 
 ## Deploying / changing it
 

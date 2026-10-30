@@ -60,7 +60,7 @@ material to the fleet.
 
 ## See also
 
-- [`docs/sops-secrets-check.md`](sops-secrets-check.md) — the secrets preflight
-  that runs before the nightly deploy.
+- [`docs/secrets.md`](secrets.md) — the secrets preflight that gates both PRs and
+  the nightly deploy, and how a change reaches a machine.
 - [`docs/fleet-keys.md`](fleet-keys.md) — inventory of every key/credential the
   fleet trusts, including this one.

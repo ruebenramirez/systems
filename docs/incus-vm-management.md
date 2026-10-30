@@ -281,9 +281,18 @@ hence the `vm-base` profile (root disk + `secureboot=false` + `autostart`).
 
 ### 7. Secrets / bootstrap
 
-- **sops** (`systems-secrets`): add the host's age key (derived from its SSH host
-  key once it first boots), or reuse the shared `tailscale-auth-key`.
-- **tailscale**: importing `tailscale-client.nix` needs `sops.secrets.tailscale-auth-key`.
+- **sops** (`systems-secrets`): once the VM has booted once, derive its age key
+  from its SSH host key (`ssh-keyscan`, then `ssh-to-age`), add an anchor named
+  after the host to `.sops.yaml`, and create its own
+  `secrets/headscale-client-<vm>.yaml`. Do **not** reuse another host's
+  `tailscale-auth-key`: the values are per-host, non-reusable headscale pre-auth
+  keys, so each VM needs one minted for it. Then
+  `sops updatekeys -y secrets/headscale-client-<vm>.yaml`.
+- **tailscale**: importing `tailscale-client.nix` needs
+  `sops.secrets.tailscale-auth-key`, which it resolves from
+  `headscale-client-${networking.hostName}.yaml`.
+- **Validate before deploying**: `scripts/check-sops-secrets.sh <vm>` proves the
+  file, the key, and that the new host is a recipient.
 - **NFS**: if it needs tank data, add `my.vmNfsServer.shares."<vm>" = [ "data" ]`
   on `homeserver` and `my.vmNfsClient.mounts.data = { }` in the guest, then
   `nup-fleet --upgrade homeserver` and `nup-fleet --upgrade <vm>`.

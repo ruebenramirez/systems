@@ -66,6 +66,15 @@ It runs `nup-fleet --check`, which stops at the first failing phase:
 About a minute end to end for the whole fleet. A PR that moves `flake.lock` is
 the case that really builds, and that is the case worth the `timeout-minutes`.
 
+Alongside those phases the check also runs
+[`scripts/check-sops-secrets.sh`](../scripts/check-sops-secrets.sh), which proves
+every `sops.secrets.<name>` names a file that exists in the locked
+`systems-secrets` revision, contains that key, and lists the declaring host as a
+recipient — the three ways a secrets change can look fine here and fail at boot on
+a machine nobody is standing next to. It reads the `flake.lock` on the branch; the
+nightly re-locks first with `nup-fleet --flake-update-only`, deploys, and pushes
+the resulting lock back.
+
 ### Required status check
 
 `master` is protected and requires this context:
@@ -126,9 +135,6 @@ The invoking host still needs the inputs in its own store, to resolve
 
 ### What the check does not cover
 
-- **sops secret existence.** `scripts/check-sops-secrets.sh` still runs in the
-  nightly before the deploy. A PR can add a `sops.secrets.<name>` that no host
-  has a key for and stay green until it merges.
 - **Formatting.** The flake publishes a `formatter`, so
   `nix fmt -- --check $(git ls-files '*.nix')` works, but most of the tree
   predates nixfmt and is not clean, so the check does not gate on it. New code
