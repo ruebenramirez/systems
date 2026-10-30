@@ -15,7 +15,8 @@ Credentials that deliberately live **outside** sops are in
 systems-secrets commit
   → flake input revision (flake.lock)
   → encrypted file copied into the Nix store as part of the system closure
-  → sops-install-secrets.service (oneshot, before the services that need it)
+  → the activation script runs sops-install-secrets against the generated
+    manifest.json (at deploy and again at boot)
   → /run/secrets/<name>, owned and modeled per declaration
   → service reads the path, or a sops template substitutes it into a config file
 ```
@@ -173,23 +174,31 @@ because a running host never re-reads it.
 
 ## When a secret does not arrive
 
-`nup-fleet` printing `✓` does **not** mean the secrets are healthy — verify:
+`nup-fleet` printing `✓` does **not** mean the secrets are healthy — verify the
+files themselves:
 
 ```bash
-ssh <host> 'systemctl show sops-install-secrets -p ExecMainStatus --value'   # 0 = ok
-ssh <host> 'sudo ls /run/secrets'
+ssh <host> 'sudo ls -l /run/secrets'            # every declared name present
+ssh <host> 'sudo cat /run/secrets/<name>'       # compare against `sops -d` on the source
 ssh <host> 'systemctl --failed'
 ```
 
-`sops-install-secrets` is a oneshot, so `systemctl is-active` reports `inactive`
-even when it succeeded — read the exit status, not the active state.
+**Do not use the `sops-install-secrets.service` unit as a health signal.** There is
+no such unit here: `sops-install-secrets` runs from the activation script, and the
+only thing left under that name is the fragment carrying this fleet's
+`OnFailure=failure-mail@%n` line. It has no `ExecStart=`, so systemd reports
+`LoadState=bad-setting` and refuses to start it — which also means
+`systemctl show sops-install-secrets -p ExecMainStatus` returns `0` for a unit
+that has never run. That check looks green and proves nothing; the file comparison
+above is the check.
 
 | symptom | cause |
 |---|---|
 | `failed to fetch key` / `no identity matched` | host's age key changed, or the host is not a recipient. Compare `grep 'recipient: ' <file>` against the host's key; `sops` prints a wall of failures rather than naming this cause |
 | `Could not find key <name> in <file>` | declaration names a key the file does not have — `check-sops-secrets.sh` would have caught it |
-| secret absent, unit succeeded | wrong `sopsFile`, or the service caches the old value — check `restartUnits` and whether the consumer reads at `ExecStartPre` |
-| everything fine until reboot | the unit does not `wants`/`after` `sops-nix.service` |
+| activation fails with a sops error | the file or key is missing in the locked revision, or the host cannot decrypt it; `check-sops-secrets.sh` predicts exactly this |
+| secret absent, activation succeeded | wrong `sopsFile` (a file the host *can* read but that lacks the key cannot happen — the key must exist for activation to pass), or the consumer caches the old value: check `restartUnits` and whether the consumer reads at `ExecStartPre` |
+| `LoadState=bad-setting` on `sops-install-secrets.service` | expected; see the note above |
 
 `nixos-rebuild switch` applies changes incrementally and does not undo itself, so
 recovery is explicit: `nup-fleet rollback <host>` switches the machine back to the

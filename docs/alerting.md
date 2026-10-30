@@ -28,8 +28,16 @@ Transports differ by host:
 | `homeserver` | `matrix-backup`, `matrix-backup-freshness`, `hosted-sites-backup`, `hermes-backup`, `headscale`, `sops-install-secrets`, every `acme-order-renew-*` |
 
 ACME renewal is watched because a failed renewal is otherwise invisible until a
-certificate expires. `sops-install-secrets` is watched because a oneshot that
-fails silently leaves a host without credentials until reboot.
+certificate expires.
+
+`sops-install-secrets.service` is listed on both hosts and **does nothing**: secret
+installation is not a unit here, it runs inside the activation script, and the unit
+under that name carries only the `OnFailure=` line this module adds. With no
+`ExecStart=` systemd marks it `bad-setting` and refuses to start it, so the watch
+cannot fire. A failed install at deploy time is still loud (the activation fails
+and `nup-fleet` reports it); a failed install at boot is not, and that gap is open.
+The fix is either to drop those two entries or to assert that every watched unit
+exists and is startable — see rueb/systems#36 notes.
 
 Adding a watch is one line, and the failure mode of *not* adding one is a job that
 stops running and nobody notices for weeks.
@@ -93,7 +101,7 @@ picked up, start from the cause above rather than the symptom.
 
 ## See also
 
-- [`docs/secrets.md`](secrets.md) — why `sops-install-secrets` being a oneshot
-  matters when triaging a missing secret.
+- [`docs/secrets.md`](secrets.md) — how secrets are actually installed, and why
+  the `sops-install-secrets` unit is not a health signal.
 - [`docs/fleet-keys.md`](fleet-keys.md) — the credentials and rotation procedures
   whose failures these guards catch.

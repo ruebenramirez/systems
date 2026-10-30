@@ -570,9 +570,21 @@ rollback_machine() {
     local host_config="$1"
     IFS=':' read -r hostname config <<< "$host_config"
     local target; target="$(ssh_target "$hostname")"
+    # `--rollback` still needs a flake argument: nixos-rebuild builds its remote
+    # helper (`config.system.build.nixos-rebuild`) from it, and without one it
+    # falls back to <nixpkgs> and dies on an empty NIX_PATH. The generation it
+    # switches to is the profile's previous one on the target, not this flake.
+    local builder=()
+    if [[ "$IS_BUILDER" != "true" ]]; then
+        builder=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
+    fi
     echo "Generations on $hostname before rollback:"
     nixos-rebuild list-generations --target-host "$target" || true
-    if ! nixos-rebuild switch --rollback --target-host "$target" --sudo; then
+    if ! nixos-rebuild switch --rollback \
+        --flake "$FLAKE_DIR#$config" \
+        "${builder[@]}" \
+        --target-host "$target" \
+        --sudo; then
         echo "✗ $hostname rollback failed" >&2
         return 1
     fi
