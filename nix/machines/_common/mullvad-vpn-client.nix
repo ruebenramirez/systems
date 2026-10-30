@@ -1,7 +1,7 @@
-{ config, lib, pkgs, systems-secrets, ... }: {
+{ config, lib, pkgs, secretFile, ... }: {
 
-  # declare sops secret for wgnet vpn client configuration
-  sops.secrets.wgnet_mullvad_conf = { };
+  sops.secrets.wgnet_mullvad_conf =
+    secretFile "mullvad-client-${config.networking.hostName}";
 
   systemd.services."wg-quick-wg1" = {
     wants = [ "sops-nix.service" ];

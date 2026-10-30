@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, secretFile, ... }:
 let
   # Host-mode jobs run as the deploy user so they get the fleet ssh config and
   # deploy key; docker jobs are unaffected.
@@ -6,8 +6,8 @@ let
   deployHome = "/var/lib/nixdeploy";
 in
 {
-  sops.secrets.forgejo_runner_uuid = { };
-  sops.secrets.forgejo_runner_token = { };
+  sops.secrets.forgejo_runner_uuid = secretFile "forgejo-client-forgejo-ci-runner-vm";
+  sops.secrets.forgejo_runner_token = secretFile "forgejo-client-forgejo-ci-runner-vm";
 
   sops.templates."forgejo-runner-config.yaml" = {
     content = ''

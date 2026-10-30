@@ -1,4 +1,4 @@
-{ config, lib, pkgs-unstable, ... }:
+{ config, lib, pkgs-unstable, secretFile, ... }:
 
 let
   acmeCertDir = "/var/lib/acme/hy.rueb.dev";
@@ -7,11 +7,19 @@ in
   # Secrets from the systems-secrets flake input. They are jq-substituted into
   # /run/sing-box/config.json at ExecStartPre, so a rotation only lands when the
   # unit restarts -- hence restartUnits on each.
-  sops.secrets.vless_uuid = { restartUnits = [ "sing-box.service" ]; };
-  sops.secrets.reality_private_key = { restartUnits = [ "sing-box.service" ]; };
-  sops.secrets.reality_short_id = { restartUnits = [ "sing-box.service" ]; };
-  sops.secrets.hy2_password = { restartUnits = [ "sing-box.service" ]; };
-  sops.secrets.hy2_obfs_password = { restartUnits = [ "sing-box.service" ]; };
+  sops.secrets.vless_uuid =
+    secretFile "sing-box-shared" // { restartUnits = [ "sing-box.service" ]; };
+  # The private half of the REALITY pair never leaves the host that terminates
+  # the tunnel; the client only ever gets the public key.
+  sops.secrets.reality_private_key =
+    secretFile "sing-box-server-ssdnodes-1"
+    // { restartUnits = [ "sing-box.service" ]; };
+  sops.secrets.reality_short_id =
+    secretFile "sing-box-shared" // { restartUnits = [ "sing-box.service" ]; };
+  sops.secrets.hy2_password =
+    secretFile "sing-box-shared" // { restartUnits = [ "sing-box.service" ]; };
+  sops.secrets.hy2_obfs_password =
+    secretFile "sing-box-shared" // { restartUnits = [ "sing-box.service" ]; };
 
   # sing-box must not start before sops has materialized the secrets it reads,
   # nor before the Hysteria2 certificate path exists (acme-<cert>.service writes

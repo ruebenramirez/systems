@@ -1,4 +1,4 @@
-{ config, pkgs, tailnet, ... }:
+{ config, pkgs, tailnet, secretFile, ... }:
 
 let
   backupRoot = "/tank/backups/ssdnodes-1";
@@ -24,11 +24,12 @@ let
   '';
 in
 {
-  sops.secrets.hosted_sites_backup_ssh_private_key = {
-    owner = "root";
-    group = "root";
-    mode = "0400";
-  };
+  sops.secrets.hosted_sites_backup_ssh_private_key =
+    secretFile "hosted-sites-backup-client-homeserver" // {
+      owner = "root";
+      group = "root";
+      mode = "0400";
+    };
 
   programs.ssh.knownHosts.ssdnodes-1 = {
     hostNames = [ (tailnet.host "ssdnodes-1") ];

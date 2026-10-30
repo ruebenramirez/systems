@@ -1,4 +1,4 @@
-{ config, lib, pkgs, systems-secrets, ... }:
+{ config, lib, pkgs, secretFile, ... }:
 
 let
   # Settings that live in the Stalwart datastore (RocksDB), not in the
@@ -64,13 +64,13 @@ in
 {
   # SOPS Secrets
   sops.secrets = {
-    smtp2go_username = {
+    smtp2go_username = secretFile "stalwart-server-homeserver" // {
       mode = "0600";
       group = "stalwart-mail";
       owner = "stalwart-mail";
       restartUnits = [ "stalwart.service" ];
     };
-    smtp2go_password = {
+    smtp2go_password = secretFile "stalwart-server-homeserver" // {
       mode = "0600";
       group = "stalwart-mail";
       owner = "stalwart-mail";
@@ -79,7 +79,7 @@ in
     # Admin API key (WebUI: Account > Credentials > API Keys) for the
     # provisioning oneshot below. Used as a bearer token for curl and decoded
     # to basic auth for stalwart-cli, which cannot take the api_ form.
-    stalwart-api-key = {
+    stalwart-api-key = secretFile "stalwart-server-homeserver" // {
       mode = "0400";
     };
   };

@@ -1,4 +1,4 @@
-{ config, pkgs, tailnet, ... }:
+{ config, pkgs, tailnet, secretFile, ... }:
 
 let
   backupRoot = "/tank/backups/ssdnodes-1/matrix";
@@ -45,11 +45,12 @@ let
   '';
 in
 {
-  sops.secrets.matrix_backup_ssh_private_key = {
-    owner = "root";
-    group = "root";
-    mode = "0400";
-  };
+  sops.secrets.matrix_backup_ssh_private_key =
+    secretFile "matrix-backup-client-homeserver" // {
+      owner = "root";
+      group = "root";
+      mode = "0400";
+    };
 
   users.groups.matrix-backup = { };
   users.users.rramirez.extraGroups = [ "matrix-backup" ];

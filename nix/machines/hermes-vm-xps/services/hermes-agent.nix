@@ -1,4 +1,4 @@
-{ config, lib, pkgs, tailnet, ... }:
+{ config, lib, pkgs, tailnet, secretFile, ... }:
 
 let
   # `nousresearch/hermes-agent:stable`, digest-pinned (amd64 manifest). Verified
@@ -54,13 +54,18 @@ let
 in
 {
   sops.secrets = {
-    hermes-dashboard-basic-auth-username = { };
-    hermes-dashboard-basic-auth-password = { };
-    hermes-dashboard-basic-auth-secret = { };
-    hermes-api-server-key = { };
-    openrouter-api-key = { };
-    matrix-access-token = { };
-    matrix-recovery-key = { };
+    hermes-dashboard-basic-auth-username =
+      secretFile "hermes-agent-server-hermes-vm-xps";
+    hermes-dashboard-basic-auth-password =
+      secretFile "hermes-agent-server-hermes-vm-xps";
+    hermes-dashboard-basic-auth-secret =
+      secretFile "hermes-agent-server-hermes-vm-xps";
+    hermes-api-server-key = secretFile "hermes-agent-server-hermes-vm-xps";
+    # Hermes runs its own inference endpoint (halogen) and has its own
+    # OpenRouter credential, so it must not read the shared personal key.
+    openrouter-api-key = secretFile "openrouter-client-hermes-vm-xps";
+    matrix-access-token = secretFile "matrix-client-hermes-vm-xps";
+    matrix-recovery-key = secretFile "matrix-client-hermes-vm-xps";
   };
 
   sops.templates."hermes-managed-config" = {

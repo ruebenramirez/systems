@@ -1,7 +1,7 @@
-{ config, lib, pkgs, systems-secrets, ... }: {
+{ config, lib, pkgs, secretFile, ... }: {
 
-  # declare sops secret for wgnet vpn client configuration
-  sops.secrets.wgnet_home_conf = { };
+  sops.secrets.wgnet_home_conf =
+    secretFile "wireguard-client-${config.networking.hostName}";
 
   systemd.services."wg-quick-wg0" = {
     wants = [ "sops-nix.service" ];

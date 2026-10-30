@@ -1,4 +1,4 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, pkgs, secretFile, ... }:
 
 let
   # Where the restricted rrsync source (matrix-backup-source.nix) exposes the
@@ -50,7 +50,7 @@ let
 in
 {
   # @r3v2 access token, used to send `!admin` commands to the admin room.
-  sops.secrets.matrix-admin-access-token = {
+  sops.secrets.matrix-admin-access-token = secretFile "matrix-server-ssdnodes-1" // {
     owner = "root";
     group = "root";
     mode = "0400";

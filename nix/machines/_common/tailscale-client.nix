@@ -1,8 +1,9 @@
-{ config, pkgs, pkgs-unstable, ... }:
+{ config, pkgs, pkgs-unstable, secretFile, ... }:
 
 {
   # declare sops secret for the headscale pre-authorized auth key
-  sops.secrets.tailscale-auth-key = { };
+  sops.secrets.tailscale-auth-key =
+    secretFile "headscale-client-${config.networking.hostName}";
 
   services.tailscale = {
     enable = true;

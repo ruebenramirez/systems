@@ -1,4 +1,4 @@
-{ config, lib, pkgs-unstable, ... }:
+{ config, lib, pkgs-unstable, secretFile, ... }:
 
 let
   server = "172.93.51.14";
@@ -12,12 +12,18 @@ in
   # deliberately on-demand (wantedBy = [ ]; sstunnel owns start/stop), so
   # restartUnits is NOT set here; it would make every activation start the
   # tunnel unbidden. After rotating any of these: sstunnel off && sstunnel on
-  sops.secrets.vless_uuid = { };
-  sops.secrets.reality_public_key = { };
-  sops.secrets.reality_short_id = { };
-  sops.secrets.hy2_password = { };
-  sops.secrets.hy2_obfs_password = { };
-  sops.secrets.clash_api_secret = { };
+  # The four values below are identical on the client and the server, so they
+  # live in one shared file instead of a copy per host.
+  sops.secrets.vless_uuid = secretFile "sing-box-shared";
+  sops.secrets.reality_short_id = secretFile "sing-box-shared";
+  sops.secrets.hy2_password = secretFile "sing-box-shared";
+  sops.secrets.hy2_obfs_password = secretFile "sing-box-shared";
+
+  # Server public half and this host's control-plane secret.
+  sops.secrets.reality_public_key =
+    secretFile "sing-box-client-${config.networking.hostName}";
+  sops.secrets.clash_api_secret =
+    secretFile "sing-box-client-${config.networking.hostName}";
 
   # On-demand: never start at boot. `sstunnel on` starts it.
   systemd.services.sing-box = {

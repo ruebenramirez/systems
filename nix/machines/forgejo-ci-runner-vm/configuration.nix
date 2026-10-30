@@ -16,6 +16,10 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  # Jobs on this runner spend their own OpenRouter key; the personal key stays
+  # unreadable here (see systems-secrets .sops.yaml `openrouter-personal`).
+  my.openrouterFile = "openrouter-client-forgejo-ci-runner-vm";
+
   # Disk layout (disko); sized for the CI flake checkout and nix store growth.
   boot.growPartition = true;
   disko.memSize = 8192;

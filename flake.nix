@@ -136,6 +136,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -152,6 +153,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -168,6 +170,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -183,6 +186,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -198,6 +202,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -216,6 +221,7 @@
                   useWebUi = false;
                 };
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -233,6 +239,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."aarch64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -249,6 +256,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -264,6 +272,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];
@@ -280,6 +289,7 @@
               _module.args = {
                 pkgs-unstable = unstableFor."x86_64-linux";
                 inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
               };
             }
           ];

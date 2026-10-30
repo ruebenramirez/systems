@@ -1,4 +1,4 @@
-{ config, pkgs, lib, tailnet, ... }:
+{ config, pkgs, lib, tailnet, secretFile, ... }:
 # What the CI runner needs to run `nup-fleet --upgrade` from host-mode jobs:
 # the fleet deploy key, a read token for the private systems-secrets repo, and
 # ssh mappings from fleet names to MagicDNS FQDNs so bare `ssh <name>` calls
@@ -31,18 +31,20 @@ in
 {
   # private half; the public half every machine trusts lives in
   # _common/nix-deploy-user.nix
-  sops.secrets.forgejo_runner_ssh_key = {
-    owner = deployUser;
-    group = "nixdeploy";
-    mode = "0400";
-  };
+  sops.secrets.forgejo_runner_ssh_key =
+    secretFile "nixdeploy-client-forgejo-ci-runner-vm" // {
+      owner = deployUser;
+      group = "nixdeploy";
+      mode = "0400";
+    };
 
   # read-only Forgejo token for the private systems-secrets repo
-  sops.secrets.forgejo_secrets_token = {
-    owner = deployUser;
-    group = "nixdeploy";
-    mode = "0400";
-  };
+  sops.secrets.forgejo_secrets_token =
+    secretFile "forgejo-client-forgejo-ci-runner-vm" // {
+      owner = deployUser;
+      group = "nixdeploy";
+      mode = "0400";
+    };
 
   # Rendered by sops-nix so the token never lands in the world-readable store.
   # Values must stay unquoted: libcurl does not strip quotes.

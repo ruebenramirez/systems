@@ -448,6 +448,7 @@ usage: nup-fleet [--upgrade|--update] [machine ...]
        nup-fleet --flake-update-only
        nup-fleet build [machine ...]
        nup-fleet check [--no-build] [machine ...]
+       nup-fleet rollback machine [machine ...]
        nup-fleet --list
 
   --upgrade / --update   run `nix flake update` first, then deploy
@@ -466,6 +467,11 @@ usage: nup-fleet [--upgrade|--update] [machine ...]
                          locally. Stops at the first phase that fails; EXCLUDE
                          is not consulted.
   --no-build             with check: stop after evaluation (fastest local check)
+  rollback               switch each named machine back to the generation it was
+                         on before the last deploy. Never operates on the whole
+                         fleet by accident: names are required. This is the
+                         supported recovery after a bad switch -- stage-2
+                         activation does not undo itself.
   --list                 print every accepted machine name and exit
 USAGE
 }
@@ -486,6 +492,7 @@ for arg in "$@"; do
         --no-build)         CHECK_BUILD=false ;;
         build)              ACTION=build ;;
         check)              ACTION=check ;;
+        rollback)           ACTION=rollback ;;
         all)                ACTION=deploy ;;
         *)                  args+=("$arg") ;;
     esac
@@ -554,6 +561,26 @@ fi
 # (see nixpkgs#418868) during remote build/deploy. Run from a neutral dir.
 cd "$HOME"
 
+# ---------------------------------------------------------------------------
+# rollback -- switch a machine back to the generation it was on before the last
+# deploy. `switch` applies changes incrementally and does not undo itself, so an
+# explicit way back has to exist outside the deploy path.
+# ---------------------------------------------------------------------------
+rollback_machine() {
+    local host_config="$1"
+    IFS=':' read -r hostname config <<< "$host_config"
+    local target; target="$(ssh_target "$hostname")"
+    echo "Generations on $hostname before rollback:"
+    nixos-rebuild list-generations --target-host "$target" || true
+    if ! nixos-rebuild switch --rollback --target-host "$target" --sudo; then
+        echo "✗ $hostname rollback failed" >&2
+        return 1
+    fi
+    echo "Generations on $hostname after rollback:"
+    nixos-rebuild list-generations --target-host "$target" || true
+    echo "✓ $hostname rolled back"
+}
+
 case "$ACTION" in
     "check")
         CHECK_HOST=""
@@ -582,6 +609,17 @@ case "$ACTION" in
         else
             echo "Skipping the build phase (--no-build)."
         fi
+        ;;
+    "rollback")
+        if [[ "$WHOLE_FLEET" == "true" ]]; then
+            echo "error: rollback requires explicit machine names" >&2
+            echo "       usage: nup-fleet rollback <host> [<host> ...]" >&2
+            exit 1
+        fi
+        for machine in "${TARGETS[@]}"; do
+            rollback_machine "$machine" || FAILED+=("$machine")
+        done
+        [[ ${#FAILED[@]} -eq 0 ]] || { echo "failed: ${FAILED[*]}" >&2; exit 1; }
         ;;
     "build")
         # Build-only action (no deploy). Offload to the builder if we are not

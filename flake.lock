@@ -160,11 +160,11 @@
     },
     "systems-secrets": {
       "locked": {
-        "lastModified": 1793302979,
-        "narHash": "sha256-JewPF2e/YZyoOtJTbTvSRqcwYD2kb1w9vD60eIX2Uc0=",
+        "lastModified": 1793384681,
+        "narHash": "sha256-XlMysM1vgsQf9az5pneVBVb3F67aIJEQMM6oVzzTos0=",
         "ref": "refs/heads/main",
-        "rev": "8d9394cba07bccb1c0bb1566802a2841500062d1",
-        "revCount": 89,
+        "rev": "b5a95e0554f5d161e0055ac3ba732aab878208c9",
+        "revCount": 91,
         "type": "git",
         "url": "https://code.rueb.dev/rueb/systems-secrets.git"
       },

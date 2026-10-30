@@ -1,4 +1,4 @@
-{ config, pkgs, tailnet, ... }:
+{ config, pkgs, tailnet, secretFile, ... }:
 
 let
   backupRoot = "/tank/backups/hermes-vm-xps";
@@ -16,11 +16,12 @@ let
   '';
 in
 {
-  sops.secrets.hermes_backup_ssh_private_key = {
-    owner = "root";
-    group = "root";
-    mode = "0400";
-  };
+  sops.secrets.hermes_backup_ssh_private_key =
+    secretFile "hermes-backup-client-homeserver" // {
+      owner = "root";
+      group = "root";
+      mode = "0400";
+    };
 
   programs.ssh.knownHosts.hermes-vm-xps = {
     hostNames = [ (tailnet.host "hermes-vm-xps") ];

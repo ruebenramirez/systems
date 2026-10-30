@@ -1,4 +1,4 @@
-{ config, pkgs, lib, tailnet, ... }:
+{ config, pkgs, lib, tailnet, secretFile, ... }:
 # Build only on fwai0; never compile locally.
 #
 # dev-vm-xps is a development VM, not a builder. All Nix builds must be
@@ -28,11 +28,12 @@ in
   # Private half of the fwai0 builder key, owner=root so the Nix daemon can
   # read it. The matching public key is trusted only on fwai0, only for the
   # unprivileged `nixbuilder` account.
-  sops.secrets.fwai0_builder_ssh_key = {
-    owner = "root";
-    group = "root";
-    mode = "0400";
-  };
+  sops.secrets.fwai0_builder_ssh_key =
+    secretFile "nix-builder-client-dev-vm-xps" // {
+      owner = "root";
+      group = "root";
+      mode = "0400";
+    };
 
   # Pin fwai0's host key in the global known_hosts, which both the root-run
   # daemon and normal users read.

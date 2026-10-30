@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, secretFile, ... }:
 
 let
   bulwarkDataDir = "/tank/var/lib/bulwark";
@@ -14,8 +14,8 @@ let
 in
 {
   sops.secrets = {
-    bulwark-session-secret = { };
-    bulwark-admin-password = { };
+    bulwark-session-secret = secretFile "webmail-server-homeserver";
+    bulwark-admin-password = secretFile "webmail-server-homeserver";
   };
 
   sops.templates."bulwark.env" = {
