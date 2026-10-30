@@ -57,9 +57,9 @@
       }
 
       profile thinkpad_three_monitor_desk {
-        output "Lenovo Group Limited 0x403A Unknown" mode 1920x1200 position 214,0 scale 1.00
-        output "GWD ARZOPA 0x70320205" mode 2560x1600 position 0,1200 scale 1.20
-        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 2134,0 scale 1.10
+        output "LG Electronics LG HDR 4K 406NTZNA2149" mode 3840x2160 position 0,0 scale 1.10
+        output "GWD ARZOPA 0x70320205" mode 2560x1600 position 3500,1200 scale 1.20
+        output "Lenovo Group Limited 0x403A Unknown" mode 1920x1200 position 3500,0 scale 1.00
       }
 
       profile thinkpad_external_usbc_monitor_left {
