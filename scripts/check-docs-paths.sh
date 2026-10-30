@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
-# check-docs-paths.sh -- every path this repo's markdown points at must exist:
+# check-docs-paths.sh -- every path this repo's text files point at must exist:
 #
-#   - `secrets/<name>.yaml` references resolved against the locked
-#     systems-secrets revision
+#   - `secrets/<name>.yaml` references in markdown, `.nix` and `.sh`, resolved
+#     against the locked systems-secrets revision
 #   - relative markdown links to files inside this repo
 #
 # Docs are the only place credentials and procedures are written down, so a stale
@@ -27,6 +27,10 @@ fi
 
 fails=0
 mapfile -t md < <(find . -name '*.md' -not -path './result/*' -not -path './.git/*' | sort)
+# Paths hide in comments and in helper scripts, not just prose: `verify-reality-pair.sh`
+# kept reading a deleted secrets file straight through the migration.
+mapfile -t txt < <(find . \( -name '*.md' -o -name '*.nix' -o -name '*.sh' \) \
+  -not -path './result/*' -not -path './.git/*' | sort)
 
 # Fenced code blocks are examples, not references; inline spans are kept, because
 # inventory rows name real files inside backticks.
@@ -34,11 +38,11 @@ fenced_out() {
   for f in "${md[@]}"; do awk '/^```/{f=!f; next} !f' "$f"; done
 }
 
-# secrets/<name>.yaml mentioned anywhere in markdown prose.
+# secrets/<name>.yaml mentioned in prose or in a script
 while IFS= read -r ref; do
   [[ -f "$SECRETS_DIR/$ref" ]] \
-    || { echo "FAIL  $ref referenced in docs but absent from systems-secrets"; fails=$((fails+1)); }
-done < <(fenced_out | grep -ohE 'secrets/[A-Za-z0-9_-]+\.yaml' | sort -u)
+    || { echo "FAIL  $ref referenced but absent from systems-secrets"; fails=$((fails+1)); }
+done < <( { fenced_out | grep -ohE 'secrets/[A-Za-z0-9_-]+\.yaml'; for f in "${txt[@]}"; do case "$f" in *.md) continue;; esac; grep -ohE 'secrets/[A-Za-z0-9_-]+\.yaml' "$f" 2>/dev/null; done; } | sort -u )
 
 # Relative links from markdown, within this repo only.
 for f in "${md[@]}"; do
@@ -56,4 +60,4 @@ if (( fails )); then
   echo "$fails broken reference(s)"
   exit 1
 fi
-echo "every secrets path and relative link in markdown resolves"
+echo "every secrets path and relative link resolves"

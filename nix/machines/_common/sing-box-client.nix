@@ -4,7 +4,8 @@ let
   server = "172.93.51.14";
 in
 {
-  # Secrets come from the per-host systems-secrets file (secrets/driver.yaml).
+  # Secrets come from secrets/sing-box-client-driver.yaml (per-host client half);
+  # the values that must match the server live in secrets/sing-box-shared.yaml.
   #
   # These are the client half of the ssdnodes-1 proxy set and must match it.
   # Like the server, sing-box renders them into its runtime config at unit

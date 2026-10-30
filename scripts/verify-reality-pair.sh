@@ -11,8 +11,8 @@ getval() {
   "${SOPS[@]}" -d "$1" 2>/dev/null \
     | grep "^$2: " | sed -E 's/^[^:]+:[[:space:]]*//; s/^"(.*)"$/\1/'
 }
-priv=$(getval "$REPO/secrets/ssdnodes-1.yaml" reality_private_key)
-pub=$(getval "$REPO/secrets/driver.yaml" reality_public_key)
+priv=$(getval "$REPO/secrets/sing-box-server-ssdnodes-1.yaml" reality_private_key)
+pub=$(getval "$REPO/secrets/sing-box-client-driver.yaml" reality_public_key)
 
 b64url2hex() {
   local p="$1"
