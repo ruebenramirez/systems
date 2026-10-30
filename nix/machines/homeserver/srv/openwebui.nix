@@ -1,11 +1,16 @@
-{ config, pkgs, pkgs-unstable, tailnet, ... }:
+{ config, pkgs, pkgs-unstable, secretFile, tailnet, ... }:
 
 {
   # Upstream credentials. Open WebUI matches OPENAI_API_KEYS to the
   # pipe-separated OPENAI_API_BASE_URLS by position. The fwai0 halogen
   # endpoint runs without an API key (HALOGEN_API_KEY unset), but the slot
   # still needs a non-empty value, so it gets a dummy.
-  sops.secrets.openrouter-api-key = { };
+  #
+  # The module is not imported (disabled per rueb/systems#40), so nothing
+  # decrypts the key while it stays off. If re-enabled, this declaration is
+  # the key's declarative home (rueb/systems#39): rotation is edit the sops
+  # file + redeploy, not a dashboard-and-webui.db scramble.
+  sops.secrets.openrouter-api-key = secretFile "openrouter-client-homeserver";
 
   sops.templates."openwebui.env" = {
     content = ''
