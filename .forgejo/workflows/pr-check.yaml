@@ -16,13 +16,12 @@ on:
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
-# A push to a PR that is still being checked makes the older run pointless.
-# Grouped per PR so concurrent PRs do not cancel each other, and deliberately
-# *not* the nightly's `nup-fleet` group: a PR check must never block a fleet
-# upgrade, or be blocked by one.
+# All builds run on fwai0 and must not overlap. `fwai0-builder` is the
+# shared group across every workflow that builds there; false means a
+# queued run waits instead of cancelling a deploy in progress.
 concurrency:
-  group: flake-check-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: fwai0-builder
+  cancel-in-progress: false
 
 jobs:
   # Its id, `check`, is part of the required status-check context; see above.

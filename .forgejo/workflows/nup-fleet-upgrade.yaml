@@ -16,8 +16,11 @@ on:
         required: false
         default: ""
 
+# All builds run on fwai0 and must not overlap. `fwai0-builder` is the
+# shared group across every workflow that builds there; false means a
+# queued run waits instead of cancelling a deploy in progress.
 concurrency:
-  group: nup-fleet
+  group: fwai0-builder
   cancel-in-progress: false
 
 jobs:

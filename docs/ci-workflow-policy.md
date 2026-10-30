@@ -28,6 +28,21 @@ git ls-remote --tags https://github.com/actions/checkout | grep 'refs/tags/v4'
 If the tag is annotated, `refs/tags/vX.Y.Z^{}` holds the commit; the SHA to pin
 is the commit, not the tag object.
 
+## One builder, one build at a time
+
+Every build runs on `fwai0` and nix builds there must not overlap, so both
+workflows share the concurrency group `fwai0-builder` with
+`cancel-in-progress: false`. Forgejo scopes groups per repository, so the
+group serializes across workflows: a PR check queues behind a running
+nightly upgrade and vice versa.
+
+This replaces the old per-PR grouping of `pr-check`. The builder, not the
+runner slot, is the real constraint. Costs: a push to a PR queues a fresh
+check instead of cancelling the in-flight one, and two open PRs check in
+sequence.
+
+Any new workflow that builds on `fwai0` must join the `fwai0-builder` group.
+
 ## Pull request checks
 
 [`pr-check`](../.forgejo/workflows/pr-check.yaml) runs on every push to an open
