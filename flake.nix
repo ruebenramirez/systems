@@ -66,24 +66,6 @@
               streamlit = pprev.streamlit.overridePythonAttrs (old: {
                 dontCheckRuntimeDeps = true;
               });
-              # imageio 2.37.2's 16-bit PNG tests break against pillow 13.0.0
-              # ("Invalid mode for data type" in the pillow_legacy plugin).
-              # Test-only; the library works at runtime. Drop once imageio
-              # supports pillow 13.
-              imageio = pprev.imageio.overridePythonAttrs (old: {
-                disabledTests = old.disabledTests or [ ] ++ [
-                  "test_png_16bit"
-                  "test_png"
-                ];
-              });
-              # Expected PDFs were generated with standard zlib, but our
-              # python links against zlib-ng, so the compressed stream
-              # differs byte-for-byte. Semantically identical output.
-              fpdf2 = pprev.fpdf2.overridePythonAttrs (old: {
-                disabledTests = old.disabledTests or [ ] ++ [
-                  "test_image_with_explicit_dimensions"
-                ];
-              });
             };
           };
         })
