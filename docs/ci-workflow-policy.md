@@ -66,6 +66,10 @@ It runs `nup-fleet --check`, which stops at the first failing phase:
 About a minute end to end for the whole fleet. A PR that moves `flake.lock` is
 the case that really builds, and that is the case worth the `timeout-minutes`.
 
+A failed check pings the Matrix room through the same HMAC-signed Hermes
+webhook route as the nightly (`vars.HERMES_WEBHOOK_URL`,
+`secrets.HERMES_WEBHOOK_SECRET`); a passing check stays silent.
+
 Alongside those phases the check also runs
 [`scripts/check-sops-secrets.sh`](../scripts/check-sops-secrets.sh), which proves
 every `sops.secrets.<name>` names a file that exists in the locked

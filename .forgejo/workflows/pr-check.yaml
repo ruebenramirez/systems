@@ -132,3 +132,50 @@ jobs:
             echo "- no check log (the job failed before the check started)" >> "$summary"
           fi
           rm -f "$CHECK_LOG"
+
+  # Failure-only Matrix ping: a passing check stays silent. Same HMAC-signed
+  # route as the nightly (`matrix-notify`), deliver_only, zero LLM cost.
+  notify:
+    needs: [check]
+    if: failure()
+    runs-on: nixos
+    timeout-minutes: 5
+    steps:
+      - name: Notify Hermes
+        env:
+          HERMES_WEBHOOK_URL: "${{ vars.HERMES_WEBHOOK_URL }}"
+          HERMES_WEBHOOK_SECRET: "${{ secrets.HERMES_WEBHOOK_SECRET }}"
+          CHECK_RESULT: ${{ needs.check.result }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${HERMES_WEBHOOK_URL:-}" || -z "${HERMES_WEBHOOK_SECRET:-}" ]]; then
+            echo "HERMES_WEBHOOK_URL / HERMES_WEBHOOK_SECRET not configured; skipping notify." >&2
+            exit 0
+          fi
+          case "$CHECK_RESULT" in
+            cancelled) STATUS=cancelled ;;
+            *)         STATUS=failure ;;
+          esac
+          BODY=$(jq -n \
+            --arg status "$STATUS" \
+            --arg event "$EVENT_NAME" \
+            --arg url "$RUN_URL" \
+            --arg pr_number "$PR_NUMBER" \
+            --arg pr_title "$PR_TITLE" \
+            --arg pr_author "$PR_AUTHOR" \
+            --arg run_number "$RUN_NUMBER" \
+            '{workflow:"flake check (PR)", status:$status, event:$event, url:$url,
+              run_number:($run_number|tonumber? // $run_number),
+              pr:{number:($pr_number|tonumber? // $pr_number), title:$pr_title, author:$pr_author}}')
+          SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$HERMES_WEBHOOK_SECRET" -hex | awk '{print $NF}')
+          curl -fsS -m 15 --retry 3 --retry-delay 5 -X POST "$HERMES_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -H "X-Hub-Signature-256: sha256=$SIG" \
+            -d "$BODY"
+
