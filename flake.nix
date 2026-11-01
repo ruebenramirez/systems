@@ -27,15 +27,16 @@
   };
 
   outputs =
-    { self
-    , nixpkgs
-    , nixpkgs-unstable
-    , disko
-    , nixos-hardware
-    , llama-cpp
-    , sops-nix
-    , systems-secrets
-    , ...
+    {
+      self,
+      nixpkgs,
+      nixpkgs-unstable,
+      disko,
+      nixos-hardware,
+      llama-cpp,
+      sops-nix,
+      systems-secrets,
+      ...
     }@inputs:
 
     let
@@ -72,19 +73,25 @@
       ];
 
       # Create nixpkgs for each system
-      nixpkgsFor = forAllSystems (system: import nixpkgs {
-        inherit system overlays;
-        config = {
-          allowUnfree = true;
-          permittedInsecurePackages = [ "immich-2.7.5" ];
-        };
-      });
+      nixpkgsFor = forAllSystems (
+        system:
+        import nixpkgs {
+          inherit system overlays;
+          config = {
+            allowUnfree = true;
+            permittedInsecurePackages = [ "immich-2.7.5" ];
+          };
+        }
+      );
 
       # Create unstable for each system
-      unstableFor = forAllSystems (system: import nixpkgs-unstable {
-        inherit system;
-        config.allowUnfree = true;
-      });
+      unstableFor = forAllSystems (
+        system:
+        import nixpkgs-unstable {
+          inherit system;
+          config.allowUnfree = true;
+        }
+      );
 
     in
     {
@@ -245,6 +252,57 @@
           ];
         };
 
+        "k3s-1" = nixpkgs.lib.nixosSystem {
+          modules = [
+            ./nix/machines/k3s-1/configuration.nix
+            disko.nixosModules.disko
+            sops-nix.nixosModules.sops
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
+              };
+            }
+          ];
+        };
+
+        "k3s-2" = nixpkgs.lib.nixosSystem {
+          modules = [
+            ./nix/machines/k3s-2/configuration.nix
+            disko.nixosModules.disko
+            sops-nix.nixosModules.sops
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
+              };
+            }
+          ];
+        };
+
+        "k3s-3" = nixpkgs.lib.nixosSystem {
+          modules = [
+            ./nix/machines/k3s-3/configuration.nix
+            disko.nixosModules.disko
+            sops-nix.nixosModules.sops
+            nixpkgs.nixosModules.readOnlyPkgs
+            {
+              nixpkgs.pkgs = nixpkgsFor."x86_64-linux";
+              _module.args = {
+                pkgs-unstable = unstableFor."x86_64-linux";
+                inherit systems-secrets;
+                secretFile = service: { sopsFile = systems-secrets + "/secrets/" + service + ".yaml"; };
+              };
+            }
+          ];
+        };
+
         "hermes-vm-xps" = nixpkgs.lib.nixosSystem {
           modules = [
             ./nix/machines/hermes-vm-xps/configuration.nix
@@ -277,6 +335,9 @@
           "download-vm-xps-incus-image" = mkIncusImage self.nixosConfigurations."download-vm-xps";
           "forgejo-ci-runner-vm-incus-image" = mkIncusImage self.nixosConfigurations."forgejo-ci-runner-vm";
           "hermes-vm-xps-incus-image" = mkIncusImage self.nixosConfigurations."hermes-vm-xps";
+          "k3s-1-incus-image" = mkIncusImage self.nixosConfigurations."k3s-1";
+          "k3s-2-incus-image" = mkIncusImage self.nixosConfigurations."k3s-2";
+          "k3s-3-incus-image" = mkIncusImage self.nixosConfigurations."k3s-3";
         };
 
       # `nix fmt` target: the formatter RFC 166 names as canonical. It has to be

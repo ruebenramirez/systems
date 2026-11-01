@@ -2,6 +2,7 @@
 {
   imports = [
     ../_common/base/default.nix
+    ../_common/monitoring.nix
     ../_common/nix-deploy-user.nix
     ../_common/qemu-vm-guest.nix
     ../_common/dev.nix

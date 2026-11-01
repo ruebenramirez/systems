@@ -3,6 +3,7 @@
 {
   imports = [
     ../_common/base/default.nix
+    ../_common/monitoring.nix
     ../_common/nix-deploy-user.nix
     ../_common/build-machine.nix
     ../_common/desktop/default.nix

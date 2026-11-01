@@ -3,6 +3,7 @@
 {
   imports = [
     ../_common/base/default.nix
+    ../_common/monitoring.nix
     ../_common/nix-deploy-user.nix
     ../_common/gpu-amd.nix
     ../_common/home-vpn-client.nix
@@ -112,6 +113,10 @@
   my.vmNfsServer = {
     enable = true;
     shares."dev-vm-xps" = [ "data" ];
+    # k3s dynamic PVCs (my.k3sNfsPvc): every claim becomes a subdirectory of
+    # `pvc`, so the tank's existing sanoid/syncoid coverage is what protects
+    # cluster data. `pvc` is the export the CSI driver is configured with.
+    shares."k3s-cluster" = [ "pvc" ];
   };
 
   system.stateVersion = "25.05";
