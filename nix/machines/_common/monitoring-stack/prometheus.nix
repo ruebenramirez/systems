@@ -245,6 +245,67 @@ let
         ];
       }
 
+      # GPU telemetry arrives through the textfile collector on the hosts the
+      # inventory marks `gpu = true` (see
+      # nix/machines/_common/monitoring.nix). Utilisation and VRAM are
+      # deliberately not alerted on: on fwai0 pinning the card's memory and
+      # sitting at 100% is the workload succeeding, not failing.
+      {
+        name = "fleet-gpu";
+        rules = [
+          {
+            # The scrape target carries gpu="true" from the inventory, so this is
+            # "a host that must export GPU metrics and is not": card gone, sysfs
+            # layout changed, collector never installed.
+            alert = "GpuMetricsMissing";
+            expr = ''
+              (up{job="fleet-node-exporters", gpu="true"} == 1)
+                unless on (host, instance) (gpu_utilization_percent)
+            '';
+            for = "10m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "No GPU metrics from {{ $labels.instance }}";
+              description = "{{ $labels.host }} is scraping and is supposed to have a GPU, but exports no gpu_* metrics; the GPU row on its dashboard is blind.";
+            };
+          }
+          {
+            # The textfile collector keeps serving the last file written, so a
+            # dead timer freezes the numbers instead of losing them. The collector
+            # writes the time it read sysfs to make that visible.
+            alert = "GpuCollectionStale";
+            expr = "time() - gpu_metrics_timestamp_seconds > 120";
+            for = "5m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "GPU metrics from {{ $labels.instance }} have not updated in 2 minutes";
+              description = "gpu-metrics.timer is not refreshing the textfile, so every GPU number for {{ $labels.host }} is a frozen old reading rather than a missing one.";
+            };
+          }
+          {
+            # Junction temperature, which is what throttles: the collector reports
+            # the hottest sensor the card exposes.
+            alert = "GpuThermalLimit";
+            expr = "gpu_temperature_celsius > 95";
+            for = "10m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "{{ $labels.instance }} {{ $labels.gpu }} at {{ $value }}C for 10m";
+              description = "A card this hot is throttling or about to; check dust, fan curves and case airflow on {{ $labels.host }}.";
+            };
+          }
+        ];
+      }
+
       {
         name = "fleet-services";
         rules = [

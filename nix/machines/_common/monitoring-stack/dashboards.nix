@@ -447,12 +447,63 @@ let
         legend = "{{device}} {{direction}}";
         expr = ''rate(node_network_receive_errs_total{host="$host"}[5m]) or rate(node_network_transmit_errs_total{host="$host"}[5m]) or rate(node_network_receive_drop_total{host="$host"}[5m])'';
       })
-      (row 21 "systemd" 48)
+      # Shown for every host: on a box with no GPU the collector writes nothing,
+      # so these panels stay empty rather than inventing a series.
+      (row 23 "GPU" 48)
+      (ts {
+        id = 24;
+        title = "GPU utilisation";
+        unit = "percent";
+        min = 0;
+        max = 100;
+        x = 0;
+        y = 49;
+        w = 12;
+        legend = "{{gpu}}";
+        expr = ''gpu_utilization_percent{host="$host"}'';
+      })
+      (ts {
+        id = 25;
+        title = "VRAM used";
+        unit = "percentunit";
+        min = 0;
+        max = 1;
+        x = 12;
+        y = 49;
+        w = 12;
+        legend = "{{gpu}}";
+        # Fraction rather than bytes: the useful question is how close the card is
+        # to full, and the two hosts do not have the same card.
+        expr = ''gpu_memory_used_bytes{host="$host"} / gpu_memory_total_bytes{host="$host"}'';
+      })
+      (ts {
+        id = 26;
+        title = "GPU power";
+        unit = "watt";
+        min = 0;
+        x = 0;
+        y = 57;
+        w = 12;
+        legend = "{{gpu}}";
+        expr = ''gpu_power_watts{host="$host"}'';
+      })
+      (ts {
+        id = 27;
+        title = "GPU temperature";
+        unit = "celsius";
+        min = 0;
+        x = 12;
+        y = 57;
+        w = 12;
+        legend = "{{gpu}}";
+        expr = ''gpu_temperature_celsius{host="$host"}'';
+      })
+      (row 21 "systemd" 65)
       (table {
         id = 22;
         title = "Failed units";
         x = 0;
-        y = 49;
+        y = 66;
         expr = ''node_systemd_unit_state{host="$host",state="failed"} == 1'';
       })
     ];
@@ -654,6 +705,32 @@ let
         x = 0;
         y = 20;
         expr = ''up{job="fleet-node-exporters"} == 0'';
+      })
+      # Fleet-wide GPU glance: which box is actually computing, and which is
+      # quietly holding all its VRAM. Per-card detail is the host dashboard.
+      (row 10 "GPU" 28)
+      (ts {
+        id = 11;
+        title = "GPU utilisation";
+        unit = "percent";
+        min = 0;
+        max = 100;
+        x = 0;
+        y = 29;
+        w = 12;
+        legend = "{{host}} {{gpu}}";
+        expr = "gpu_utilization_percent";
+      })
+      (ts {
+        id = 12;
+        title = "GPU VRAM used";
+        unit = "bytes";
+        min = 0;
+        x = 12;
+        y = 29;
+        w = 12;
+        legend = "{{host}} {{gpu}}";
+        expr = "gpu_memory_used_bytes";
       })
     ];
   };

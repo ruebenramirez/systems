@@ -26,6 +26,8 @@ is **one edit there**, and the following all follow on the next deploy:
 | blackbox modules + probe jobs (`blackbox-http`, `blackbox-tcp`, `blackbox-imap`) | blackbox exporter |
 | status page endpoints, groups, and alert routing | Gatus |
 | dashboard template variables | Grafana |
+| `gpu = true` on a host → scrape target label, GPU alerts | Prometheus (see *GPU metrics*) |
+| `zfsPools` → ZFS capacity and pool-state panels on the overview dashboard | Grafana |
 
 Hosts are keyed by `networking.hostName`. `monitored = false` removes a host from
 every generated list — that is how `driver` (a laptop) stays out. A machine that
@@ -34,15 +36,15 @@ evaluation on purpose, so drift fails loudly instead of going unmonitored.
 
 Grafana dashboards, by contrast, are **hand-written** in
 [`nix/machines/_common/monitoring-stack/dashboards.nix`](../nix/machines/_common/monitoring-stack/dashboards.nix)
-because Grafana's schema does not compose; only their host lists come from the
-inventory.
+because Grafana's schema does not compose; only their host lists, and the ZFS
+storage row generated from `zfsPools`, come from the inventory.
 
 ## Layout
 
 | Path | What |
 |---|---|
-| `nix/lib/inventory.nix` | hosts, services, probes, status endpoints, scrape targets |
-| `nix/machines/_common/monitoring.nix` | node exporter + firewall scoping, imported per machine |
+| `nix/lib/inventory.nix` | hosts, services, probes, status endpoints, scrape targets, ZFS pools |
+| `nix/machines/_common/monitoring.nix` | node exporter (plus the GPU textfile collector) + firewall scoping, imported per machine |
 | `nix/machines/_common/monitoring-stack/` | generated scrape config, alert rules, dashboards, k8s manifests |
 | `nix/machines/_common/services/k3s-cluster.nix` | the 3-node k3s control plane that hosts the stack |
 | `nix/machines/_common/services/k3s-nfs-pvc.nix` | NFS-backed `StorageClass` for stateful monitoring |
@@ -51,6 +53,60 @@ inventory.
 Monitoring collectors (`node_exporter`) run on every monitored host and are
 scraped over the tailnet; the collectors listen on all interfaces but the
 firewall only admits `tailscale0`.
+
+## GPU metrics
+
+`fwai0` and `homeserver` have AMD GPUs, so they export utilisation, VRAM, power
+and temperature next to the CPU and disk numbers. nixpkgs has no AMD GPU
+exporter — `services.prometheus.exporters` covers `nvidia-gpu` and DCGM and
+nothing for `amdgpu` — so the collector here is a systemd timer over sysfs:
+
+```
+gpu-metrics.timer (15s) -> /var/lib/node_exporter/textfile/gpu.prom
+                        -> node_exporter :9100, already scraped by the fleet job
+```
+
+Nothing new listens, so there is no port, no firewall rule and no scrape job: the
+metrics arrive on the existing `fleet-node-exporters` scrape and inherit its
+`host` and `instance` labels. sysfs paths are kernel ABI, which is a steadier
+contract than any tool's output format — `amdgpu_top` or `rocm-smi` would mean
+parsing human-readable output for the same four numbers.
+
+Enabling it is the inventory flag `hosts.<name>.gpu = true`, which is one edit
+with three effects:
+
+| Effect | Where |
+|---|---|
+| node_exporter gains the `textfile` collector and `--collector.textfile.directory=/var/lib/node_exporter/textfile` | `_common/monitoring.nix` |
+| the scrape target carries a `gpu="true"` label | `nodeScrapeTargets` in `nix/lib/inventory.nix` |
+| `GpuMetricsMissing` expects metrics from that host | `monitoring-stack/prometheus.nix` |
+
+Enabling the collector on a host the inventory does not flag — or without
+node_exporter to carry it — fails the evaluation rather than shipping a dashboard
+row that quietly stays empty.
+
+Exported names are vendor-neutral (`gpu_utilization_percent`,
+`gpu_memory_used_bytes` / `gpu_memory_total_bytes`, `gpu_power_watts`,
+`gpu_temperature_celsius`) so a card on another vendor can emit the same series
+and inherit these dashboards and alerts unchanged; `gpu` carries the card
+(`card0`) and `pci` its slot. Three details are load-bearing:
+
+- **`gpu_metrics_timestamp_seconds` exists because absence is not how a textfile
+  collector fails.** It serves the last file written indefinitely, so a dead
+  timer reads as a GPU frozen at its last value instead of a missing one.
+  `GpuCollectionStale` watches that timestamp; `GpuMetricsMissing` covers the
+  case where the series never appeared at all.
+- **Temperature is the maximum of all `temp*_input` sensors.** Datacenter cards
+  expose an edge and a junction reading and the junction is what throttles, so
+  `GpuThermalLimit` (95 °C) reads the hotspot.
+- **Unreadable counters are dropped, never zeroed.** A single unparsable line
+  discards the whole `.prom` file and every GPU metric in it, so a card in
+  runtime PM suspend (the homeserver idles hard) momentarily shows fewer series
+  rather than wrong ones.
+
+**Utilisation and VRAM are deliberately not alerted on.** fwai0 exists to pin its
+VRAM with an inference engine and sit near 100 %: an alert there fires daily and
+educates no one. Both are on the dashboards, which is where they belong.
 
 ## Access
 
@@ -289,6 +345,10 @@ turns into `452 Rate limit exceeded` on the notifications as well.
 - **Dashboard per service** — the three dashboards are per-host and per-probe;
   per-service drilldown is one hand-written dashboard away whenever a service
   earns it.
+- **Per-process GPU attribution** — the collector describes the card, not which
+  container is holding the VRAM. ROCm's own `amdgpu_exporter` would give that,
+  and with it a port, a firewall rule, a scrape job and a ROCm runtime on both
+  hosts, for one panel nobody has asked for yet.
 
 ## See also
 

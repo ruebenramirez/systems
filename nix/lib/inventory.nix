@@ -23,14 +23,19 @@ rec {
   # ---------------------------------------------------------------- hosts ---
 
   # `monitored = false` keeps a host out of every generated list; `driver` is
-  # excluded by decision (a laptop, not a server).
+  # excluded by decision (a laptop, not a server). `gpu = true` says the host has
+  # a GPU whose metrics must show up: it labels the scrape target, turns on the
+  # collector in nix/machines/_common/monitoring.nix, and is what the
+  # GpuMetricsMissing alert holds the host to.
   hosts = {
     homeserver = {
       description = "Mail (Stalwart), media, headscale, Forgejo origin, tank NFS";
       zfs = true;
+      gpu = true;
     };
     fwai0 = {
       description = "Fleet build farm, LLM inference";
+      gpu = true;
     };
     ssdnodes-1 = {
       description = "Public VPS: public MX, Matrix, DERP, hosted sites";
@@ -456,7 +461,8 @@ rec {
     labels = {
       host = h;
       instance = h;
-    };
+    }
+    // (if hosts.${h}.gpu or false then { gpu = "true"; } else { });
   }) monitoredHosts;
 
   # Names used as Grafana dashboard template variables and Gatus groups.
