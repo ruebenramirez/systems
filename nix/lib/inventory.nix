@@ -47,6 +47,7 @@ rec {
     };
     pi-syncoid-target = {
       description = "Off-box ZFS backup target (Raspberry Pi)";
+      zfs = true;
     };
     dev-vm-xps = {
       description = "Development VM (Docker, editor, data share)";
@@ -81,6 +82,24 @@ rec {
 
   # Derived: the hosts that get an exporter and a scrape target.
   monitoredHosts = builtins.filter (n: (hosts.${n}.monitored or true)) (builtins.attrNames hosts);
+
+  # ------------------------------------------------------------ zfs pools ---
+
+  # Pools whose capacity the fleet watches. `mountpoint` must name a dataset
+  # mountpoint, never the pool's own root: tankbak's root mount reports 1% used
+  # while tankbak/data -- the same pool, 81% full -- reports 82%.
+  zfsPools = [
+    {
+      host = "homeserver";
+      pool = "tank";
+      mountpoint = "/tank";
+    }
+    {
+      host = "pi-syncoid-target";
+      pool = "tankbak";
+      mountpoint = "/tankbak/data";
+    }
+  ];
 
   # ------------------------------------------------------------- services ---
 

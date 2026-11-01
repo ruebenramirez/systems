@@ -30,6 +30,7 @@ let
       max ? null,
       stack ? false,
       instant ? false,
+      extraTargets ? [ ],
     }:
     {
       inherit id title;
@@ -61,7 +62,8 @@ let
           legendFormat = legend;
           refId = "A";
         }
-      ];
+      ]
+      ++ extraTargets;
     };
 
   stat =
@@ -259,6 +261,141 @@ let
     };
 
   fsFilter = ''fstype!~"tmpfs|ramfs|vfat|overlay|autofs"'';
+
+  # ZFS pools from the inventory, as PromQL selectors. See `zfsPools` in
+  # nix/lib/inventory.nix for why these read capacity off a dataset mountpoint.
+  poolMounts = builtins.concatStringsSep "|" (map (p: p.mountpoint) inventory.zfsPools);
+  poolNames = builtins.concatStringsSep "|" (map (p: p.pool) inventory.zfsPools);
+  poolAvail = ''node_filesystem_avail_bytes{fstype="zfs",mountpoint=~"${poolMounts}"}'';
+  poolSize = ''node_filesystem_size_bytes{fstype="zfs",mountpoint=~"${poolMounts}"}'';
+
+  # Steps for "fraction of the pool still free": the alert thresholds are
+  # TankCapacityLow at 15%, so the panel turns amber where the page would fire.
+  freeSteps = [
+    { color = "red"; }
+    {
+      color = "orange";
+      value = 0.15;
+    }
+    {
+      color = "green";
+      value = 0.30;
+    }
+  ];
+
+  # One row of the overview dashboard, generated per inventoried pool: a full
+  # pool needs both how much is left and how fast the rest is going, so each pool
+  # gets a percent tile and an absolute tile, then a shared trend and projection.
+  # Tile width divides the 24-column grid so adding a pool reflows rather than
+  # overflowing it.
+  zfsPanels =
+    let
+      tileW = 24 / (2 * builtins.length inventory.zfsPools);
+      # Generated ids start at 100 so a pool count nobody predicted cannot
+      # collide with the panels numbered by hand elsewhere in this dashboard.
+      poolTiles = i: p: [
+        (stat {
+          id = 100 + i * 2;
+          title = "${p.pool} free";
+          unit = "percentunit";
+          min = 0;
+          max = 1;
+          x = i * 2 * tileW;
+          y = 38;
+          w = tileW;
+          threshold = freeSteps;
+          expr = ''
+            node_filesystem_avail_bytes{host="${p.host}",mountpoint="${p.mountpoint}"}
+              / node_filesystem_size_bytes{host="${p.host}",mountpoint="${p.mountpoint}"}
+          '';
+        })
+        (stat {
+          id = 101 + i * 2;
+          title = "${p.pool} used";
+          unit = "bytes";
+          x = (i * 2 + 1) * tileW;
+          y = 38;
+          w = tileW;
+          expr = ''node_filesystem_size_bytes{host="${p.host}",mountpoint="${p.mountpoint}"} - node_filesystem_avail_bytes{host="${p.host}",mountpoint="${p.mountpoint}"}'';
+        })
+      ];
+      after = 100 + 2 * builtins.length inventory.zfsPools;
+    in
+    [
+      (row 30 "ZFS storage" 37)
+    ]
+    ++ builtins.concatLists (
+      builtins.genList (i: poolTiles i (builtins.elemAt inventory.zfsPools i)) (
+        builtins.length inventory.zfsPools
+      )
+    )
+    ++ [
+      (stat {
+        # Fleet-wide, not just the inventoried pools: a pool nobody sizes should
+        # still be caught when it stops being ONLINE.
+        id = after;
+        title = "Zpools not online (fleet-wide)";
+        x = 16;
+        y = 42;
+        w = 8;
+        threshold = [
+          { color = "green"; }
+          {
+            color = "red";
+            value = 1;
+          }
+        ];
+        expr = ''count(node_zfs_zpool_state{state!="online"} == 1) or vector(0)'';
+      })
+      (ts {
+        id = after + 1;
+        title = "Pool space free";
+        unit = "percentunit";
+        min = 0;
+        max = 1;
+        x = 0;
+        y = 42;
+        w = 8;
+        legend = "{{host}} {{mountpoint}}";
+        expr = "${poolAvail} / ${poolSize}";
+      })
+      (ts {
+        id = after + 2;
+        title = "Space predicted to remain (4d horizon; negative = full)";
+        unit = "bytes";
+        x = 8;
+        y = 42;
+        w = 8;
+        legend = "{{host}} {{mountpoint}}";
+        expr = "predict_linear(${poolAvail}[24h], 4 * 24 * 3600)";
+      })
+      (ts {
+        id = after + 3;
+        title = "Pool dataset throughput";
+        unit = "Bps";
+        x = 0;
+        y = 50;
+        legend = "{{host}} {{dataset}} read";
+        expr = ''rate(node_zfs_zpool_dataset_nread{zpool=~"${poolNames}"}[5m])'';
+        extraTargets = [
+          {
+            expr = ''rate(node_zfs_zpool_dataset_nwritten{zpool=~"${poolNames}"}[5m])'';
+            legendFormat = "{{host}} {{dataset}} written";
+            refId = "B";
+          }
+        ];
+      })
+      (table {
+        id = after + 4;
+        # Every pool Prometheus reports: a pool missing here is a pool nobody
+        # watches, which is the point of showing all of them.
+        title = "Every zpool, right now";
+        x = 12;
+        y = 50;
+        w = 12;
+        expr = "node_zfs_zpool_state == 1";
+      })
+    ];
 
   hostHealth = dashboard {
     uid = "fleet-host-health";
@@ -744,7 +881,8 @@ let
         legend = "{{host}} {{gpu}}";
         expr = "gpu_memory_used_bytes";
       })
-    ];
+    ]
+    ++ zfsPanels;
   };
 
   # One ConfigMap per dashboard, in the shape the grafana sidecar discovers.
