@@ -159,6 +159,35 @@ tailnet, installed and configured by
 that dies at 03:30 and is only visible to someone who opens the Actions UI is
 not monitoring. A run that is merely cancelled or skipped stays quiet.
 
+## Every machine the deploy touches must answer ssh from the runner
+
+The deploy job switches each machine over ssh as `nixdeploy`, and a machine that
+does not answer does not fail like an ssh problem. `nixos-rebuild` derives the
+configuration it is about to build by running `uname -n` **on the target**; when
+that ssh fails it falls back to the literal name `default`, and the run dies with
+`flake ... does not provide attribute nixosConfigurations."default"` after the
+builder has already worked and after the healthy hosts were already switched.
+Three things keep that from recurring:
+
+- **One source for fleet ssh trust.** The `Host` blocks the deploy user needs
+  (`HostName` on the tailnet FQDN, the deploy key, `StrictHostKeyChecking
+  accept-new`) are generated for every machine in
+  [`nup-fleet-access.nix`](../nix/machines/forgejo-ci-runner-vm/services/nup-fleet-access.nix)
+  from `nix/lib/inventory.nix`. The list that preceded it was hand-maintained and
+  was missing `k3s-1` through `k3s-3`, which is how three fleet nodes went
+  undeployable by CI while their config was fine.
+- **`nup-fleet` names the configuration explicitly** (`config_of`) instead of
+  passing `--flake <dir>#` and letting `nixos-rebuild` guess. An unnamed flake
+  attribute is also how `nup-fleet build <machine>` can quietly build the
+  configuration named after whichever machine ran the command.
+- **Preflight probes every machine the run will switch** and refuses to start if
+  one does not answer, so a trust gap costs nothing instead of half-upgrading the
+  fleet.
+
+Because `forgejo-ci-runner-vm` is in `NUP_FLEET_EXCLUDE`, the runner never
+switches itself: editing those `Host` blocks needs one manual
+`nup-fleet forgejo-ci-runner-vm` from another machine before it takes effect.
+
 ## Pushing to the protected `master` branch
 
 `master` is protected, and the workflow's automatic `GITHUB_TOKEN` cannot push to

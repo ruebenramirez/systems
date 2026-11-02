@@ -62,10 +62,12 @@ jobs:
       - name: Preflight
         env:
           HOME: /var/lib/nixdeploy
+          FLAKE_DIR: ${{ github.workspace }}
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
           GIT_CONFIG_VALUE_0: ""
           MACHINES: ${{ github.event.inputs.machines }}
+          EXCLUDE: "${{ vars.NUP_FLEET_EXCLUDE || 'forgejo-ci-runner-vm' }}"
         run: |
           set -euo pipefail
           echo "host: $(hostname)"
@@ -92,6 +94,37 @@ jobs:
             || { echo "refusing to run this job on the builder itself" >&2; exit 1; }
           ssh -o BatchMode=yes -o ConnectTimeout=10 fwai0 true \
             || { echo "builder fwai0 unreachable; refusing to build locally" >&2; exit 1; }
+          # Every machine this run will switch must answer ssh *now*. A machine
+          # with no Host block, a rotated host key or an unusable deploy key
+          # otherwise surfaces as a missing `nixosConfigurations."default"`
+          # attribute -- nixos-rebuild names the configuration it builds by
+          # running `uname -n` on the target -- after the builder has done the
+          # work and after the healthy hosts were already switched.
+          read -r -a excluded <<< "${EXCLUDE//,/ }"
+          if [[ ${#requested[@]} -gt 0 ]]; then
+            to_deploy=("${requested[@]}")
+          else
+            mapfile -t to_deploy < <(dotfiles/bin/nup-fleet --list)
+          fi
+          unreachable=()
+          for m in "${to_deploy[@]}"; do
+            if [[ ${#requested[@]} -eq 0 ]]; then
+              skip=false
+              for e in "${excluded[@]:-}"; do [[ -n "$e" && "$m" == "$e" ]] && skip=true; done
+              $skip && continue
+            fi
+            ssh -o BatchMode=yes -o ConnectTimeout=10 "$m" true 2>/dev/null \
+              || unreachable+=("$m")
+          done
+          if [[ ${#unreachable[@]} -gt 0 ]]; then
+            printf 'error: ssh from the runner failed for %d machine(s); refusing to start\n' "${#unreachable[@]}" >&2
+            printf '  %s\n' "${unreachable[@]}" >&2
+            echo 'Each needs a Host block in' >&2
+            echo '  nix/machines/forgejo-ci-runner-vm/services/nup-fleet-access.nix' >&2
+            echo 'and a host key the runner will accept.' >&2
+            exit 1
+          fi
+          echo "ssh reachable to every machine this run would switch"
           git ls-remote https://code.rueb.dev/rueb/systems-secrets.git HEAD >/dev/null \
             || { echo "cannot reach systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
 
