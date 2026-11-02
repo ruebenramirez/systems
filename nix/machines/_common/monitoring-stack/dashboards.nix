@@ -375,6 +375,7 @@ let
         unit = "Bps";
         x = 0;
         y = 50;
+        w = 24;
         legend = "{{host}} {{dataset}} read";
         expr = ''rate(node_zfs_zpool_dataset_nread{zpool=~"${poolNames}"}[5m])'';
         extraTargets = [
@@ -384,16 +385,6 @@ let
             refId = "B";
           }
         ];
-      })
-      (table {
-        id = after + 4;
-        # Every pool Prometheus reports: a pool missing here is a pool nobody
-        # watches, which is the point of showing all of them.
-        title = "Every zpool, right now";
-        x = 12;
-        y = 50;
-        w = 12;
-        expr = "node_zfs_zpool_state == 1";
       })
     ];
 
