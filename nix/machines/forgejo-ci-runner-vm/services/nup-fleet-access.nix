@@ -4,18 +4,16 @@
 # ssh mappings from fleet names to MagicDNS FQDNs so bare `ssh <name>` calls
 # resolve without search-domain help.
 let
-  fleetHosts = [
-    "xps17"
-    "dev-vm-xps"
-    "fwai0"
-    "homeserver"
-    "driver"
-    "ssdnodes-1"
-    "download-vm-xps"
-    "forgejo-ci-runner-vm"
-    "hermes-vm-xps"
-    "pi-syncoid-target"
-  ];
+  # Every machine this flake can deploy to, so a bare `ssh <name>` from the
+  # deploy user authenticates and records a host key the same way everywhere.
+  # Derived from the inventory on purpose: the hand-maintained list this replaces
+  # was missing k3s-1 through k3s-3, and a missing Host block does not look like
+  # an ssh failure at deploy time. nixos-rebuild names the configuration it is
+  # about to build by running `uname -n` on the target, so an unreachable target
+  # falls back to the attribute named default and dies as a flake error that
+  # never mentions ssh. See docs/ci-workflow-policy.md.
+  inventory = import ../../../lib/inventory.nix;
+  fleetHosts = builtins.attrNames inventory.hosts;
 
   deployUser = "nixdeploy";
 
