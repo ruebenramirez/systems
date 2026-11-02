@@ -30,6 +30,8 @@ Transports differ by host:
 ACME renewal is watched because a failed renewal is otherwise invisible until a
 certificate expires.
 
+## The `sops-install-secrets` unit is not a health signal
+
 `sops-install-secrets.service` is listed on both hosts and **does nothing**: secret
 installation is not a unit here, it runs inside the activation script, and the unit
 under that name carries only the `OnFailure=` line this module adds. With no
@@ -99,8 +101,21 @@ the mail server's trust model to silence a warning on a working path is the same
 class of low-value risk that caused an outage during that session. If it is
 picked up, start from the cause above rather than the symptom.
 
+## CI notifications
+
+CI reports failures two ways (behavior is in [CI](ci.md)):
+
+- **Matrix / Hermes.** Both workflows POST a signed JSON body to the Hermes
+  `matrix-notify` route (HMAC-SHA256 over the body). A passing PR check stays
+  silent; the nightly reports every outcome.
+- **Email.** The nightly mails `r3v2@rueb.dev` with the per-machine results and
+  the tail of the deploy log, via `msmtp` configured by
+  [`ci-alert-mail.nix`](../nix/machines/forgejo-ci-runner-vm/services/ci-alert-mail.nix).
+  A cancelled run is not mailed.
+
 ## See also
 
+- [CI](ci.md) — the two workflows and how they deploy.
 - [`docs/secrets.md`](secrets.md) — how secrets are actually installed, and why
   the `sops-install-secrets` unit is not a health signal.
 - [`docs/fleet-keys.md`](fleet-keys.md) — the credentials and rotation procedures

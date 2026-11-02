@@ -1,12 +1,13 @@
 name: nup-fleet upgrade
 run-name: "nup-fleet upgrade (${{ github.event.inputs.machines || 'whole fleet' }})"
 
+# Merged PRs upgrade the fleet immediately; the nightly re-locks and redeploys.
+# This job commits flake.lock back to master, so don't re-trigger on it.
 on:
   schedule:
     - cron: "30 8 * * *" # 03:30 America/Chicago (02:30 in winter)
   push:
-    branches: [master] # merged PRs upgrade the fleet immediately
-    # this job commits flake.lock back to master; don't re-trigger on it
+    branches: [master]
     paths-ignore:
       - flake.lock
   workflow_dispatch:
@@ -16,42 +17,27 @@ on:
         required: false
         default: ""
 
-# All builds run on fwai0 and must not overlap. `fwai0-builder` is the
-# shared group across every workflow that builds there; false means a
-# queued run waits instead of cancelling a deploy in progress.
+# All builds run on fwai0 and must not overlap; `false` means a queued run waits
+# instead of cancelling a deploy in progress. See docs/ci.md.
 concurrency:
   group: fwai0-builder
   cancel-in-progress: false
 
+# systems-secrets is fetched over git from ~/.netrc, so HOME must be the deploy
+# home and the extraheader actions/checkout installs must be blanked. See
+# docs/secrets.md, "The private systems-secrets input".
+env:
+  HOME: /var/lib/nixdeploy
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+  GIT_CONFIG_VALUE_0: ""
+
 jobs:
-  check-sops-secrets:
-    runs-on: nixos
-    timeout-minutes: 30
-    steps:
-      - name: Check out the flake
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-
-      - name: Refresh the flake lock
-        env:
-          HOME: /var/lib/nixdeploy
-          FLAKE_DIR: ${{ github.workspace }}
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
-        run: dotfiles/bin/nup-fleet --flake-update-only
-
-      - name: Check declared sops secrets exist
-        env:
-          HOME: /var/lib/nixdeploy
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
-        run: scripts/check-sops-secrets.sh
-
+  # One job: move the lock exactly once, validate secrets against it, deploy at
+  # that lock (best-effort), then persist the lock. See docs/ci.md.
   upgrade:
-    needs: check-sops-secrets
     runs-on: nixos
-    timeout-minutes: 600
+    timeout-minutes: 630
     steps:
       - name: Check out the flake
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -59,137 +45,66 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Preflight
+      # Clear last run's summary/log so a skipped deploy cannot be mistaken for
+      # an updated fleet by the persist step.
+      - name: Refresh the flake lock
         env:
-          HOME: /var/lib/nixdeploy
           FLAKE_DIR: ${{ github.workspace }}
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
-          MACHINES: ${{ github.event.inputs.machines }}
-          EXCLUDE: "${{ vars.NUP_FLEET_EXCLUDE || 'forgejo-ci-runner-vm' }}"
+          RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
+          NUP_FLEET_SUMMARY: /var/lib/nixdeploy/nup-fleet-summary
         run: |
           set -euo pipefail
-          echo "host: $(hostname)"
-          echo "user: $(whoami)"
-          command -v nix || { echo "nix not found on runner host" >&2; exit 1; }
-          command -v nixos-rebuild || { echo "nixos-rebuild not found on runner host" >&2; exit 1; }
-          test -x dotfiles/bin/nup-fleet \
-            || { echo "dotfiles/bin/nup-fleet not executable" >&2; exit 1; }
-          read -r -a requested <<< "${MACHINES:-}"
-          if [[ ${#requested[@]} -gt 0 ]]; then
-            known="$(dotfiles/bin/nup-fleet --list)"
-            for m in "${requested[@]}"; do
-              grep -qxF "$m" <<<"$known" && continue
-              echo "unknown machine '$m'; refusing to start" >&2
-              echo "available: $(tr '\n' ' ' <<<"$known")" >&2
-              exit 1
-            done
-          fi
-          test -r /run/secrets/forgejo_runner_ssh_key \
-            || { echo "fleet deploy key not readable" >&2; exit 1; }
-          ssh -G fwai0 | grep -q 'identityfile /run/secrets/forgejo_runner_ssh_key' \
-            || { echo "fleet ssh config missing fwai0 deploy key" >&2; exit 1; }
-          test "$(hostname)" != "fwai0" \
-            || { echo "refusing to run this job on the builder itself" >&2; exit 1; }
-          ssh -o BatchMode=yes -o ConnectTimeout=10 fwai0 true \
-            || { echo "builder fwai0 unreachable; refusing to build locally" >&2; exit 1; }
-          # Every machine this run will switch must answer ssh *now*. A machine
-          # with no Host block, a rotated host key or an unusable deploy key
-          # otherwise surfaces as a missing `nixosConfigurations."default"`
-          # attribute -- nixos-rebuild names the configuration it builds by
-          # running `uname -n` on the target -- after the builder has done the
-          # work and after the healthy hosts were already switched.
-          read -r -a excluded <<< "${EXCLUDE//,/ }"
-          if [[ ${#requested[@]} -gt 0 ]]; then
-            to_deploy=("${requested[@]}")
-          else
-            mapfile -t to_deploy < <(dotfiles/bin/nup-fleet --list)
-          fi
-          unreachable=()
-          for m in "${to_deploy[@]}"; do
-            if [[ ${#requested[@]} -eq 0 ]]; then
-              skip=false
-              for e in "${excluded[@]:-}"; do [[ -n "$e" && "$m" == "$e" ]] && skip=true; done
-              $skip && continue
-            fi
-            ssh -o BatchMode=yes -o ConnectTimeout=10 "$m" true 2>/dev/null \
-              || unreachable+=("$m")
-          done
-          if [[ ${#unreachable[@]} -gt 0 ]]; then
-            printf 'error: ssh from the runner failed for %d machine(s); refusing to start\n' "${#unreachable[@]}" >&2
-            printf '  %s\n' "${unreachable[@]}" >&2
-            echo 'Each needs a Host block in' >&2
-            echo '  nix/machines/forgejo-ci-runner-vm/services/nup-fleet-access.nix' >&2
-            echo 'and a host key the runner will accept.' >&2
-            exit 1
-          fi
-          echo "ssh reachable to every machine this run would switch"
-          git ls-remote https://code.rueb.dev/rueb/systems-secrets.git HEAD >/dev/null \
-            || { echo "cannot reach systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
+          rm -f "$NUP_FLEET_SUMMARY"
+          : > "$RUN_LOG"
+          dotfiles/bin/nup-fleet --flake-update-only
 
+      - name: Check declared sops secrets exist
+        run: scripts/check-sops-secrets.sh
+
+      # Best-effort: every reachable machine is upgraded; unreachable ones are
+      # recorded and make the run fail. See docs/ci.md.
       - name: Upgrade the fleet
         env:
           FLAKE_DIR: ${{ github.workspace }}
           EXCLUDE: "${{ vars.NUP_FLEET_EXCLUDE || 'forgejo-ci-runner-vm' }}"
           BUILDER_HOSTNAME: "fwai0"
-          HOME: /var/lib/nixdeploy
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
           MACHINES: ${{ github.event.inputs.machines }}
           RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
+          NUP_FLEET_SUMMARY: /var/lib/nixdeploy/nup-fleet-summary
         run: |
           set -euo pipefail
           read -r -a requested <<< "${MACHINES:-}"
-          dotfiles/bin/nup-fleet --upgrade ${requested[@]+"${requested[@]}"} 2>&1 \
-            | tee "$RUN_LOG"
+          dotfiles/bin/nup-fleet ${requested[@]+"${requested[@]}"} 2>&1 | tee "$RUN_LOG"
 
-      # master is protected; the Actions task token authenticates as the
-      # forgejo-actions pseudo-user (uid -2), which the protected-branch hook
-      # cannot resolve, so the push must go out as the ci bot instead. See
-      # docs/ci-workflow-policy.md.
+      # Runs even when some hosts failed; the script pushes only if at least one
+      # machine was updated. The job still ends red if any machine failed.
       - name: Persist updated flake.lock
-        if: ${{ success() && (github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.machines == '') }}
+        if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.machines == '') }}
         env:
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
-          GIT_PUSH_HEADER: "Authorization: token ${{ secrets.CI_FLAKELOCK_PUSH }}"
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- flake.lock; then
-            echo "flake.lock unchanged; nothing to commit."
-            exit 0
-          fi
-          git config user.name  "forgejo-ci-runner-vm"
-          git config user.email "forgejo-ci-runner-vm@code.rueb.dev"
-          git add flake.lock
-          git commit -m "nix flake update (nup-fleet --upgrade via CI workflow)"
-          # -c outranks both the blanked checkout header and GIT_CONFIG_*
-          git -c "http.https://code.rueb.dev/.extraheader=$GIT_PUSH_HEADER" \
-            pull --rebase origin "${{ github.ref_name }}"
-          git -c "http.https://code.rueb.dev/.extraheader=$GIT_PUSH_HEADER" \
-            push origin "HEAD:refs/heads/${{ github.ref_name }}"
+          BRANCH: ${{ github.ref_name }}
+          CI_FLAKELOCK_PUSH: ${{ secrets.CI_FLAKELOCK_PUSH }}
+          NUP_FLEET_SUMMARY: /var/lib/nixdeploy/nup-fleet-summary
+        run: scripts/ci-push-flake-lock.sh
 
-      - name: Summary
-        if: always()
-        run: |
-          set -uo pipefail
-          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
-          {
-            echo "### nup-fleet upgrade"
-            echo ""
-            echo "- Host: \`$(hostname)\`"
-            echo "- Flake dir: \`${{ github.workspace }}\`"
-            echo "- Trigger: \`${{ github.event_name }}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Email failure report
+        if: failure()
+        env:
+          WORKFLOW: ${{ github.workflow }}
+          TRIGGER: ${{ github.event_name }}
+          BRANCH: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          ACTOR: ${{ github.actor }}
+          REQUESTED: ${{ github.event.inputs.machines }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          RESULT: "failure"
+          RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
+          NUP_FLEET_SUMMARY: /var/lib/nixdeploy/nup-fleet-summary
+        run: scripts/ci-alert-mail.sh
 
-  # Run notifications: Hermes webhook (Matrix Hermes room) and the failure email.
-  # The webhook route checks an HMAC-SHA256 signature; see hermes route
-  # `matrix-notify`.
+  # Run notifications: Hermes webhook (Matrix) on every outcome; a cancelled
+  # run is reported but not mailed (no failure email on cancellation).
   notify:
-    needs: [check-sops-secrets, upgrade]
+    needs: [upgrade]
     if: always()
     runs-on: nixos
     timeout-minutes: 5
@@ -198,88 +113,16 @@ jobs:
         env:
           HERMES_WEBHOOK_URL: "${{ vars.HERMES_WEBHOOK_URL }}"
           HERMES_WEBHOOK_SECRET: "${{ secrets.HERMES_WEBHOOK_SECRET }}"
-          CHECK_RESULT: ${{ needs.check-sops-secrets.result }}
-          UPGRADE_RESULT: ${{ needs.upgrade.result }}
+          WORKFLOW: "${{ github.workflow }}"
+          EVENT_NAME: ${{ github.event_name }}
           RUN_NUMBER: ${{ github.run_number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          EVENT_NAME: ${{ github.event_name }}
+          UPGRADE_RESULT: ${{ needs.upgrade.result }}
         run: |
           set -euo pipefail
-          if [[ -z "${HERMES_WEBHOOK_URL:-}" || -z "${HERMES_WEBHOOK_SECRET:-}" ]]; then
-            echo "HERMES_WEBHOOK_URL / HERMES_WEBHOOK_SECRET not configured; skipping notify." >&2
-            exit 0
-          fi
-          # A skipped upgrade (sops precheck failed) is still a failed nightly.
           case "$UPGRADE_RESULT" in
-            success)   STATUS=success ;;
-            cancelled) STATUS=cancelled ;;
-            *)         STATUS=failure ;;
+            success)   status=success ;;
+            cancelled) status=cancelled ;;
+            *)         status=failure ;;
           esac
-          BODY=$(printf '{"workflow":"nup-fleet-upgrade","status":"%s","run_number":%s,"event":"%s","url":"%s","check_sops":"%s"}' \
-            "$STATUS" "$RUN_NUMBER" "$EVENT_NAME" "$RUN_URL" "$CHECK_RESULT")
-          SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$HERMES_WEBHOOK_SECRET" -hex | awk '{print $NF}')
-          curl -fsS -m 15 --retry 3 --retry-delay 5 -X POST "$HERMES_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -H "X-Hub-Signature-256: sha256=$SIG" \
-            -d "$BODY"
-
-      - name: Email failure report
-        if: ${{ needs.check-sops-secrets.result != 'success' || needs.upgrade.result != 'success' }}
-        env:
-          RECIPIENT: "r3v2@rueb.dev"
-          WORKFLOW: ${{ github.workflow }}
-          TRIGGER: ${{ github.event_name }}
-          BRANCH: ${{ github.ref_name }}
-          SHA: ${{ github.sha }}
-          ACTOR: ${{ github.actor }}
-          REQUESTED: ${{ github.event.inputs.machines }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          CHECK_RESULT: ${{ needs.check-sops-secrets.result }}
-          UPGRADE_RESULT: ${{ needs.upgrade.result }}
-          RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
-        run: |
-          set -uo pipefail
-          # A job skipped by an earlier failure is not itself a failure.
-          failed=""
-          case "$CHECK_RESULT" in
-            success|skipped) ;;
-            *) failed="check-sops-secrets" ;;
-          esac
-          case "$UPGRADE_RESULT" in
-            success|skipped) ;;
-            *) failed="${failed:+$failed, }upgrade" ;;
-          esac
-          if [[ -z "$failed" ]]; then
-            echo "nothing to report (check-sops-secrets=$CHECK_RESULT, upgrade=$UPGRADE_RESULT)"
-            exit 0
-          fi
-          if ! command -v msmtp >/dev/null 2>&1; then
-            echo "::warning title=Alert mail not sent::msmtp is not on PATH on $(hostname); see ci-alert-mail.nix"
-            exit 0
-          fi
-          {
-            printf 'From: root@rueb.dev\n'
-            printf 'To: %s\n' "$RECIPIENT"
-            printf 'Subject: [CI FAIL] %s / %s (%s) on %s\n' \
-              "${GITHUB_REPOSITORY:-systems}" "$failed" "$TRIGGER" "$(hostname)"
-            printf 'Date: %s\n' "$(date -R)"
-            printf 'Content-Type: text/plain; charset=utf-8\n\n'
-            printf 'Workflow:  %s\n' "$WORKFLOW"
-            printf 'Failed:    %s\n' "$failed"
-            printf 'Trigger:   %s\n' "$TRIGGER"
-            printf 'Actor:     %s\n' "$ACTOR"
-            printf 'Branch:    %s @ %s\n' "$BRANCH" "$SHA"
-            printf 'Machines:  %s\n' "${REQUESTED:-whole fleet}"
-            printf 'Run:       %s\n' "$RUN_URL"
-            printf 'Host:      %s\n' "$(hostname)"
-            printf 'Results:   check-sops-secrets=%s upgrade=%s\n' "$CHECK_RESULT" "$UPGRADE_RESULT"
-            # Written by the upgrade job via tee on the shared runner host.
-            if [[ "$UPGRADE_RESULT" != skipped && -r "$RUN_LOG" ]]; then
-              printf '\n--- per-machine results ---\n'
-              grep -E '^(✓|✗|Skipping|Failed machines|All [0-9]+ machine)' "$RUN_LOG" \
-                || printf '(no per-machine lines found)\n'
-              printf '\n--- last 120 lines ---\n'
-              tail -n 120 "$RUN_LOG"
-            fi
-          } | msmtp "$RECIPIENT" \
-            || echo "::warning title=Alert mail not sent::msmtp could not submit to the mail server"
+          scripts/hermes-notify.sh "$status"

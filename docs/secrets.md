@@ -31,6 +31,50 @@ Two consequences worth internalising:
   declaration breaks every path reference (for example
   `_common/base/editor.nix` hardcodes `/run/secrets/openrouter-api-key`).
 
+## The private `systems-secrets` input
+
+`systems-secrets` is a **private** flake input fetched over `git+https://`, so
+**git** authenticates it from the invoking user's `~/.netrc`. Nix's own
+`netrc-file` setting does **not** cover `git+https://` inputs; it only applies
+to Nix's own libcurl fetches.
+
+| Host | How it gets the credential |
+|------|----------------------------|
+| `forgejo-ci-runner-vm` | Declaratively: the `forgejo_secrets_token` sops secret, rendered to `/var/lib/nixdeploy/.netrc` by [`nup-fleet-access.nix`](../nix/machines/forgejo-ci-runner-vm/services/nup-fleet-access.nix) |
+| Every other machine (workstations included) | **Nothing.** `nup-fleet --upgrade` from a laptop stops at `Username for 'https://code.rueb.dev':` — git had nothing to offer and fell back to prompting. |
+
+`nup-fleet` checks for a usable credential *before* `nix flake update` and
+exports `GIT_TERMINAL_PROMPT=0`, so a missing token fails with a recipe instead
+of hanging. `scripts/setup-forgejo-netrc.sh` installs one:
+
+```bash
+scripts/setup-forgejo-netrc.sh                              # prompt for a token
+scripts/setup-forgejo-netrc.sh --from-runner forgejo-ci-runner-vm   # copy the runner's
+scripts/setup-forgejo-netrc.sh --verify                     # test what is there
+```
+
+It writes a `machine code.rueb.dev` block to `~/.netrc` (mode 0600, backing up
+the old file) and proves it by fetching the private repo's HEAD. By hand:
+
+```text
+machine code.rueb.dev
+  login <forgejo-user>
+  password <token>
+```
+
+Override the host with `PRIVATE_GIT_HOST` for a mirror or another Forgejo
+instance. Deploying **without** `--upgrade` needs no credential, provided the
+locked revision is already in the store: `nup-fleet homeserver`.
+
+### Lockfile safety
+
+A failed or interrupted update must not leave damage behind: on 2026-10-27 an
+aborted run rewrote `flake.lock` with a *stale* `systems-secrets` rev while
+exiting 1. `nix_flake_update` now keeps the pre-update lock and restores it on
+any failure, and treats an input whose locked `lastModified` moves
+**backwards** as a failure (the expired-cached-ref bug), so a half-moved lock
+cannot ship older secret material.
+
 ## Declaring a secret
 
 Every declaration names the file it comes from, through the `secretFile` helper
@@ -133,11 +177,10 @@ missing recipient, a config that will not evaluate); orphans — a key no host
 declares, a file nothing references — warn only. A hygiene finding must never
 leave the fleet unpatched overnight.
 
-The private input is fetched over git, so the invoking user needs the Forgejo read
-token in `~/.netrc` (`scripts/setup-forgejo-netrc.sh`); nix's `netrc-file` setting
-does not cover `git+https://` inputs. Locally the check reads the *committed*
-lock; CI runs `nup-fleet --flake-update-only` first so it judges against the
-revisions the deploy is about to use.
+Locally the check reads the *committed* lock; CI runs
+`nup-fleet --flake-update-only` first so it judges against the revisions the
+deploy is about to use. The credential is described in
+[The private `systems-secrets` input](#the-private-systems-secrets-input).
 
 ## Applying a change to a machine
 
@@ -183,14 +226,10 @@ ssh <host> 'sudo cat /run/secrets/<name>'       # compare against `sops -d` on t
 ssh <host> 'systemctl --failed'
 ```
 
-**Do not use the `sops-install-secrets.service` unit as a health signal.** There is
-no such unit here: `sops-install-secrets` runs from the activation script, and the
-only thing left under that name is the fragment carrying this fleet's
-`OnFailure=failure-mail@%n` line. It has no `ExecStart=`, so systemd reports
-`LoadState=bad-setting` and refuses to start it — which also means
-`systemctl show sops-install-secrets -p ExecMainStatus` returns `0` for a unit
-that has never run. That check looks green and proves nothing; the file comparison
-above is the check.
+**Do not use the `sops-install-secrets.service` unit as a health signal** — it
+never runs as a unit; see
+[Alerting](alerting.md#the-sops-install-secrets-unit-is-not-a-health-signal).
+Use the file comparison above.
 
 | symptom | cause |
 |---|---|
@@ -225,7 +264,5 @@ so the repo is the only place that note survives.
 
 - [`docs/fleet-keys.md`](fleet-keys.md) — SSH keys and out-of-sops credentials,
   rotation procedures, emergency revocation.
-- [`docs/private-flake-input-credentials.md`](private-flake-input-credentials.md)
-  — how CI authenticates to the private secrets repo.
 - [`systems-secrets/CONVENTIONS.md`](https://code.rueb.dev/rueb/systems-secrets/src/branch/main/CONVENTIONS.md)
   — layout, recipient model, the three-step revocation procedure.

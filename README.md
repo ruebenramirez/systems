@@ -88,35 +88,9 @@ which is more than the CI runner has. It stops at the first phase that fails, an
 `nup-fleet --upgrade` needs a git credential for the private `systems-secrets`
 input; `scripts/setup-forgejo-netrc.sh` installs one. Deploying without
 `--upgrade` needs no credential. See
-[Private flake input credentials](docs/private-flake-input-credentials.md).
+[Secrets](docs/secrets.md#the-private-systems-secrets-input).
 
-### Automated upgrades
-
-A Forgejo Actions workflow runs [`nup-fleet --upgrade`](dotfiles/bin/nup-fleet)
-nightly at 03:30 America/Chicago (see
-[`.forgejo/workflows/nup-fleet-upgrade.yaml`](.forgejo/workflows/nup-fleet-upgrade.yaml)).
-It targets the `nixos` host-mode runner label on `forgejo-ci-runner-vm`, so
-the job executes on that VM's host rather than inside an ephemeral job
-container.
-
-The workflow has two jobs:
-
-1. **`check-sops-secrets`** runs `nup-fleet --flake-update-only` so the lock
-   points at the revisions the deploy is about to use, then evaluates every
-   `nixosConfigurations` entry and fails if a host declares a
-   `sops.secrets.<name>` that has no matching key in the `systems-secrets` repo
-   -- the error that would otherwise only appear as a `manifest.json` build
-   failure during the deploy. It reads the `systems-secrets` revision the lock
-   names, so it needs no extra checkout, and no age key (secret names are
-   cleartext in the sops file).
-2. **`upgrade`** runs `nup-fleet --upgrade`, then commits and pushes the
-   updated `flake.lock` back to the branch. It excludes
-   `forgejo-ci-runner-vm` (override with the repo variable
-   `NUP_FLEET_EXCLUDE`) so activating the new config cannot restart the
-   runner and kill the job; that VM is updated manually.
-
-Either job failing mails `r3v2@rueb.dev` with the per-machine results and the
-tail of the run (see [CI workflow policy](docs/ci-workflow-policy.md)).
+### Deploy user
 
 Host-mode jobs run as the dedicated **`nixdeploy`** user, defined once in
 [`nix/machines/_common/nix-deploy-user.nix`](nix/machines/_common/nix-deploy-user.nix)
@@ -134,48 +108,6 @@ Rotating the deploy key means regenerating the pair, updating the literal
 in `nix-deploy-user.nix`, and adding the private key to the
 `systems-secrets` `forgejo-ci-runner-vm.yaml` file.
 
-### Pull request checks
-
-[`pr-check`](.forgejo/workflows/pr-check.yaml) runs `nup-fleet --check` on every
-push to an open PR against `master` (`opened`, `synchronize`, `reopened`), so a
-PR that does not parse, does not evaluate, or does not build is red before it
-merges. Nothing is deployed and nothing is pushed back.
-
-Evaluation and every build happen on `fwai0` and stay there; the runner only
-parses files and copies paths, so it neither compiles a system closure nor holds
-a fleet's worth of evaluation in RAM. A warm run takes about a minute. A new push
-cancels the run still in flight for that PR.
-
-It does not replace the nightly's sops preflight: a PR can still declare a
-`sops.secrets.<name>` that no host has a key for. See
-[CI workflow policy](docs/ci-workflow-policy.md).
-
-### Secrets preflight
-
-`scripts/check-sops-secrets.sh` compares the `sops.secrets.<name>` a host
-declares in Nix against the keys present in that host's `systems-secrets`
-file. `nup-fleet` deploys succeed only when every declared secret exists;
-the check surfaces that before a deploy can fail on a far-away machine.
-
-Run it locally with:
-
-```bash
-scripts/check-sops-secrets.sh            # every nixosConfigurations host
-scripts/check-sops-secrets.sh driver     # a subset
-```
-
-It resolves `systems-secrets` from the revision the flake locks to, so no
-extra checkout is needed. It checks each declared secret against the file it names
-and that the host is a recipient of that file; findings are split into blocking
-errors (the deploy does not run) and hygiene warnings (dead credentials worth
-rotating). See [secrets](docs/secrets.md).
-
-To see the whole map at once — file, keys, consumers, recipients:
-
-```bash
-scripts/sops-map.sh
-```
-
 ### Machines
 
 | Machine | Role | config/services |
@@ -190,6 +122,19 @@ scripts/sops-map.sh
 | `ssdnodes-1` | Public MX relay and web host | [Postfix](https://github.com/vdukhovni/postfix) relay to [Stalwart](https://github.com/stalwartlabs/stalwart) over the tailnet, nginx reverse proxy, containerized [WordPress](https://hub.docker.com/_/wordpress/) sites |
 | `xps17` | Incus VM host | [Incus](https://linuxcontainers.org/incus/) VMs declared in [`tofu/`](tofu/), Incus `dir` pool on `devpool`, Docker, [k3d](https://github.com/k3d-io/k3d), ARM64 builds |
 
+## CI
+
+A PR gate and a nightly/merge deploy, both on `forgejo-ci-runner-vm`:
+
+- **`flake check (PR)`** validates every PR (parses, evaluates and builds on
+  `fwai0`; checks secrets and doc links) and deploys nothing.
+- **`nup-fleet upgrade`** re-locks, checks secrets, deploys best-effort to the
+  fleet, and persists the new `flake.lock`.
+
+Full behavior, the required status check, and the protected-branch push are in
+[CI](docs/ci.md). Secrets and the private input are in [Secrets](docs/secrets.md);
+failure reporting is in [Alerting](docs/alerting.md#ci-notifications).
+
 ## Docs
 
 - [NixOS ZFS install](docs/nixos-zfs-install.md)
@@ -198,8 +143,7 @@ scripts/sops-map.sh
 - [Host addressing](docs/host-addressing.md)
 - [Tailnet exit node](docs/tailnet-exit-node.md)
 - [System flake activity chart](docs/system-flake-activity.md)
-- [Private flake input credentials](docs/private-flake-input-credentials.md)
 - [Secrets](docs/secrets.md)
 - [Alerting](docs/alerting.md)
 - [Fleet monitoring](docs/monitoring.md)
-- [CI workflow policy](docs/ci-workflow-policy.md)
+- [CI](docs/ci.md)

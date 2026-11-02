@@ -37,6 +37,10 @@ by `scripts/check-sops-secrets.sh` and nothing fails loudly if they drift.
 
 ## Rotation procedures
 
+The generic steps (bump the flake lock, deploy, roll back) are in
+[Secrets: Applying a change to a machine](secrets.md#applying-a-change-to-a-machine).
+Below is only what is specific to each key.
+
 ### `forgejo_runner_ssh_key` (fleet deploy key)
 
 Order matters — the new key must be trusted everywhere before the old one stops

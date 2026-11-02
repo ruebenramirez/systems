@@ -1,103 +1,73 @@
 # The workflow name and the job id below form the status-check context
-# `flake check (PR) / check (pull_request)`, which `master` requires as a branch
-# protection rule. Renaming either orphans that rule: the required context stops
-# reporting and no PR can merge until the rule is updated. See
-# docs/ci-workflow-policy.md.
+# `flake check (PR) / check (pull_request)`, which `master` requires. Renaming
+# either orphans that rule: the required context stops reporting and no PR can
+# merge until the rule is updated. See docs/ci.md.
 name: flake check (PR)
 run-name: "flake check: ${{ github.event.pull_request.title || github.ref_name }}"
 
-# Gate every PR before it can merge: nothing here deploys or activates anything,
-# it only proves the tree parses, the flake evaluates, and every configuration
-# still builds. `synchronize` is the event a new push to an open PR fires, so
-# pushing a fix re-runs the check by itself.
+# Gate every PR before it can merge. Nothing here deploys or activates anything;
+# it only proves the tree parses, the flake evaluates, every configuration still
+# builds, and the declared secrets/docs resolve.
 on:
   pull_request:
     branches: [master]
     types: [opened, synchronize, reopened]
   workflow_dispatch:
 
-# All builds run on fwai0 and must not overlap. `fwai0-builder` is the
-# shared group across every workflow that builds there; false means a
-# queued run waits instead of cancelling a deploy in progress.
+# All builds run on fwai0 and must not overlap; `false` means a queued run waits
+# instead of cancelling a deploy in progress. See docs/ci.md.
 concurrency:
   group: fwai0-builder
   cancel-in-progress: false
+
+# systems-secrets is fetched over git from ~/.netrc, so HOME must be the deploy
+# home and the extraheader actions/checkout installs must be blanked. See
+# docs/secrets.md, "The private systems-secrets input".
+env:
+  HOME: /var/lib/nixdeploy
+  GIT_CONFIG_COUNT: "1"
+  GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
+  GIT_CONFIG_VALUE_0: ""
 
 jobs:
   # Its id, `check`, is part of the required status-check context; see above.
   check:
     runs-on: nixos
-    # Evaluation and builds both run on fwai0; a PR that moves flake.lock really
-    # does rebuild the fleet's inputs there, which is what the timeout is for.
+    # A PR that moves flake.lock rebuilds the fleet's inputs on fwai0.
     timeout-minutes: 120
     steps:
       - name: Check out the PR
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
-      - name: Preflight
-        env:
-          HOME: /var/lib/nixdeploy
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
-          BUILDER_HOSTNAME: "fwai0"
+      # Resolve the private input once; the two checks below reuse SECRETS_DIR.
+      - name: Resolve systems-secrets
         run: |
           set -euo pipefail
-          echo "host: $(hostname)"
-          echo "user: $(whoami)"
-          for cmd in nix nix-instantiate nix-store jq ssh; do
-            command -v "$cmd" >/dev/null || { echo "$cmd not found on runner host" >&2; exit 1; }
-          done
-          test -x dotfiles/bin/nup-fleet \
-            || { echo "dotfiles/bin/nup-fleet not executable" >&2; exit 1; }
-          test -f flake.nix || { echo "no flake.nix in the checkout" >&2; exit 1; }
-          test "$(hostname)" != "$BUILDER_HOSTNAME" \
-            || { echo "refusing to run this job on the builder itself" >&2; exit 1; }
-          ssh -o BatchMode=yes -o ConnectTimeout=10 "$BUILDER_HOSTNAME" true \
-            || { echo "builder $BUILDER_HOSTNAME unreachable; nowhere to offload builds" >&2; exit 1; }
-          git ls-remote https://code.rueb.dev/rueb/systems-secrets.git HEAD >/dev/null \
-            || { echo "cannot reach systems-secrets over git; check HOME and ~/.netrc" >&2; exit 1; }
+          secrets_dir="$(nix eval --raw --impure \
+            --extra-experimental-features 'nix-command flakes' \
+            --expr "builtins.toString (builtins.getFlake \"$PWD\").inputs.systems-secrets.outPath")"
+          echo "SECRETS_DIR=$secrets_dir" >> "$GITHUB_ENV"
 
-      # Secrets are validated against the revision flake.lock points at. A
-      # declaration whose file or key is missing, or whose host is not a
-      # recipient of the file, is a boot failure on a machine nobody is standing
-      # next to -- so it has to fail here rather than in the nightly.
+      # Fail here, not at boot on a machine nobody is standing next to: every
+      # sops.secrets declaration must resolve to a key the host can decrypt.
       - name: Check sops secrets
-        env:
-          HOME: /var/lib/nixdeploy
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
         run: scripts/check-sops-secrets.sh
 
-      # Docs carry the procedures; a stale secrets path or dead link in them is a
-      # wrong instruction handed to whoever debugs this next.
+      # Docs carry the procedures; a stale secrets path or dead link is a wrong
+      # instruction handed to whoever debugs this next.
       - name: Check doc references
-        env:
-          HOME: /var/lib/nixdeploy
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
         run: scripts/check-docs-paths.sh
 
-      # Parse every .nix file locally, then ship the flake source and its inputs
-      # to fwai0 and do the evaluating and the building there. The runner never
-      # compiles or evaluates: see the `check` action in dotfiles/bin/nup-fleet.
+      # Parse locally, then ship the source and inputs to fwai0 and evaluate and
+      # build there; the runner neither compiles nor evaluates the fleet.
       - name: Check the flake
         env:
           FLAKE_DIR: ${{ github.workspace }}
           BUILDER_HOSTNAME: "fwai0"
-          HOME: /var/lib/nixdeploy
-          GIT_CONFIG_COUNT: "1"
-          GIT_CONFIG_KEY_0: "http.https://code.rueb.dev/.extraheader"
-          GIT_CONFIG_VALUE_0: ""
           CHECK_LOG: /var/lib/nixdeploy/flake-check-${{ github.run_id }}.log
-        run: |
-          set -euo pipefail
-          dotfiles/bin/nup-fleet --check 2>&1 | tee "$CHECK_LOG"
+        run: dotfiles/bin/nup-fleet --check 2>&1 | tee "$CHECK_LOG"
 
-      # A check that rewrites the tree it is checking is a bug, not a result:
-      # `nix` is told not to touch the lock file, this is the belt.
+      # A check that rewrites the tree it is checking is a bug, not a result.
       - name: Verify the checkout is untouched
         run: |
           set -euo pipefail
@@ -133,8 +103,7 @@ jobs:
           fi
           rm -f "$CHECK_LOG"
 
-  # Failure-only Matrix ping: a passing check stays silent. Same HMAC-signed
-  # route as the nightly (`matrix-notify`), deliver_only, zero LLM cost.
+  # Failure-only Matrix ping: a passing check stays silent.
   notify:
     needs: [check]
     if: failure()
@@ -145,37 +114,18 @@ jobs:
         env:
           HERMES_WEBHOOK_URL: "${{ vars.HERMES_WEBHOOK_URL }}"
           HERMES_WEBHOOK_SECRET: "${{ secrets.HERMES_WEBHOOK_SECRET }}"
+          WORKFLOW: "${{ github.workflow }}"
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           CHECK_RESULT: ${{ needs.check.result }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-          RUN_NUMBER: ${{ github.run_number }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          if [[ -z "${HERMES_WEBHOOK_URL:-}" || -z "${HERMES_WEBHOOK_SECRET:-}" ]]; then
-            echo "HERMES_WEBHOOK_URL / HERMES_WEBHOOK_SECRET not configured; skipping notify." >&2
-            exit 0
-          fi
           case "$CHECK_RESULT" in
-            cancelled) STATUS=cancelled ;;
-            *)         STATUS=failure ;;
+            cancelled) status=cancelled ;;
+            *)         status=failure ;;
           esac
-          BODY=$(jq -n \
-            --arg status "$STATUS" \
-            --arg event "$EVENT_NAME" \
-            --arg url "$RUN_URL" \
-            --arg pr_number "$PR_NUMBER" \
-            --arg pr_title "$PR_TITLE" \
-            --arg pr_author "$PR_AUTHOR" \
-            --arg run_number "$RUN_NUMBER" \
-            '{workflow:"flake check (PR)", status:$status, event:$event, url:$url,
-              run_number:($run_number|tonumber? // $run_number),
-              pr:{number:($pr_number|tonumber? // $pr_number), title:$pr_title, author:$pr_author}}')
-          SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$HERMES_WEBHOOK_SECRET" -hex | awk '{print $NF}')
-          curl -fsS -m 15 --retry 3 --retry-delay 5 -X POST "$HERMES_WEBHOOK_URL" \
-            -H "Content-Type: application/json" \
-            -H "X-Hub-Signature-256: sha256=$SIG" \
-            -d "$BODY"
-
+          scripts/hermes-notify.sh "$status"

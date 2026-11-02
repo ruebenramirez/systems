@@ -11,7 +11,7 @@ let
   # an ssh failure at deploy time. nixos-rebuild names the configuration it is
   # about to build by running `uname -n` on the target, so an unreachable target
   # falls back to the attribute named default and dies as a flake error that
-  # never mentions ssh. See docs/ci-workflow-policy.md.
+  # never mentions ssh. See docs/ci.md.
   inventory = import ../../../lib/inventory.nix;
   fleetHosts = builtins.attrNames inventory.hosts;
 

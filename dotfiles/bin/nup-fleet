@@ -701,21 +701,32 @@ case "$ACTION" in
         done
         ;;
     "deploy")
+        updated=0 skipped=0
         for machine in "${TARGETS[@]}"; do
             IFS=':' read -r hostname _config <<< "$machine"
             if [[ "$WHOLE_FLEET" == "true" ]] && skip_machine "$hostname"; then
                 echo "Skipping $hostname (excluded)"
+                skipped=$((skipped + 1))
                 continue
             fi
-            # Continue past failures; the run is summarised at the end.
-            update_machine "$machine" || true
+            # Continue past failures; the summary at the end reports the outcome.
+            if update_machine "$machine"; then
+                updated=$((updated + 1))
+            fi
         done
-        if [[ ${#FAILED[@]} -gt 0 ]]; then
-            echo
-            echo "Failed machines (${#FAILED[@]}): ${FAILED[*]}" >&2
+        failed=${#FAILED[@]}
+        summary="SUMMARY updated=$updated failed=$failed skipped=$skipped"
+        echo
+        echo "$summary"
+        # NUP_FLEET_SUMMARY, when set, lets CI decide whether to persist the
+        # lock: it only pushes when at least one machine was updated.
+        if [[ -n "${NUP_FLEET_SUMMARY:-}" ]]; then
+            printf '%s\n' "$summary" > "$NUP_FLEET_SUMMARY"
+        fi
+        if [[ "$failed" -gt 0 ]]; then
+            echo "Failed machines ($failed): ${FAILED[*]}" >&2
             exit 1
         fi
-        echo
-        echo "All ${#TARGETS[@]} machine(s) updated."
+        echo "All $updated machine(s) updated."
         ;;
 esac
