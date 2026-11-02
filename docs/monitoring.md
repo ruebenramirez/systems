@@ -86,16 +86,29 @@ node_exporter to carry it — fails the evaluation rather than shipping a dashbo
 row that quietly stays empty.
 
 Exported names are vendor-neutral (`gpu_utilization_percent`,
-`gpu_memory_used_bytes` / `gpu_memory_total_bytes`, `gpu_power_watts`,
-`gpu_temperature_celsius`) so a card on another vendor can emit the same series
-and inherit these dashboards and alerts unchanged; `gpu` carries the card
-(`card0`) and `pci` its slot. Three details are load-bearing:
+`gpu_memory_used_bytes` / `gpu_memory_total_bytes`, `gpu_memory_pool_used_bytes`,
+`gpu_power_watts`, `gpu_temperature_celsius`) so a card on another vendor can
+emit the same series and inherit these dashboards and alerts unchanged; `gpu`
+carries the card (`card0`) and `pci` its slot. Details that are load-bearing:
 
+- **Memory totals include the GTT aperture, not just VRAM.** fwai0 sets
+  `amdgpu.gttsize` to give the GPU ~124 GiB of system memory, and its
+  `mem_info_vram_total` is 512 MiB — so a VRAM-only total reports a card holding
+  14 GiB as nearly empty. `mem_info_gtt_total` exposes the aperture the kernel
+  parameter configured, so the total follows the setting without parsing
+  `/proc/cmdline`, and `gpu_memory_pool_used_bytes{pool="vram"|"gtt"}` keeps the
+  two pools visible separately.
 - **`gpu_metrics_timestamp_seconds` exists because absence is not how a textfile
   collector fails.** It serves the last file written indefinitely, so a dead
   timer reads as a GPU frozen at its last value instead of a missing one.
   `GpuCollectionStale` watches that timestamp; `GpuMetricsMissing` covers the
   case where the series never appeared at all.
+- **No awk, no external arithmetic.** A systemd unit does not get a login shell's
+  PATH and `gawk` is not in the one it does get (`coreutils` and `sed` are). A
+  missing tool inside `$( )` does not fail the unit: it writes `metric{} ` with
+  an empty value, which is unparsable, and **one unparsable line costs every GPU
+  metric on the host**. The unit script does its own arithmetic in shell and
+  refuses to publish a file it cannot re-parse.
 - **Temperature is the maximum of all `temp*_input` sensors.** Datacenter cards
   expose an edge and a junction reading and the junction is what throttles, so
   `GpuThermalLimit` (95 °C) reads the hotspot.
@@ -103,6 +116,14 @@ and inherit these dashboards and alerts unchanged; `gpu` carries the card
   discards the whole `.prom` file and every GPU metric in it, so a card in
   runtime PM suspend (the homeserver idles hard) momentarily shows fewer series
   rather than wrong ones.
+
+After a deploy, the collector is healthy when the host exports a file that parses:
+
+```console
+$ ssh fwai0 'sudo cat /var/lib/node_exporter/textfile/gpu.prom'
+$ curl -s fwai0.tailnet.rueb.dev:9100/metrics | grep node_textfile_scrape_error
+node_textfile_scrape_error 0        # 1 means the file was rejected entirely
+```
 
 **Utilisation and VRAM are deliberately not alerted on.** fwai0 exists to pin its
 VRAM with an inference engine and sit near 100 %: an alert there fires daily and

@@ -458,22 +458,23 @@ let
         max = 100;
         x = 0;
         y = 49;
-        w = 12;
+        w = 8;
         legend = "{{gpu}}";
         expr = ''gpu_utilization_percent{host="$host"}'';
       })
       (ts {
         id = 25;
-        title = "VRAM used";
+        title = "GPU memory used";
         unit = "percentunit";
         min = 0;
         max = 1;
-        x = 12;
+        x = 8;
         y = 49;
-        w = 12;
+        w = 8;
         legend = "{{gpu}}";
-        # Fraction rather than bytes: the useful question is how close the card is
-        # to full, and the two hosts do not have the same card.
+        # Fraction of everything the card can address -- VRAM plus the GTT
+        # aperture. On a card whose working set is system memory, VRAM alone
+        # reads nearly empty while the card is holding gigabytes.
         expr = ''gpu_memory_used_bytes{host="$host"} / gpu_memory_total_bytes{host="$host"}'';
       })
       (ts {
@@ -481,14 +482,25 @@ let
         title = "GPU power";
         unit = "watt";
         min = 0;
-        x = 0;
-        y = 57;
-        w = 12;
+        x = 16;
+        y = 49;
+        w = 8;
         legend = "{{gpu}}";
         expr = ''gpu_power_watts{host="$host"}'';
       })
       (ts {
         id = 27;
+        title = "GPU memory by pool";
+        unit = "bytes";
+        min = 0;
+        x = 0;
+        y = 57;
+        w = 12;
+        legend = "{{gpu}} {{pool}}";
+        expr = ''gpu_memory_pool_used_bytes{host="$host"}'';
+      })
+      (ts {
+        id = 28;
         title = "GPU temperature";
         unit = "celsius";
         min = 0;
@@ -723,7 +735,7 @@ let
       })
       (ts {
         id = 12;
-        title = "GPU VRAM used";
+        title = "GPU memory used";
         unit = "bytes";
         min = 0;
         x = 12;

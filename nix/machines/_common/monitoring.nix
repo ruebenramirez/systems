@@ -39,14 +39,23 @@ let
       printf '%s' "$num"
     }
 
-    # The kernel exports microwatts and millidegrees; the fleet speaks watts
-    # and celsius.
-    scale() {
-      awk -v v="$1" -v d="$2" 'BEGIN { printf "%.3f", v / d }'
+    # Fixed-point divide with three decimals, in shell arithmetic. Bash builtins
+    # for the arithmetic on purpose: a systemd unit does not inherit a login
+    # shell's PATH, and gawk is not in the one it gets (coreutils and sed are).
+    # A tool missing inside $( ) does not fail the unit -- it writes
+    # `metric{} ` with an empty value, and one unparsable line costs every GPU
+    # metric on the host, not just the one whose tool was missing.
+    fixed() {
+      printf '%d.%03d' "$(( $1 / $2 ))" "$(( ($1 % $2) * 1000 / $2 ))"
     }
 
+    # Truncate explicitly: the loop below appends, and a surviving .tmp (a run
+    # killed between the first printf and the mv) would otherwise be prepended to
+    # the next snapshot and duplicate every TYPE line.
+    : > "$tmp"
     for family in gpu_utilization_percent gpu_memory_used_bytes gpu_memory_total_bytes \
-                  gpu_power_watts gpu_temperature_celsius gpu_metrics_timestamp_seconds; do
+                  gpu_memory_pool_used_bytes gpu_power_watts gpu_temperature_celsius \
+                  gpu_metrics_timestamp_seconds; do
       printf '# TYPE %s gauge\n' "$family" >> "$tmp"
     done
 
@@ -67,11 +76,28 @@ let
 
       printf 'gpu_utilization_percent{%s} %s\n' "$labels" "$busy" >> "$tmp"
 
-      vram_used=$(read_num "$dev/mem_info_vram_used") || vram_used=""
-      vram_total=$(read_num "$dev/mem_info_vram_total") || vram_total=""
-      if [ -n "$vram_used" ] && [ -n "$vram_total" ] && [ "$vram_total" != 0 ]; then
-        printf 'gpu_memory_used_bytes{%s} %s\n' "$labels" "$vram_used" >> "$tmp"
-        printf 'gpu_memory_total_bytes{%s} %s\n' "$labels" "$vram_total" >> "$tmp"
+      vram_used=$(read_num "$dev/mem_info_vram_used") || vram_used=0
+      vram_total=$(read_num "$dev/mem_info_vram_total") || vram_total=0
+      gtt_used=$(read_num "$dev/mem_info_gtt_used") || gtt_used=0
+      # The GTT aperture belongs in "total" because on a card whose working set is
+      # system memory it dwarfs the on-card figure: fwai0 sets amdgpu.gttsize to
+      # give the GPU about 124 GiB of system memory and its mem_info_vram_total is
+      # 512 MiB, so VRAM alone would report a card with 14 GiB allocated to it as
+      # nearly empty. sysfs exposes the configured aperture, so this picks up the
+      # kernel parameter's effect without parsing /proc/cmdline for it.
+      gtt_total=$(read_num "$dev/mem_info_gtt_total") || gtt_total=0
+
+      if [ "$vram_total" != 0 ] || [ "$gtt_total" != 0 ]; then
+        printf 'gpu_memory_used_bytes{%s} %s\n' "$labels" "$(( vram_used + gtt_used ))" >> "$tmp"
+        printf 'gpu_memory_total_bytes{%s} %s\n' "$labels" "$(( vram_total + gtt_total ))" >> "$tmp"
+      fi
+      # One metric with a pool label, so a single panel shows both pools without
+      # two queries stitched together.
+      if [ "$vram_total" != 0 ]; then
+        printf 'gpu_memory_pool_used_bytes{%s,pool="vram"} %s\n' "$labels" "$vram_used" >> "$tmp"
+      fi
+      if [ "$gtt_total" != 0 ]; then
+        printf 'gpu_memory_pool_used_bytes{%s,pool="gtt"} %s\n' "$labels" "$gtt_used" >> "$tmp"
       fi
 
       watts=""
@@ -83,7 +109,7 @@ let
         fi
       done
       if [ -n "$watts" ]; then
-        printf 'gpu_power_watts{%s} %s\n' "$labels" "$(scale "$watts" 1000000)" >> "$tmp"
+        printf 'gpu_power_watts{%s} %s\n' "$labels" "$(fixed "$watts" 1000000)" >> "$tmp"
       fi
 
       # Hottest sensor wins: datacenter cards expose an edge and a junction
@@ -96,7 +122,7 @@ let
         fi
       done
       if [ -n "$temp" ]; then
-        printf 'gpu_temperature_celsius{%s} %s\n' "$labels" "$(scale "$temp" 1000)" >> "$tmp"
+        printf 'gpu_temperature_celsius{%s} %s\n' "$labels" "$(fixed "$temp" 1000)" >> "$tmp"
       fi
 
       # Freshness, not presence: the textfile collector serves a stale file
@@ -106,6 +132,22 @@ let
 
     # No card, no file: an absent series is what GpuMetricsMissing watches for.
     if [ "$found" = 1 ]; then
+      # Publish nothing a collector could not parse, for the reason the readers
+      # above are strict: one bad line discards the whole file, not just the line.
+      dup_types=$(sed -n 's/^# TYPE \([a-z_]*\) .*$/\1/p' "$tmp" | sort | uniq -d)
+      if [ -n "$dup_types" ]; then
+        printf 'gpu-metrics: duplicate TYPE for %s; not publishing\n' "$dup_types" >&2
+        exit 1
+      fi
+      while IFS= read -r line; do
+        case "$line" in
+          \#*) continue ;;
+        esac
+        if ! printf '%s' "$line" | grep -qE '^[a-z_]+\{[^}]*\} [0-9]+(\.[0-9]+)?$'; then
+          printf 'gpu-metrics: refusing to publish unparsable line: %s\n' "$line" >&2
+          exit 1
+        fi
+      done < "$tmp"
       chmod 0644 "$tmp"
       mv "$tmp" "$out_dir/gpu.prom"
     fi
