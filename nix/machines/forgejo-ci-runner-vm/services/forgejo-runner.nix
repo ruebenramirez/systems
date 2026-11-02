@@ -56,11 +56,6 @@ in
         pkgs.coreutils
         pkgs.bash
         pkgs.nodejs
-        # used by the CI helper scripts (notifications, lock push)
-        pkgs.curl
-        pkgs.gawk
-        pkgs.jq
-        pkgs.openssl
       ] + ":/run/wrappers/bin:/run/current-system/sw/bin:/usr/bin:/bin");
     };
 

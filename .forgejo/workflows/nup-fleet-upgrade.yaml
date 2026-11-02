@@ -109,6 +109,10 @@ jobs:
     runs-on: nixos
     timeout-minutes: 5
     steps:
+      # The notify script lives in the repo; host-mode jobs get a fresh
+      # workspace per job, so it must be checked out here too.
+      - name: Check out the repo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Notify Hermes
         env:
           HERMES_WEBHOOK_URL: "${{ vars.HERMES_WEBHOOK_URL }}"
