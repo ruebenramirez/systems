@@ -86,6 +86,39 @@ ssh_target() {
     fi
 }
 
+# Name the flake configuration for a fleet entry ("host" or "host:config").
+# Never hand nixos-rebuild an empty one: with `--flake <dir>#` it chooses the
+# attribute itself -- `uname -n` over ssh on the target, and if that ssh fails,
+# the literal "default". That is how an ssh problem arrives as
+# `nixosConfigurations."default" does not exist`, and in the build action, with
+# no target host at all, it silently builds the configuration named after
+# whichever machine ran the command.
+config_of() {
+    local hostname config
+    IFS=':' read -r hostname config <<< "$1"
+    printf '%s' "${config:-$hostname}"
+}
+
+# Fail before a switch instead of in the middle of one. Both the deploy and the
+# rollback path start by sshing to the target, so check that path while the
+# answer is still cheap, and say "ssh" in the message.
+ssh_reachable() {
+    local host="$1"
+    ssh -o BatchMode=yes -o ConnectTimeout=10 "$(ssh_target "$host")" true 2>/dev/null
+}
+
+ssh_unreachable_help() {
+    local host="$1"
+    cat >&2 <<EOF
+error: ssh to $host failed as $(whoami); a switch cannot start without it.
+       Usual causes: no Host block for this machine in
+       nix/machines/forgejo-ci-runner-vm/services/nup-fleet-access.nix, a
+       rotated host key in the deploy user's ~/.ssh/known_hosts, or an
+       unreadable deploy key. Check with:
+         ssh -v $(ssh_target "$host") uname -n
+EOF
+}
+
 # ---------------------------------------------------------------------------
 # Private flake inputs
 # ---------------------------------------------------------------------------
@@ -250,8 +283,16 @@ FAILED=()
 
 update_machine() {
     local host_config="$1"
+    local hostname config
     IFS=':' read -r hostname config <<< "$host_config"
+    config="$(config_of "$host_config")"
     echo "Updating $hostname ($config)..."
+    if ! ssh_reachable "$hostname"; then
+        ssh_unreachable_help "$hostname"
+        echo "✗ $hostname failed" >&2
+        FAILED+=("$hostname")
+        return 1
+    fi
     local builder=()
     if [[ "$IS_BUILDER" != "true" ]]; then
         builder=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
@@ -568,8 +609,14 @@ cd "$HOME"
 # ---------------------------------------------------------------------------
 rollback_machine() {
     local host_config="$1"
+    local hostname config
     IFS=':' read -r hostname config <<< "$host_config"
+    config="$(config_of "$host_config")"
     local target; target="$(ssh_target "$hostname")"
+    if ! ssh_reachable "$hostname"; then
+        ssh_unreachable_help "$hostname"
+        return 1
+    fi
     # `--rollback` still needs a flake argument: nixos-rebuild builds its remote
     # helper (`config.system.build.nixos-rebuild`) from it, and without one it
     # falls back to <nixpkgs> and dies on an empty NIX_PATH. The generation it
@@ -642,7 +689,7 @@ case "$ACTION" in
             echo "Building ${#TARGETS[@]} configuration(s) on $BUILDER_HOSTNAME..."
         fi
         for machine in "${TARGETS[@]}"; do
-            IFS=':' read -r hostname config <<< "$machine"
+            config="$(config_of "$machine")"
             echo "Building $config..."
             build_args=()
             if [[ "$IS_BUILDER" != "true" ]]; then
