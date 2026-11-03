@@ -54,9 +54,4 @@
 	# Add immich user to hardware acceleration groups
 	users.users.immich.extraGroups = [ "video" "render" ];
 
-  # Automatic db backups
-  services.postgresqlBackup = {
-    databases = [ "immich" ];
-  };
-
 }

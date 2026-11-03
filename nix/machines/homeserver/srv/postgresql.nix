@@ -18,6 +18,9 @@
   ];
 
   # Automatic db backups
+  # `databases` is deliberately left unset: the empty default makes the module
+  # run pg_dumpall, so new databases are covered automatically. Pinning a list
+  # here silently stops backing up anything not named in it.
   services.postgresqlBackup = {
     enable = true;
     location = "/tank/backups/homeserver/postgresql";
