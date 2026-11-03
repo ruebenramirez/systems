@@ -65,6 +65,7 @@
   my.vmNfsClient.mounts.data = { };
 
   networking.firewall.allowedTCPPorts = [
+    1313 # hugo blog dev
     5173
     8000
   ];
