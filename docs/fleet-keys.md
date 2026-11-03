@@ -204,6 +204,25 @@ Two rules earned the hard way during the October 2026 rotation:
 2. `tailscale up` echoes the auth key in its error output. Redact anything that
    captures a failed re-auth.
 
+### Auditing the key set
+
+`scripts/check-headscale-keys.sh` cross-references `preauthkeys list` and
+`nodes list` against the stored sops keys and reports:
+
+- keys that are reusable or expire beyond `MAX_EXPIRY_DAYS` (default 820)
+  without a recorded exception — the id-2 shape from rueb/systems#34;
+- stored host keys that match no headscale key (expired, deleted, or wrong),
+  and headscale keys that match no host (orphans);
+- hosts whose key user differs from their node user — re-enrollment would
+  move the node to a different user and change its ACLs, the
+  `download-vm-xps` finding from rueb/systems#34.
+
+Matching uses the unmasked `hskey-auth-<prefix>` half that `list` reveals;
+full key values are never printed and never leave sops. Run it after every
+mint or revocation. A deliberate exception (e.g. a per-device reusable key)
+goes in the `EXCEPTIONS` map at the top of the script **and** in this
+document — the map entry is the code, this document is the reason.
+
 ## Rotation ground rules
 
 Standing rules, from the October 2026 fleet rotation:
