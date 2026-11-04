@@ -3,10 +3,10 @@
 {
   # homeserver runs podman and nothing else.
   #
-  # `_common/services/kubernetes.nix` turns docker on for k3d, which this machine
-  # does not use, and docker is where forgejo and the Actions runner used to live.
-  # Overridden here rather than in the shared module because `ssdnodes-1`,
-  # `forgejo-ci-runner-vm` and `dev-vm-xps` all still need a docker daemon.
+  # `_common/services/kubernetes.nix` turns docker on for the whole fleet, and
+  # docker is where forgejo and the Actions runner used to live.
+  # Overridden here rather than in the shared module because `dev-vm-xps` still
+  # wants a docker daemon -- it is the only one left.
   virtualisation.docker = {
     enable = lib.mkForce false;
     enableOnBoot = lib.mkForce false;

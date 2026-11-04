@@ -16,6 +16,10 @@ share the `fwai0-builder` concurrency group, because every build must happen on
   comment). A tag can be retagged, and these jobs hold fleet SSH plus a
   `trusted-user` with NOPASSWD sudo — an upstream compromise would be root on
   every machine. Bump by resolving the tag to a commit and editing both.
+- **The runner's container backend is Podman.** A `runs-on: docker` job goes to
+  podman over the Docker API socket it serves
+  (`unix:///run/podman/podman.sock`). The `nixos` host-mode label both workflows
+  here actually use never touches a container engine at all.
 - **One builder, one build at a time.** Every build runs on `fwai0`, so both
   workflows share `concurrency.group: fwai0-builder` with
   `cancel-in-progress: false`. Any new workflow that builds there must join it.

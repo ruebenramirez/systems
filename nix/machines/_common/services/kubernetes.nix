@@ -6,9 +6,10 @@
       helmfile-wrapped
   ];
 
-  # Docker, not Kubernetes: what still needs a container engine is the Forgejo
-  # Actions runner on forgejo-ci-runner-vm. Hosts that have moved to Podman
-  # have to switch it off themselves (homeserver: srv/podman-only.nix).
+  # Docker, not Kubernetes: k3d is gone and the Forgejo Actions runner now talks
+  # to Podman, so `dev-vm-xps` is the only host left that wants a docker daemon.
+  # Everyone else switches it off themselves (homeserver: srv/podman-only.nix,
+  # forgejo-ci-runner-vm: services/podman.nix).
   virtualisation.docker = {
     enable = true;
     enableOnBoot = true;

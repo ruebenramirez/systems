@@ -8,6 +8,7 @@
     ../_common/tailscale-client.nix
     ../_common/services/kubernetes.nix
     ./services/forgejo-runner.nix
+    ./services/podman.nix
     ./services/nup-fleet-access.nix
     ./services/ci-alert-mail.nix
     # the runner is a fleet member too, so it must trust its own deploy key
@@ -62,7 +63,7 @@
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "audio" "docker" "networkmanager" "sound" "wheel" ];
+    extraGroups = [ "audio" "networkmanager" "podman" "sound" "wheel" ];
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
   };
   security.sudo.wheelNeedsPassword = false;
