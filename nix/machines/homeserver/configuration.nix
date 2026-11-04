@@ -21,7 +21,7 @@
     ./srv/alerting.nix
     ./srv/audiobookshelf.nix
     ./srv/firewall.nix
-    ./srv/forgejo-reverse-proxy.nix
+    ./srv/forgejo.nix
     ./srv/freshrss.nix
     ./srv/headscale-server.nix
     ./srv/hermes-backup.nix
