@@ -86,6 +86,25 @@ ssh_target() {
     fi
 }
 
+# The builder as a nix store URL, for `nixos-rebuild --build-host`.
+#
+# The `ssh-ng://` prefix is not decoration. nixos-rebuild-ng copies the freshly
+# instantiated .drv graph to the build host with the deprecated
+# `nix-copy-closure`, and only when the build host carries no store-type prefix;
+# that serve handshake intermittently desyncs once the builder is missing a
+# large part of the graph -- which is what any changed configuration looks like:
+#
+#   error: 'nix-store --serve' protocol mismatch from 'fwai0', got 'started
+#   Command 'nix-copy-closure -s --to fwai0 <toplevel>.drv' returned 1
+#
+# The paths still land on the way down, so a retry reports "copying 0 paths" and
+# goes through -- but a deploy run that hits it has to be re-run by hand, which
+# the nightly cannot do. Any other store type makes nixos-rebuild-ng reach for
+# `nix copy` instead, which ships the same closure reliably.
+builder_url() {
+    printf 'ssh-ng://%s' "$(ssh_target "$BUILDER_HOSTNAME")"
+}
+
 # Name the flake configuration for a fleet entry ("host" or "host:config").
 # Never hand nixos-rebuild an empty one: with `--flake <dir>#` it chooses the
 # attribute itself -- `uname -n` over ssh on the target, and if that ssh fails,
@@ -295,7 +314,7 @@ update_machine() {
     fi
     local builder=()
     if [[ "$IS_BUILDER" != "true" ]]; then
-        builder=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
+        builder=(--build-host "$(builder_url)")
     fi
     # Do not let a single failure abort the caller's loop; record it instead.
     if ! time nixos-rebuild switch \
@@ -693,7 +712,7 @@ case "$ACTION" in
             echo "Building $config..."
             build_args=()
             if [[ "$IS_BUILDER" != "true" ]]; then
-                build_args=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
+                build_args=(--build-host "$(builder_url)")
             fi
             nixos-rebuild build \
                 --flake "$FLAKE_DIR#$config" \
