@@ -32,6 +32,7 @@
     ./srv/matrix-backup.nix
     ./srv/nginx.nix
     # ./srv/openwebui.nix
+    ./srv/podman-only.nix
     ./srv/postgresql.nix
     ./srv/redis.nix
     ./srv/smb-shares.nix
@@ -58,7 +59,7 @@
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "adbusers" "audio" "docker" "networkmanager" "sound" "wheel" "ydotool" ];
+    extraGroups = [ "adbusers" "audio" "networkmanager" "sound" "wheel" "ydotool" ];
     openssh.authorizedKeys.keys = [
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea"
       "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIJ1wxfdli9d8p0rCgry6QD5AfhU75q5uRtiqfFG2mlu"
