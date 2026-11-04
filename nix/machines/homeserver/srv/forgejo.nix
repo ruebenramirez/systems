@@ -132,8 +132,10 @@ in
   systemd.tmpfiles.rules = [
     # podman's image store for this user
     "d /var/lib/forgejo          0700 ${toString uid} ${toString gid} -"
-    # Only the top levels: the trees below them are chowned once, by hand.
-    "d ${dataDir}        0750 ${toString uid} ${toString gid} -"
+    # Only the top levels: the trees below them are chowned once, by hand. The
+    # data group owns `${dataDir}` itself because both the container's root (uid
+    # `uid`) and its `git` user (uid `dataUid`) have to traverse it.
+    "d ${dataDir}        0750 ${toString uid} ${toString dataUid} -"
     "d ${dataDir}/ssh    0700 ${toString uid} ${toString gid} -"
     "d ${dataDir}/gitea  0750 ${toString dataUid} ${toString dataUid} -"
     "d ${dataDir}/git    0750 ${toString dataUid} ${toString dataUid} -"
