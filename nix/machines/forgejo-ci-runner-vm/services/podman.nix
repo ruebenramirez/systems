@@ -1,8 +1,7 @@
 { ... }:
 {
-  # The Actions runner's container backend is Podman, reached over the Docker
-  # Engine API forgejo-runner already speaks -- `docker://` labels work
-  # unchanged, only the socket behind them moves.
+  # The Actions runner's container backend is Podman, reached through the Docker
+  # Engine API it serves, which is what the `docker://` labels speak.
   #
   # Rootful on purpose: `nixdeploy` already has NOPASSWD sudo on this host
   # (_common/nix-deploy-user.nix), so a rootless engine would buy uid-mapped

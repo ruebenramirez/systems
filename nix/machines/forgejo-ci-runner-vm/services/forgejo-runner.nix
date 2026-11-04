@@ -18,8 +18,7 @@ in
         capacity: 1
         labels:
           # Fully qualified: podman resolves a bare `node:22-bookworm` by
-          # searching registries.conf (docker.io *and* quay.io here) instead of
-          # assuming docker.io the way docker did.
+          # searching registries.conf, which lists quay.io beside docker.io here.
           - docker:docker://docker.io/library/node:22-bookworm
           - ubuntu-latest:docker://docker.io/library/node:22-bookworm
           # `:host` selects the host backend; a bare label silently means the

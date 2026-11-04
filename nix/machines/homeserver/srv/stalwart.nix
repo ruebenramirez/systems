@@ -299,11 +299,9 @@ in
 
   # Mail protocols only, and only from the tailnet: HTTP listeners stay on
   # loopback and JMAP 8080 comes from bulwark. Forgejo's own submissions need no
-  # rule of their own -- app.ini points at mail.rueb.dev, which is this machine's
-  # own tailnet address, and stalwart sees them from that same address
-  # (remoteIp = 100.64.0.1) rather than from a container network. The
-  # `br-82bac2f71626` allowed here before was the docker bridge forgejo sat on
-  # before podman; the interface is long gone, so that rule could never match.
+  # rule of their own -- app.ini points at mail.rueb.dev, this machine's own
+  # tailnet address, so stalwart sees them from that address rather than from a
+  # container network.
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 25 465 587 993 4190 ];
 
 

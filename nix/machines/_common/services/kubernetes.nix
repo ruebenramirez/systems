@@ -6,8 +6,6 @@
       helmfile-wrapped
   ];
 
-  # Tooling only. This used to turn on a docker daemon for every host that
-  # imports it -- k3d needed one, and so did the Forgejo Actions runner. Both are
-  # gone: the runner speaks to Podman (forgejo-ci-runner-vm: services/podman.nix)
-  # and no host in the fleet runs a docker daemon.
+  # Client tooling only: nothing here runs a cluster or a container engine. The
+  # runner's own engine lives in forgejo-ci-runner-vm: services/podman.nix.
 }
