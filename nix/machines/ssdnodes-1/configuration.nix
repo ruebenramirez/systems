@@ -2,30 +2,38 @@
 # your system.  Help is available in the configuration.nix(5) man page
 # and in the NixOS manual (accessible by running 'nixos-help').
 
-{ config, lib, pkgs, pkgs-unstable, modulesPath, disko, ... }: {
-  imports =
-    [
-      (modulesPath + "/profiles/qemu-guest.nix")
-      ./disk-config.nix
-      ./srv/alerting.nix
-      ./srv/derp-relay.nix
-      ./srv/firewall.nix
-      ./srv/haproxy.nix
-      ./srv/hosted-sites-backup-source.nix
-      ./srv/matrix.nix
-      ./srv/matrix-backup-source.nix
-      ./srv/matrix-snapshot.nix
-      ./srv/cloudflare-dns-token.nix
-      ./srv/monicaandrueben.com-reverse-proxy.nix
-      ./srv/monicarosephotography.com-reverse-proxy.nix
-      ./srv/postfix.nix
-      ./srv/sing-box.nix
-      ../_common/base/default.nix
-      ../_common/monitoring.nix
-      ../_common/nix-deploy-user.nix
-      ../_common/services/kubernetes.nix
-      ../_common/tailscale-client.nix
-    ];
+{
+  config,
+  lib,
+  pkgs,
+  pkgs-unstable,
+  modulesPath,
+  disko,
+  ...
+}:
+{
+  imports = [
+    (modulesPath + "/profiles/qemu-guest.nix")
+    ./disk-config.nix
+    ./srv/alerting.nix
+    ./srv/derp-relay.nix
+    ./srv/firewall.nix
+    ./srv/haproxy.nix
+    ./srv/hosted-sites-backup-source.nix
+    ./srv/matrix.nix
+    ./srv/matrix-backup-source.nix
+    ./srv/matrix-snapshot.nix
+    ./srv/cloudflare-dns-token.nix
+    ./srv/monicaandrueben.com-reverse-proxy.nix
+    ./srv/monicarosephotography.com-reverse-proxy.nix
+    ./srv/postfix.nix
+    ./srv/sing-box.nix
+    ./srv/wordpress.nix
+    ../_common/base/default.nix
+    ../_common/monitoring.nix
+    ../_common/nix-deploy-user.nix
+    ../_common/tailscale-client.nix
+  ];
 
   boot.loader.grub = {
     enable = true;
@@ -44,14 +52,18 @@
     interfaces.enp3s0 = {
       # Using the same interface name as in netplan
       useDHCP = false;
-      ipv4.addresses = [{
-        address = "172.93.51.14";
-        prefixLength = 24;
-      }];
-      ipv6.addresses = [{
-        address = "2602:ff16:1:0:1:f:0:1";
-        prefixLength = 64;
-      }];
+      ipv4.addresses = [
+        {
+          address = "172.93.51.14";
+          prefixLength = 24;
+        }
+      ];
+      ipv6.addresses = [
+        {
+          address = "2602:ff16:1:0:1:f:0:1";
+          prefixLength = 64;
+        }
+      ];
     };
 
     # Default gateways
@@ -77,8 +89,10 @@
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "docker" "wheel" ];
-    openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
+    extraGroups = [ "wheel" ];
+    openssh.authorizedKeys.keys = [
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea"
+    ];
   };
   security.sudo.extraRules = [
     {
