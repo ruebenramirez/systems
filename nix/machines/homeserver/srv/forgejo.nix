@@ -2,17 +2,16 @@
   config,
   pkgs,
   lib,
+  secretFile,
   ...
 }:
 
 let
   domain = "code.rueb.dev";
 
-  # Carried over from the compose deployment it replaces: 8.7 GB of repositories
+  # Carried over from the compose deployment it replaced: 8.7 GB of repositories
   # and the sqlite DB live here. `/tank/srv/<fqdn>--<service>` is the homeserver
-  # convention (see stalwart.nix). Bringing it up here is a one-time manual
-  # cutover: `docker compose down` in that directory, then chown the trees to the
-  # ids below.
+  # convention (see stalwart.nix).
   dataDir = "/tank/srv/${domain}--forgejo/forgejo";
 
   uid = 960;
@@ -35,76 +34,139 @@ let
     arch = "amd64";
   };
 
-  # Written over app.ini by the image's `environment-to-ini` at every start.
-  # Sections with a dot or a dash cannot be spelled as an environment variable,
-  # so `[cron.*]`, `[repository.pull-request]` and `[repository.signing]` stay
-  # in app.ini, along with everything in the note below.
-  settings = {
-    server = {
-      DOMAIN = domain;
-      ROOT_URL = "https://${domain}/";
-      HTTP_PORT = 3000;
-      # The compose stack published 222->22, but app.ini advertised port 22 --
-      # which is the host sshd -- so git-over-ssh never worked and no key is
-      # registered in the instance. Re-enabling it needs a port above 1023, since
-      # rootless podman cannot bind a privileged one.
-      DISABLE_SSH = true;
-      LFS_START_SERVER = true;
-      LFS_MAX_FILE_SIZE = 0;
-      OFFLINE_MODE = true;
-    };
+  # The whole of app.ini, rendered by sops into /run and bind-mounted read-only.
+  # Nothing here may change lightly: INTERNAL_TOKEN, LFS_JWT_SECRET and
+  # OAUTH2.JWT_SECRET are already issued, PASSWORD_HASH_ALGO guards every stored
+  # password, and SECRET_KEY is empty on purpose -- forgejo derives it, and
+  # putting a value in would invalidate whatever the derived one has encrypted.
+  appIni = ''
+    APP_NAME = Forgejo
+    RUN_MODE = prod
+    APP_SLOGAN = Beyond coding. We Forge.
+    RUN_USER = git
+    WORK_PATH = /data/gitea
 
-    repository.ROOT = "/data/git/repositories";
+    [repository]
+    ROOT = /data/git/repositories
 
-    security = {
-      INSTALL_LOCK = true;
-      REVERSE_PROXY_LIMIT = 1;
-      REVERSE_PROXY_TRUSTED_PROXIES = "*";
-    };
+    [repository.local]
+    LOCAL_COPY_PATH = /data/gitea/tmp/local-repo
 
-    service = {
-      DISABLE_REGISTRATION = true;
-      REQUIRE_SIGNIN_VIEW = false;
-      REGISTER_EMAIL_CONFIRM = true;
-      ENABLE_NOTIFY_MAIL = true;
-      DEFAULT_ENABLE_TIMETRACKING = false;
-      NO_REPLY_ADDRESS = "noreply.localhost";
-    };
+    [repository.upload]
+    TEMP_PATH = /data/gitea/uploads
 
-    # The password stays in app.ini: it is not in sops yet. Same for the
-    # install-generated SECRET_KEY, INTERNAL_TOKEN, LFS_JWT_SECRET and
-    # OAUTH2.JWT_SECRET -- none of them may change once issued, so they need a
-    # `forgejo-server-homeserver.yaml` before they can move here.
-    mailer = {
-      ENABLED = true;
-      SMTP_ADDR = "mail.rueb.dev";
-      SMTP_PORT = 587;
-      FROM = "noreply@rueb.dev";
-      USER = "noreply@rueb.dev";
-    };
+    [server]
+    APP_DATA_PATH = /data/gitea
+    DOMAIN = ${domain}
+    HTTP_PORT = 3000
+    ROOT_URL = https://${domain}/
+    # The compose stack published 222->22 while app.ini advertised port 22, which
+    # is the host sshd, so git-over-ssh never worked and no key was registered.
+    # Rootless podman cannot bind a privileged port to fix it, so it stays off.
+    DISABLE_SSH = true
+    LFS_START_SERVER = true
+    LFS_JWT_SECRET = ${config.sops.placeholder.forgejo-lfs-jwt-secret}
+    LFS_MAX_FILE_SIZE = 0
+    OFFLINE_MODE = true
 
-    webhook.ALLOWED_HOST_LIST = "external,100.64.0.0/10,192.168.8.0/24";
+    [database]
+    PATH = /data/gitea/gitea.db
+    DB_TYPE = sqlite3
+    LOG_SQL = false
+    SSL_MODE = disable
 
-    openid = {
-      ENABLE_OPENID_SIGNIN = false;
-      ENABLE_OPENID_SIGNUP = false;
-    };
-  };
+    [indexer]
+    ISSUE_INDEXER_PATH = /data/gitea/indexers/issues.bleve
 
-  # `toString true` is "1", which forgejo does not read as a boolean.
-  renderValue = value: if lib.isBool value then lib.boolToString value else toString value;
+    [session]
+    PROVIDER_CONFIG = /data/gitea/sessions
+    PROVIDER = file
 
-  environment = lib.listToAttrs (
-    lib.concatMap (
-      section:
-      lib.mapAttrsToList (
-        key: value:
-        lib.nameValuePair "GITEA__${lib.toUpper section}__${lib.toUpper key}" (renderValue value)
-      ) settings.${section}
-    ) (lib.attrNames settings)
-  );
+    [picture]
+    AVATAR_UPLOAD_PATH = /data/gitea/avatars
+    REPOSITORY_AVATAR_UPLOAD_PATH = /data/gitea/repo-avatars
+
+    [attachment]
+    PATH = /data/gitea/attachments
+
+    [log]
+    MODE = file
+    LEVEL = info
+    ROOT_PATH = /data/gitea/log
+
+    [security]
+    INSTALL_LOCK = true
+    SECRET_KEY =
+    REVERSE_PROXY_LIMIT = 1
+    REVERSE_PROXY_TRUSTED_PROXIES = *
+    INTERNAL_TOKEN = ${config.sops.placeholder.forgejo-internal-token}
+    PASSWORD_HASH_ALGO = pbkdf2_hi
+
+    [service]
+    DISABLE_REGISTRATION = true
+    REQUIRE_SIGNIN_VIEW = false
+    REGISTER_EMAIL_CONFIRM = true
+    ENABLE_NOTIFY_MAIL = true
+    ALLOW_ONLY_EXTERNAL_REGISTRATION = false
+    ENABLE_CAPTCHA = false
+    DEFAULT_KEEP_EMAIL_PRIVATE = false
+    DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+    DEFAULT_ENABLE_TIMETRACKING = false
+    NO_REPLY_ADDRESS = noreply.localhost
+
+    [lfs]
+    PATH = /data/git/lfs
+
+    [mailer]
+    ENABLED = true
+    SMTP_ADDR = mail.rueb.dev
+    SMTP_PORT = 587
+    FROM = noreply@rueb.dev
+    USER = noreply@rueb.dev
+    PASSWD = ${config.sops.placeholder.forgejo-smtp-password}
+
+    [openid]
+    ENABLE_OPENID_SIGNIN = false
+    ENABLE_OPENID_SIGNUP = false
+
+    [cron.update_checker]
+    ENABLED = true
+
+    [cron.repo_health_check]
+    SCHEDULE = @midnight
+    TIMEOUT = 300s
+
+    [repository.pull-request]
+    DEFAULT_MERGE_STYLE = merge
+
+    [repository.signing]
+    DEFAULT_TRUST_MODEL = committer
+
+    [oauth2]
+    JWT_SECRET = ${config.sops.placeholder.forgejo-oauth2-jwt-secret}
+
+    [webhook]
+    ALLOWED_HOST_LIST = external,100.64.0.0/10,192.168.8.0/24
+  '';
 in
 {
+  sops.secrets = {
+    forgejo-internal-token = secretFile "forgejo-server-homeserver";
+    forgejo-lfs-jwt-secret = secretFile "forgejo-server-homeserver";
+    forgejo-oauth2-jwt-secret = secretFile "forgejo-server-homeserver";
+    forgejo-smtp-password = secretFile "forgejo-server-homeserver";
+  };
+
+  # Owned by the container's git uid: the sops directory is world-traversable and
+  # 0400 keeps the plaintext off every other reader on the host.
+  sops.templates."forgejo-app.ini" = {
+    content = appIni;
+    uid = dataUid;
+    gid = dataUid;
+    mode = "0400";
+    restartUnits = [ "podman-forgejo.service" ];
+  };
+
   users.groups.forgejo.gid = gid;
   users.users.forgejo = {
     inherit uid;
@@ -150,12 +212,20 @@ in
       pull = "never";
       autoStart = true;
       podman.user = "forgejo";
-      inherit environment;
       # nginx terminates TLS and proxies here; nothing else may reach gitea.
       ports = [ "127.0.0.1:3000:3000" ];
       volumes = [
         "${dataDir}:/data"
         "/etc/localtime:/etc/localtime:ro"
+        # Last so it wins over the /data mount on the subpath. The image's own
+        # `environment-to-ini` would rewrite this file if any GITEA__ variable
+        # were set, so none are: app.ini is the only config input now.
+        #
+        # The stale copy this shadows is kept on purpose: with nothing at that
+        # path podman creates a 0-byte app.ini as the mount target, and an
+        # app.ini without INSTALL_LOCK offers the installer against a populated
+        # database instead of failing.
+        "${config.sops.templates."forgejo-app.ini".path}:/data/gitea/conf/app.ini:ro"
       ];
       extraOptions = [
         "--health-cmd=curl -fsS http://127.0.0.1:3000/api/healthz"
@@ -173,7 +243,13 @@ in
     # without it crun dies on `sd-bus call: Access denied`. `oci-containers` only
     # orders user@ for sdnotify=healthy and this unit uses conmon.
     requires = [ "user@${toString uid}.service" ];
-    after = [ "network-online.target" "user@${toString uid}.service" ];
+    after = [
+      "network-online.target"
+      "user@${toString uid}.service"
+      # Ordering only: the unit is `bad-setting` and never runs as a job, the
+      # activation script installs secrets directly. See docs/secrets.md.
+      "sops-install-secrets.service"
+    ];
     wants = [ "network-online.target" ];
     serviceConfig.RestartSec = "10s";
   };
