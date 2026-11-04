@@ -51,7 +51,6 @@
     extraGroups = [
       "adbusers"
       "audio"
-      "docker"
       "render"
       "sound"
       "video"

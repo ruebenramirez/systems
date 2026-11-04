@@ -107,7 +107,7 @@ What *is* durable:
   `syncoid` to `pi-syncoid-target`) and is mounted into a guest over NFS. For
   `dev-vm-xps` that's `/mnt/data` (`/tank/vm-nfs-shares/dev-vm-xps/data`).
 - `dev`/`forgejo`/`download` root filesystems hold only rebuildable state
-  (Nix store, Docker images, torrents, CI caches).
+  (Nix store, container images, torrents, CI caches).
 
 The original libvirt qcow2s under `/devpool/VMs/images/` are a one-time rollback
 lever, not a backup — delete them once I'm confident.

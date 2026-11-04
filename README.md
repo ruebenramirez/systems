@@ -112,7 +112,7 @@ in `nix-deploy-user.nix`, and adding the private key to the
 
 | Machine | Role | config/services |
 |---------|------|-----------------|
-| `dev-vm-xps` | Dev VM | Docker, [k3d](https://github.com/k3d-io/k3d), Go, Python, Rust, [Hugo](https://github.com/gohugoio/hugo) |
+| `dev-vm-xps` | Dev VM | rootless Podman, Go, Python, Rust, [Hugo](https://github.com/gohugoio/hugo) |
 | `driver` | daily driver thin client | [Sway](https://github.com/swaywm/sway), gaming (ROCm), sing-box client, tailnet |
 | `forgejo-ci-runner-vm` | Forgejo runner | [Forgejo Runner](https://code.forgejo.org/forgejo/runner), podman + `nixos` host-mode labels, `nixdeploy` fleet deploy identity |
 | `fwai0` | Fleet builder and LLM inference server | [`halogen-flash-server`](https://github.com/peonist-ai/halogen-flash-server) (ROCm, AMD Strix Halo) serving [`Qwen3.8-Flash-Next`](https://huggingface.co/peonist-ai/halogen-qwen3.8-flash-next) over the tailnet (llama.cpp module retained but disabled) |
@@ -120,7 +120,7 @@ in `nix-deploy-user.nix`, and adding the private key to the
 | `k3s-1`, `k3s-2`, `k3s-3` | k3s cluster (HA control plane) | [k3s](https://k3s-io) embedded etcd, [fleet monitoring](docs/monitoring.md) ([Prometheus](https://prometheus.io), [Grafana](https://grafana.com), [Alertmanager](https://prometheus.io/docs/alerting), [Gatus](https://gatus.io)), NFS-backed PVCs |
 | `pi-syncoid-target` | ZFS replication target | Hourly [`syncoid`](https://github.com/jimsalterjrs/sanoid) snapshot replication of `homeserver`'s `tank/data` dataset |
 | `ssdnodes-1` | Public MX relay and web host | [Postfix](https://github.com/vdukhovni/postfix) relay to [Stalwart](https://github.com/stalwartlabs/stalwart) over the tailnet, nginx reverse proxy, rootless Podman [WordPress](https://hub.docker.com/_/wordpress) sites |
-| `xps17` | Incus VM host | [Incus](https://linuxcontainers.org/incus/) VMs declared in [`tofu/`](tofu/), Incus `dir` pool on `devpool`, Docker, [k3d](https://github.com/k3d-io/k3d), ARM64 builds |
+| `xps17` | Incus VM host | [Incus](https://linuxcontainers.org/incus/) VMs declared in [`tofu/`](tofu/), Incus `dir` pool on `devpool`, ARM64 builds |
 
 ## CI
 

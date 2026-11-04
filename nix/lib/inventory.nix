@@ -50,7 +50,7 @@ rec {
       zfs = true;
     };
     dev-vm-xps = {
-      description = "Development VM (Docker, editor, data share)";
+      description = "Development VM (Podman, editor, data share)";
     };
     download-vm-xps = {
       description = "Torrent/NAS download VM, Mullvad exit";

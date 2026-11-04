@@ -70,10 +70,18 @@
     8000
   ];
 
+  # Rootless podman, which needs no group for rramirez: a normal user gets a
+  # subuid range automatically. `dockerCompat` keeps the `docker` command as an
+  # alias so old habits and copy-pasted snippets still work.
+  virtualisation.podman = {
+    enable = true;
+    dockerCompat = true;
+  };
+
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
-    extraGroups = [ "audio" "docker" "networkmanager" "sound" "wheel" ];
+    extraGroups = [ "audio" "networkmanager" "sound" "wheel" ];
     openssh.authorizedKeys.keys = [ "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAkQS5ohCDizq24WfDgP/dEOonD/0WfrI0EAZFCyS0Ea" ];
   };
   security.sudo.wheelNeedsPassword = false;

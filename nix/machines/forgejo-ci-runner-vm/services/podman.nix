@@ -1,4 +1,4 @@
-{ config, lib, ... }:
+{ ... }:
 {
   # The Actions runner's container backend is Podman, reached over the Docker
   # Engine API forgejo-runner already speaks -- `docker://` labels work
@@ -8,15 +8,6 @@
   # (_common/nix-deploy-user.nix), so a rootless engine would buy uid-mapped
   # bind mounts in job workspaces rather than a narrower blast radius. Revisit
   # it together with narrowing that sudo.
-  virtualisation.docker = {
-    enable = lib.mkForce false;
-    enableOnBoot = lib.mkForce false;
-  };
-
-  # kubernetes.nix sets a unitConfig on docker.service unconditionally, which
-  # leaves an enabled stub unit behind once the package is gone.
-  systemd.services.docker.enable = lib.mkForce false;
-
   virtualisation.podman = {
     enable = true;
 

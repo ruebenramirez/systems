@@ -84,7 +84,6 @@
     extraGroups = [
       "adbusers"
       "audio"
-      "docker"
       "network"
       "openrazer"
       "renderer"
