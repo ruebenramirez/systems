@@ -14,18 +14,23 @@ let
     nameValuePair
     ;
 
-  # Rootless podman. Container uid 0 is `wordpress` on the host, so everything
-  # the containers own belongs to that user's subuid range.
+  # Rootless podman, one user for all four containers so the pinned images are
+  # stored once rather than four times.
   uid = 965;
   gid = 965;
   subuidStart = 400000;
 
-  # container uid 0 (apache's master process, the only writer under html/)
-  containerRootUid = subuidStart;
-  # container uid 999, mariadb's `mysql`. The datadir was host uid 999 under
-  # docker -- NixOS happens to call that uid `nscd` -- and the number is what
-  # matters, not the name.
-  mysqlHostUid = subuidStart + 999;
+  # Rootless uid mapping is off by one from the obvious guess: container uid 0 is
+  # `wordpress` itself, and only uid 1 and up land in the subuid range -- so a
+  # container uid N > 0 is `subuidStart + N - 1` on the host. Verified by creating
+  # a file as container root (host 965) and reading the datadir's own ownership
+  # back (mariadb chowns its datadir to uid 999, which shows up as 400998).
+  containerRootUid = uid;
+
+  # mariadb's `mysql` is container uid 999 -> host 400998. Chowning the datadir to
+  # 400999 instead does not fail: the entrypoint just chowns it again at startup,
+  # which is how this was caught.
+  mysqlHostUid = subuidStart + 999 - 1;
 
   # One entry per site. The data trees keep the paths the compose-era scripts
   # used: srv/hosted-sites-backup-source.nix lets homeserver rsync `/srv`
@@ -228,8 +233,8 @@ in
     name: site:
     nameValuePair "wordpress-${name}.env" {
       content = envFile name;
-      # Owned by the host user that runs podman: --env-file is opened before any
-      # namespace exists. A bind-mounted secret would need containerRootUid here.
+      # Owned by the host user that runs podman: --env-file is opened on the host
+      # before any namespace exists.
       uid = uid;
       gid = gid;
       mode = "0400";
