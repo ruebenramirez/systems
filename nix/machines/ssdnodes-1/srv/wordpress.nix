@@ -168,7 +168,9 @@ in
             User = "wordpress";
             Group = "wordpress";
           };
-          environment = { XDG_RUNTIME_DIR = "/run/user/${toString uid}"; };
+          environment = {
+            XDG_RUNTIME_DIR = "/run/user/${toString uid}";
+          };
           script = ''
             ${pkgs.podman}/bin/podman network exists wordpress-${name} || \
               ${pkgs.podman}/bin/podman network create wordpress-${name}
@@ -273,7 +275,11 @@ in
                 "--network-alias"
                 "mysql"
                 "--health-cmd"
-                "healthcheck.sh --connect --innodb_initialized"
+                # mariadb's own healthcheck.sh connects as passwordless root, which
+                # only works where the datadir's root still accepts unix_socket
+                # auth: it passed on one site and reported Access denied on the
+                # other. MYSQL_PWD keeps the password out of argv.
+                "env MYSQL_PWD=\"$MYSQL_ROOT_PASSWORD\" mariadb-admin -h 127.0.0.1 -uroot ping"
                 "--health-interval=30s"
                 "--health-timeout=10s"
                 "--health-retries=3"
