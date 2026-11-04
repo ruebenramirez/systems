@@ -11,6 +11,7 @@
     ./services/podman.nix
     ./services/nup-fleet-access.nix
     ./services/ci-alert-mail.nix
+    ./services/self-switch.nix
     # the runner is a fleet member too, so it must trust its own deploy key
     ../_common/nix-deploy-user.nix
   ];

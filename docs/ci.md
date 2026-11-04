@@ -78,10 +78,29 @@ dispatch (optionally naming machines). One job moves the lock exactly once:
    machine was updated, even when the run is red. A targeted dispatch
    (`machines=` set) never pushes.
 5. `scripts/ci-alert-mail.sh` — mails the failure with per-machine results.
+6. `scripts/ci-arm-runner-self-switch.sh` — promises this VM its own switch 90s
+   later, for the next section.
 
-`forgejo-ci-runner-vm` is excluded (`NUP_FLEET_EXCLUDE`, default
-`forgejo-ci-runner-vm`) so a deploy cannot restart the runner mid-job; that VM
-is updated manually.
+`forgejo-ci-runner-vm` is excluded from the fleet deploy (`NUP_FLEET_EXCLUDE`,
+default `forgejo-ci-runner-vm`).
+
+### The runner deploys itself
+
+The runner is the one fleet member the deploy job cannot switch: activation
+restarts `forgejo-ci-runner.service` and takes the running job with it. So the
+job only arms a transient systemd unit, and 90 seconds later -- once the job has
+released the machine -- `runner-self-switch.service` fetches `master` into
+`/var/lib/nixdeploy/fleet` and runs `nup-fleet forgejo-ci-runner-vm` against it.
+
+- The last applied revision is recorded, so a tick on an unchanged rev costs a
+  `git fetch` and a comparison: no evaluation, no build, no ssh.
+- If a job happens to be in flight when the unit fires, it re-arms five minutes
+  out rather than holding the unit open.
+- A failed switch leaves the revision unrecorded and re-arms once. A timer at
+  09:00 and 21:00 local covers the runs that died before arming and a failure
+  that no new commit follows.
+- Log: `/var/lib/nixdeploy/runner-self-switch.log`. To force it:
+  `sudo systemctl start runner-self-switch.service`.
 
 ### Pushing over a protected `master`
 

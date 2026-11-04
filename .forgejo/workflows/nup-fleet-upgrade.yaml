@@ -76,6 +76,15 @@ jobs:
           read -r -a requested <<< "${MACHINES:-}"
           dotfiles/bin/nup-fleet ${requested[@]+"${requested[@]}"} 2>&1 | tee "$RUN_LOG"
 
+      # The fleet deploy skips this VM, so promise its own switch here and let it
+      # land after the job releases the runner. Armed even when hosts failed: the
+      # runner's config is independent of theirs.
+      - name: Arm the runner's own switch
+        if: ${{ !cancelled() }}
+        env:
+          RUNNER_SELF_SWITCH_DELAY: 90s
+        run: scripts/ci-arm-runner-self-switch.sh
+
       # Runs even when some hosts failed; the script pushes only if at least one
       # machine was updated. The job still ends red if any machine failed.
       - name: Persist updated flake.lock
