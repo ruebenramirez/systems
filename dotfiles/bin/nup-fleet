@@ -626,6 +626,15 @@ cd "$HOME"
 # deploy. `switch` applies changes incrementally and does not undo itself, so an
 # explicit way back has to exist outside the deploy path.
 # ---------------------------------------------------------------------------
+# The last few system generations on a target. `nixos-rebuild list-generations`
+# cannot do this remotely -- it refuses --target-host and --build-host outright,
+# so the "before/after" lines used to print nothing but a usage error. The
+# classic `nix-env --list-generations` takes the profile's write lock just to
+# read it, which means sudo; `nix profile history` only reads and takes no lock.
+system_generations() {
+    ssh "$(ssh_target "$1")" nix profile history --profile /nix/var/nix/profiles/system | tail -n 9
+}
+
 rollback_machine() {
     local host_config="$1"
     local hostname config
@@ -642,10 +651,10 @@ rollback_machine() {
     # switches to is the profile's previous one on the target, not this flake.
     local builder=()
     if [[ "$IS_BUILDER" != "true" ]]; then
-        builder=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
+        builder=(--build-host "$(builder_url)")
     fi
     echo "Generations on $hostname before rollback:"
-    nixos-rebuild list-generations --target-host "$target" || true
+    system_generations "$hostname" || true
     if ! nixos-rebuild switch --rollback \
         --flake "$FLAKE_DIR#$config" \
         "${builder[@]}" \
@@ -655,7 +664,7 @@ rollback_machine() {
         return 1
     fi
     echo "Generations on $hostname after rollback:"
-    nixos-rebuild list-generations --target-host "$target" || true
+    system_generations "$hostname" || true
     echo "✓ $hostname rolled back"
 }
 
