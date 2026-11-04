@@ -169,8 +169,12 @@ in
   };
 
   systemd.services.podman-forgejo = {
+    # Rootless podman drives cgroups and healthchecks through the user manager;
+    # without it crun dies on `sd-bus call: Access denied`. `oci-containers` only
+    # orders user@ for sdnotify=healthy and this unit uses conmon.
+    requires = [ "user@${toString uid}.service" ];
+    after = [ "network-online.target" "user@${toString uid}.service" ];
     wants = [ "network-online.target" ];
-    after = [ "network-online.target" ];
     serviceConfig.RestartSec = "10s";
   };
 
