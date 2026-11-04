@@ -33,6 +33,17 @@ in
             url: https://code.rueb.dev/
             uuid: ${config.sops.placeholder.forgejo_runner_uuid}
             token: ${config.sops.placeholder.forgejo_runner_token}
+
+      container:
+        # Job containers attach to podman's default bridge instead of the
+        # per-job network the runner would otherwise create. On a podman network
+        # with DNS enabled, netavark takes the host's nameservers from
+        # /etc/resolv.conf, drops the systemd-resolved stub (127.0.0.53) as a
+        # loopback address, and hands aardvark-dns nothing to forward to -- so a
+        # job container resolves nothing, not even code.rueb.dev, which only
+        # MagicDNS answers. The default `podman` network has dns_enabled=false,
+        # so podman copies the host's real upstreams into the container.
+        network: podman
     '';
     mode = "0400";
     owner = deployUser;
