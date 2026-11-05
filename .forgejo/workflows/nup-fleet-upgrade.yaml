@@ -24,8 +24,10 @@ concurrency:
   cancel-in-progress: false
 
 # systems-secrets is fetched over git from ~/.netrc, so HOME must be the deploy
-# home and the extraheader actions/checkout installs must be blanked. See
-# docs/secrets.md, "The private systems-secrets input".
+# home and the extraheader actions/checkout installs must be blanked -- except
+# in the checkout steps themselves, which un-blank it to authenticate with the
+# per-run task token instead of the netrc. See docs/secrets.md, "The private
+# systems-secrets input".
 env:
   HOME: /var/lib/nixdeploy
   GIT_CONFIG_COUNT: "1"
@@ -40,6 +42,11 @@ jobs:
     timeout-minutes: 630
     steps:
       - name: Check out the flake
+        # Un-blank the extraheader for this step (GIT_CONFIG_COUNT=0): checkout
+        # authenticates with the per-run task token, so it must not depend on
+        # the netrc token the blanked steps use.
+        env:
+          GIT_CONFIG_COUNT: "0"
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -121,6 +128,8 @@ jobs:
       # The notify script lives in the repo; host-mode jobs get a fresh
       # workspace per job, so it must be checked out here too.
       - name: Check out the repo
+        env:
+          GIT_CONFIG_COUNT: "0"
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - name: Notify Hermes
         env:
