@@ -77,12 +77,42 @@ dispatch (optionally naming machines). One job moves the lock exactly once:
 4. `scripts/ci-push-flake-lock.sh` — pushes the new `flake.lock` if at least one
    machine was updated, even when the run is red. A targeted dispatch
    (`machines=` set) never pushes.
-5. `scripts/ci-alert-mail.sh` — mails the failure with per-machine results.
+5. `scripts/ci-alert-mail.sh` — mails the failure with per-machine results. If
+   the checkout is what failed there is no script to run, so the step falls back
+   to a bare note through `msmtp`, which the runner's own config provides.
 6. `scripts/ci-arm-runner-self-switch.sh` — promises this VM its own switch 90s
    later, for the next section.
 
 `forgejo-ci-runner-vm` is excluded from the fleet deploy (`NUP_FLEET_EXCLUDE`,
 default `forgejo-ci-runner-vm`).
+
+### Checking out a private repo
+
+`rueb/systems` is private: an unauthenticated `info/refs` gets a `401`, and git
+answers that with `could not read Username` once prompts are disabled. So every
+step that touches the repo has something to authenticate with, and the two
+credentials in play are deliberately different (see
+[Secrets](secrets.md#the-private-systems-secrets-input)):
+
+- `actions/checkout` uses the **per-run task token**, which dies with the run.
+- nix's git subprocesses use **`nixdeploy`'s netrc** to fetch `systems-secrets`.
+
+Both workflows blank checkout's `http.https://code.rueb.dev/.extraheader` at the
+top level so that nix falls back to that netrc. That blank outranks the header
+checkout writes into the repo's own config -- a `GIT_CONFIG_*` overlay beats
+`--local` -- so each checkout step has to un-blank it with
+`GIT_CONFIG_COUNT: "0"`. A blanked checkout has *no* credential at all: the task
+token is discarded and checkout points git at a temporary `HOME`, out of reach of
+the netrc. (`git -c key=value` outranks the overlay, which is why the persist
+step's override below works.)
+
+Every step after checkout is gated on its outcome, and a guard step checks the
+tree exists, because checkout deletes the workspace before it fetches: run 211
+(2026-11-05) found the repo had quietly gone private overnight, both jobs died at
+checkout, and every following step failed with `127: No such file or directory`
+-- including the step that mails the failure. A red nightly must still reach a
+human, so the guard is a plain test for the files on disk and does not depend on
+an expression evaluating.
 
 ### The runner deploys itself
 
@@ -99,8 +129,15 @@ released the machine -- `runner-self-switch.service` fetches `master` into
 - A failed switch leaves the revision unrecorded and re-arms once. A timer at
   09:00 and 21:00 local covers the runs that died before arming and a failure
   that no new commit follows.
+- **It has to be installed once by hand.** The unit exists only after a switch has
+  installed it, and the switch that installs it is the one this mechanism performs,
+  so the first one comes from outside: `dotfiles/bin/nup-fleet forgejo-ci-runner-vm`
+  from a workstation holding the git credential. Until that lands, the arm step
+  fails the run instead of noting that there is nothing to arm -- a runner that
+  cannot self-deploy is exactly what this section exists to prevent.
 - Log: `/var/lib/nixdeploy/runner-self-switch.log`. To force it:
-  `sudo systemctl start runner-self-switch.service`.
+  `sudo systemctl start runner-self-switch.service`. Starting it a second time
+  should log `already at <rev>; nothing to do` in well under a second.
 
 ### Pushing over a protected `master`
 

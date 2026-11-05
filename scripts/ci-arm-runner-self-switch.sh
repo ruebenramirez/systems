@@ -11,8 +11,13 @@ delay="${RUNNER_SELF_SWITCH_DELAY:-90s}"
 unit="runner-self-switch-arm-$(date +%s)"
 
 if ! systemctl cat runner-self-switch.service >/dev/null 2>&1; then
-    echo "runner-self-switch.service is not installed here; not arming"
-    exit 0
+    # Silence here is how a runner drifts for weeks unnoticed: the unit exists
+    # only once a switch has installed it, so a host that has never been switched
+    # would arm nothing and the run would still read green.
+    echo "::error::runner-self-switch.service is not installed on $(hostname): this runner cannot reconcile itself with master"
+    echo "Deploy it by hand once, from a host holding the git credential (docs/ci.md):"
+    echo "    dotfiles/bin/nup-fleet forgejo-ci-runner-vm"
+    exit 1
 fi
 
 # --collect so a finished attempt leaves no unit behind; the timestamp keeps two

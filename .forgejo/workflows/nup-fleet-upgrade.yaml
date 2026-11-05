@@ -42,6 +42,7 @@ jobs:
     timeout-minutes: 630
     steps:
       - name: Check out the flake
+        id: checkout
         # Un-blank the extraheader for this step (GIT_CONFIG_COUNT=0): checkout
         # authenticates with the per-run task token, so it must not depend on
         # the netrc token the blanked steps use.
@@ -52,9 +53,29 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      # checkout empties the workspace before it fetches, so a dead checkout leaves
+      # every later step reaching for scripts that are not there. The expression
+      # gates below exist for a readable log; this is the load-bearing check, and
+      # it tests the filesystem precisely so it cannot be skipped by an expression
+      # the runner fails to evaluate -- which would leave a green run that did
+      # nothing.
+      - name: Verify the checkout produced a tree
+        if: ${{ !cancelled() }}
+        run: |
+          set -uo pipefail
+          missing=0
+          for f in flake.nix dotfiles/bin/nup-fleet scripts/check-sops-secrets.sh \
+                   scripts/ci-arm-runner-self-switch.sh scripts/ci-push-flake-lock.sh \
+                   scripts/ci-alert-mail.sh; do
+              [[ -e "$f" ]] \
+                || { echo "::error::$f is missing: the checkout did not populate the workspace" >&2; missing=1; }
+          done
+          exit "$missing"
+
       # Clear last run's summary/log so a skipped deploy cannot be mistaken for
       # an updated fleet by the persist step.
       - name: Refresh the flake lock
+        if: ${{ steps.checkout.outcome == 'success' }}
         env:
           FLAKE_DIR: ${{ github.workspace }}
           RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
@@ -66,11 +87,13 @@ jobs:
           dotfiles/bin/nup-fleet --flake-update-only
 
       - name: Check declared sops secrets exist
+        if: ${{ steps.checkout.outcome == 'success' }}
         run: scripts/check-sops-secrets.sh
 
       # Best-effort: every reachable machine is upgraded; unreachable ones are
       # recorded and make the run fail. See docs/ci.md.
       - name: Upgrade the fleet
+        if: ${{ steps.checkout.outcome == 'success' }}
         env:
           FLAKE_DIR: ${{ github.workspace }}
           EXCLUDE: "${{ vars.NUP_FLEET_EXCLUDE || 'forgejo-ci-runner-vm' }}"
@@ -87,7 +110,7 @@ jobs:
       # land after the job releases the runner. Armed even when hosts failed: the
       # runner's config is independent of theirs.
       - name: Arm the runner's own switch
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
         env:
           RUNNER_SELF_SWITCH_DELAY: 90s
         run: scripts/ci-arm-runner-self-switch.sh
@@ -95,7 +118,7 @@ jobs:
       # Runs even when some hosts failed; the script pushes only if at least one
       # machine was updated. The job still ends red if any machine failed.
       - name: Persist updated flake.lock
-        if: ${{ !cancelled() && (github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.machines == '') }}
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' && (github.event_name == 'schedule' || github.event_name == 'push' || github.event.inputs.machines == '') }}
         env:
           BRANCH: ${{ github.ref_name }}
           CI_FLAKELOCK_PUSH: ${{ secrets.CI_FLAKELOCK_PUSH }}
@@ -115,7 +138,29 @@ jobs:
           RESULT: "failure"
           RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
           NUP_FLEET_SUMMARY: /var/lib/nixdeploy/nup-fleet-summary
-        run: scripts/ci-alert-mail.sh
+          RECIPIENT: r3v2@rueb.dev
+        run: |
+          set -uo pipefail
+          if [[ -f scripts/ci-alert-mail.sh ]]; then
+              scripts/ci-alert-mail.sh
+              exit $?
+          fi
+          # Nothing in the repo is on disk to send the report with, which is how
+          # run 211 failed a nightly in silence. msmtp and /etc/msmtprc come from
+          # the runner's own config, so a failure can still reach a human.
+          command -v msmtp >/dev/null 2>&1 || {
+              echo "::warning title=Alert mail not sent::msmtp is not on PATH on $(hostname)"; exit 0; }
+          recipient="$RECIPIENT"
+          {
+              printf 'From: root@rueb.dev\nTo: %s\n' "$recipient"
+              printf 'Subject: [CI FAIL] %s (%s) on %s\n' \
+                  "${WORKFLOW:-systems}" "${TRIGGER:-unknown}" "$(hostname)"
+              printf 'Date: %s\nContent-Type: text/plain; charset=utf-8\n\n' "$(date -R)"
+              printf 'The job could not check out the flake; nothing else ran.\n'
+              printf 'Branch:  %s @ %s\nRun:     %s\nHost:    %s\n' \
+                  "${BRANCH:-}" "${SHA:-}" "${RUN_URL:-}" "$(hostname)"
+          } | msmtp "$recipient" \
+              || echo "::warning title=Alert mail not sent::msmtp could not submit to the mail server"
 
   # Run notifications: Hermes webhook (Matrix) on every outcome; a cancelled
   # run is reported but not mailed (no failure email on cancellation).

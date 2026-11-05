@@ -66,6 +66,23 @@ Override the host with `PRIVATE_GIT_HOST` for a mirror or another Forgejo
 instance. Deploying **without** `--upgrade` needs no credential, provided the
 locked revision is already in the store: `nup-fleet homeserver`.
 
+### The two credentials CI keeps apart
+
+CI touches `code.rueb.dev` with two different credentials, and mixing them is a
+failure mode waiting to happen:
+
+| Who | Credential | Lifetime |
+|-----|-----------|----------|
+| `actions/checkout` (fetching `systems`, which is private) | the per-run task token (`secrets.GITHUB_TOKEN`) | the run |
+| nix's git subprocesses (fetching `systems-secrets`) | `nixdeploy`'s netrc, i.e. `forgejo_secrets_token` | until it is rotated |
+
+Both workflows blank the extraheader `actions/checkout` installs, at the workflow
+level, so that nix's git sees the netrc instead. That blank outranks the header
+checkout writes into the repo config, so the checkout steps un-blank it with
+`GIT_CONFIG_COUNT: "0"`; left blanked, a checkout has no credential at all -- the
+task token is discarded and checkout points git at a temporary `HOME`, away from
+the netrc. See [CI](ci.md#checking-out-a-private-repo).
+
 ### Lockfile safety
 
 A failed or interrupted update must not leave damage behind: on 2026-10-27 an

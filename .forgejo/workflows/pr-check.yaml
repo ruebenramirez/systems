@@ -39,12 +39,31 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Check out the PR
+        id: checkout
         env:
           GIT_CONFIG_COUNT: "0"
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
+      # checkout empties the workspace before it fetches, so a dead checkout leaves
+      # every later step reaching for scripts that are not there. The expression
+      # gates below are for a readable log; this is the load-bearing check, and it
+      # tests the filesystem so it cannot be skipped by an expression the runner
+      # fails to evaluate -- which would report green having done nothing.
+      - name: Verify the checkout produced a tree
+        if: ${{ !cancelled() }}
+        run: |
+          set -uo pipefail
+          missing=0
+          for f in flake.nix dotfiles/bin/nup-fleet scripts/check-sops-secrets.sh \
+                   scripts/check-docs-paths.sh; do
+              [[ -e "$f" ]] \
+                || { echo "::error::$f is missing: the checkout did not populate the workspace" >&2; missing=1; }
+          done
+          exit "$missing"
+
       # Resolve the private input once; the two checks below reuse SECRETS_DIR.
       - name: Resolve systems-secrets
+        if: ${{ steps.checkout.outcome == 'success' }}
         run: |
           set -euo pipefail
           secrets_dir="$(nix eval --raw --impure \
@@ -55,16 +74,19 @@ jobs:
       # Fail here, not at boot on a machine nobody is standing next to: every
       # sops.secrets declaration must resolve to a key the host can decrypt.
       - name: Check sops secrets
+        if: ${{ steps.checkout.outcome == 'success' }}
         run: scripts/check-sops-secrets.sh
 
       # Docs carry the procedures; a stale secrets path or dead link is a wrong
       # instruction handed to whoever debugs this next.
       - name: Check doc references
+        if: ${{ steps.checkout.outcome == 'success' }}
         run: scripts/check-docs-paths.sh
 
       # Parse locally, then ship the source and inputs to fwai0 and evaluate and
       # build there; the runner neither compiles nor evaluates the fleet.
       - name: Check the flake
+        if: ${{ steps.checkout.outcome == 'success' }}
         env:
           FLAKE_DIR: ${{ github.workspace }}
           BUILDER_HOSTNAME: "fwai0"
@@ -73,6 +95,7 @@ jobs:
 
       # A check that rewrites the tree it is checking is a bug, not a result.
       - name: Verify the checkout is untouched
+        if: ${{ steps.checkout.outcome == 'success' }}
         run: |
           set -euo pipefail
           git diff --quiet -- flake.lock \

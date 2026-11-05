@@ -245,6 +245,11 @@ read access to `systems-secrets`; rotating it means generating a new token in
 Forgejo, updating `secrets/forgejo-client-forgejo-ci-runner-vm.yaml`, and
 redeploying `forgejo-ci-runner-vm`.
 
+It is live as of 2026-11-05, when it was offered to both private repos by hand and
+accepted. The nightly failure in `rueb/notes` #866 that same night was *not* this
+token: the failing fetch never presented a credential at all. Rotating it is
+scheduled maintenance, not a fix to reach for during an incident.
+
 ## Credentials with no declarative home
 
 Outside sops, outside this repo's reach, and therefore invisible to
