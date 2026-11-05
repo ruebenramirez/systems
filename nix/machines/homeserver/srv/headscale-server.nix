@@ -29,6 +29,10 @@
         nameservers.global = [ "1.1.1.1" "1.0.0.1" ];
       };
 
+      # Both of these default to Tailscale's public DERP map, which gets merged into
+      # every node's netmap and silently routes tailnet traffic over their infrastructure.
+      derp.auto_update_enabled = false;
+      derp.urls = [ ];
       derp.paths = [ ./derp-map.yaml ];
 
       policy = {
