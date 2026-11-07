@@ -64,6 +64,42 @@
     };
   };
 
+  # Torrent stack: rtorrent daemon with SCGI API (/run/rtorrent/rpc.sock) +
+  # Flood web UI (first visit creates the admin account). Peer port matches
+  # the existing UDP 6881 rule; openFirewall adds TCP.
+  services.rtorrent = {
+    enable = true;
+    port = 6881;
+    openFirewall = true;
+    # Group-writable data so Flood (rtorrent group) can manage files.
+    dataPermissions = "0770";
+    # Override the template's conservative private-tracker defaults; the umask
+    # makes new torrent dirs group-writable too.
+    configText = ''
+      dht.mode.set = auto
+      protocol.pex.set = yes
+      trackers.use_udp.set = yes
+      system.umask.set = 0007
+    '';
+  };
+
+  services.flood = {
+    enable = true;
+    port = 3000;
+    host = "0.0.0.0"; # firewall gates it to tailscale0 only
+    extraArgs = [
+      "--rtsocket=${config.services.rtorrent.rpcSocket}"
+      "--allowedpath=/var/lib/rtorrent"
+    ];
+  };
+
+  # Flood talks to rtorrent over the SCGI socket, which is group-writable for
+  # the rtorrent group (RuntimeDirectoryMode 750).
+  systemd.services.flood.serviceConfig.SupplementaryGroups = [ config.services.rtorrent.group ];
+
+  # Web UI reachable over the tailnet only.
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 3000 ];
+
   users.users.rramirez = {
     isNormalUser = true;
     uid = 1000;
