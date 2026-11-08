@@ -258,7 +258,6 @@ Outside sops, outside this repo's reach, and therefore invisible to
 | Where | What | Status |
 |---|---|---|
 | `pi-syncoid-target:/persist/secrets/syncoid-replication/id_ed25519_nop` | no-passphrase ZFS replication key | documented gap; move into sops |
-| `homeserver:/persist/secrets/mailsync/accounts.json` | Gmail app passwords + Stalwart creds, read every minute | tracked in rueb/systems#32 |
 | `ssdnodes-1` WordPress containers (`:8011`, `:8012`) | `wp-config.php` DB password + auth salts | no declarative home at all |
 | headscale SQLite (`/var/lib/headscale`) | node keys, pre-auth key set | rotate via the `headscale` CLI, not sops |
 | `openrouter-client-homeserver.yaml` | OpenRouter key used by OpenWebUI | in sops but declared by nothing: `check-sops-secrets.sh` warns on it, and OpenWebUI holds its own copy — rotate in the OpenRouter dashboard and update both |

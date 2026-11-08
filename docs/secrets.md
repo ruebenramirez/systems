@@ -148,6 +148,7 @@ the ten values are distinct headscale pre-auth keys and must stay per-host.
 | `hermes-agent-server-hermes-vm-xps.yaml` | `hermes-api-server-key`, `hermes-dashboard-basic-auth-password`, `hermes-dashboard-basic-auth-secret`, `hermes-dashboard-basic-auth-username` | hermes-vm-xps | admin hermes-vm-xps |
 | `hermes-backup-client-homeserver.yaml` | `hermes_backup_ssh_private_key` | homeserver | admin homeserver |
 | `hosted-sites-backup-client-homeserver.yaml` | `hosted_sites_backup_ssh_private_key` | homeserver | admin homeserver |
+| `mail-sync-server-homeserver.yaml` | `gmail_monicaandrueben`, `gmail_monicarosephotography`, `gmail_r37524370`, `gmail_ruebendev`, `gmail_ruebenramirez`, `gmail_ruebenramirezjr`, `stalwart_monica_monicarosephotography_com`, `stalwart_r3v2_rueb_dev`, `stalwart_us_monicaandrueben_com` | homeserver | admin homeserver |
 | `matrix-backup-client-homeserver.yaml` | `matrix_backup_ssh_private_key` | homeserver | admin homeserver |
 | `matrix-client-hermes-vm-xps.yaml` | `matrix-access-token`, `matrix-recovery-key` | hermes-vm-xps | admin hermes-vm-xps |
 | `matrix-server-ssdnodes-1.yaml` | `matrix-admin-access-token` | ssdnodes-1 | admin ssdnodes-1 |
