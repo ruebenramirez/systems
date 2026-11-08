@@ -35,7 +35,7 @@ in
       aws-gate
       # claude-code
       # claude-monitor
-      pkgs-unstable.ccusage
+      # pkgs-unstable.ccusage # parked: 20.0.37 no longer builds in nixpkgs (zstd-sys can't probe zstd via pkg-config) and no substituter has it
       # pkgs-unstable.codex
       # pkgs-unstable.goose-cli
       opencode
