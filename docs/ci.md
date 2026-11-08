@@ -129,7 +129,8 @@ released the machine -- `runner-self-switch.service` fetches `master` into
 - If a job happens to be in flight when the unit fires, it re-arms five minutes
   out rather than holding the unit open.
 - A failed switch leaves the revision unrecorded and re-arms once. A timer at
-  09:00 and 21:00 local covers the runs that died before arming and a failure
+  09:00 and 21:00 America/Chicago -- pinned, so it cannot drift with the host's
+  `time.timeZone` -- covers the runs that died before arming and a failure
   that no new commit follows.
 - **It has to be installed once by hand.** The unit exists only after a switch has
   installed it, and the switch that installs it is the one this mechanism performs,

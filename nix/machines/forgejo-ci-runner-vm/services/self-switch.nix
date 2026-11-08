@@ -116,7 +116,12 @@ in
   systemd.timers.runner-self-switch = {
     wantedBy = [ "timers.target" ];
     timerConfig = {
-      OnCalendar = [ "*-*-* 09:00:00" "*-*-* 21:00:00" ];
+      # Pinned to a zone, not host-local time: this backstop is defined
+      # relative to the nightly and must not move with `time.timeZone`.
+      OnCalendar = [
+        "*-*-* 09:00:00 America/Chicago"
+        "*-*-* 21:00:00 America/Chicago"
+      ];
       Persistent = true;
       RandomizedDelaySec = "10min";
     };
