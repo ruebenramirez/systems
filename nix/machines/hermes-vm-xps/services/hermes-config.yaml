@@ -1,0 +1,209 @@
+# Hermes user-scope config for hermes-vm-xps, captured from the live
+# /opt/data/config.yaml (comments and default-only noise stripped). Installed at
+# /var/lib/hermes/config.yaml on first boot by the tmpfiles C rule in
+# hermes-agent.nix (copy-if-absent, never overwrite); after that the live file
+# is the source of truth and scripts/check-hermes-config-drift.py is meant to
+# keep this copy in sync via nightly PRs.
+#
+# Managed-scope keys (dashboard.basic_auth, model default/provider, halogen
+# provider) live in hermes-agent.nix and win on merge — do not add them here.
+# No secret may appear in this file: platforms.webhook.extra.secret lives only
+# in the live config until the sops migration lands, and this checker strips
+# any secret: key.
+database:
+  journal_mode: "wal"
+runtime:
+  nofile_soft_limit: 4096
+attachments:
+  storage: "hermes-home"
+plugins:
+  clone_timeout_seconds: 300
+model:
+  api_mode: chat_completions
+kanban:
+  review_dispatch: true
+cron:
+  catch_up_missed: true
+terminal:
+  backend: "local"
+  cwd: "."
+  timeout: 180
+  home_mode: "auto"
+  docker_mount_cwd_to_workspace: false
+  lifetime_seconds: 300
+  container_cpu: 1
+  container_memory: 5120
+  container_disk: 51200
+  container_persistent: true
+browser:
+  inactivity_timeout: 120
+  extension_control:
+    enabled: false
+tool_loop_guardrails:
+  warnings_enabled: true
+  hard_stop_enabled: false
+  non_interactive_hard_stop_enabled: true
+  warn_after:
+    exact_failure: 2
+    same_tool_failure: 3
+    idempotent_no_progress: 2
+  hard_stop_after:
+    exact_failure: 5
+    same_tool_failure: 8
+    idempotent_no_progress: 5
+compression:
+  enabled: true
+  checkpoint_required: false
+  progress_notices: false
+  threshold: 0.50
+  codex_gpt55_autoraise: true
+  target_ratio: 0.20
+  protect_last_n: 20
+  min_tail_user_messages: 1
+  max_attempts: 3
+  codex_app_server_auto: native
+  codex_responses_native: false
+  codex_responses_compact_threshold:
+  protect_first_n: 3
+  idle_compact_after_seconds: 0
+  hygiene_max_turn_hold_seconds: 10
+  proactive_prune_tokens: 0
+  proactive_prune_min_result_chars: 8000
+  proactive_prune_min_reclaim_tokens: 4096
+prompt_caching:
+  cache_ttl: "5m"
+memory:
+  memory_enabled: true
+  user_profile_enabled: true
+  memory_char_limit: 2200
+  user_char_limit: 1375
+  nudge_interval: 10
+max_concurrent_sessions:
+group_sessions_per_user: true
+streaming:
+  enabled: false
+skills:
+  creation_nudge_interval: 15
+agent:
+  max_turns: 500
+  verbose: false
+  reasoning_effort: "high"
+  service_tier: ""
+  fast_auto_seconds: 60
+  personalities: {}
+gateway:
+  signal_interrupt_grace_timeout: 1
+  delivery_ledger: true
+  platform_connect_timeout: 30
+  loop_watchdog: true
+  loop_watchdog_probe_interval_s: 30.0
+  loop_watchdog_probe_timeout_s: 10.0
+  loop_watchdog_max_strikes: 3
+  allow_all_users: false
+  bot_loop_guard:
+    enabled: true
+    max_events: 20
+    window_seconds: 300
+    cooldown_seconds: 600
+  startup_watchdog: true
+  startup_watchdog_timeout_seconds: 300
+  write_sessions_json: true
+  multiplex_profiles: true
+  auto_multiplex_migration: true
+  profile_routes: []
+  scale_to_zero:
+    idle_timeout_minutes: 2
+  restart_loop_guard:
+    max_restarts: 3
+    window_seconds: 60
+    max_gap_seconds: 300
+  respawn_storm:
+    max_starts: 5
+    window_seconds: 120
+  message_timestamps:
+    enabled: false
+  max_inbound_media_bytes: 134217728
+  trust_env: true
+  strict: false
+  media_delivery_allow_dirs: []
+  trust_recent_files: true
+  trust_recent_files_seconds: 600
+  api_server:
+    max_concurrent_runs: 10
+    history_tool_output_max_chars: 0
+platform_toolsets:
+  cli: [hermes-cli]
+  telegram: [hermes-telegram]
+  discord: [hermes-discord]
+  whatsapp: [hermes-whatsapp]
+  slack: [hermes-slack]
+  signal: [hermes-signal]
+  qqbot: [hermes-qqbot]
+  yuanbao: [hermes-yuanbao]
+  teams: [hermes-teams]
+  google_chat: [hermes-google_chat]
+stt:
+  enabled: true
+  local:
+    model: "base"
+  language: "en"
+  openai:
+    model: "whisper-1"
+    language: ""
+    timeout: 60
+    max_retries: 1
+code_execution:
+  timeout: 300
+  max_tool_calls: 50
+delegation:
+  max_iterations: 250
+display:
+  compact: false
+  cleanup_progress: false
+  suppress_warning_notifications: false
+  busy_input_mode: interrupt
+  background_process_notifications: concise
+  bell_on_complete: false
+  bell_on_prompt: false
+  streaming: true
+  skin: default
+telemetry:
+  shared_metrics:
+    enabled: true
+    send: false
+    offer_version: 2
+auth:
+  adopt_external_logins: true
+  codex_login_flow: device_code
+updates:
+  check: true
+  pre_update_backup: false
+  backup_keep: 5
+  non_interactive_local_changes: "stash"
+providers:
+  llama-cpp:
+    models:
+      qwen3.8-27b-mtp: {}
+      qwen3.6-35b-a3b-mtp: {}
+  halogen:
+    models:
+      halogen-qwen3.8-flash-next: {}
+platforms:
+  matrix:
+    enabled: true
+    home_channel:
+      platform: matrix
+      chat_id: '!G9nnRAWVcjY2V2pR0VDTOtUnwcToZy37SDFnRtktutg'
+      name: Hermes
+      user_id: '@r3v2:matrix.rueb.dev'
+  webhook:
+    enabled: true
+    extra:
+      port: 8644
+      # secret lives in the live config until it moves to sops (see PR body);
+      # the drift checker strips any secret: key.
+command_allowlist:
+  - script execution via heredoc
+  - stop/restart hermes gateway via shell-spliced verb (kills running agents)
+approvals:
+  mode: "off"

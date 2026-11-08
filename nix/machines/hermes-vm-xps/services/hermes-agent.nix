@@ -90,6 +90,11 @@ in
     # survives even if the state dir is re-staged; the private key itself is
     # generated once by hand (never committed, never in the Nix store).
     "d /var/lib/hermes/.ssh 0700 10000 10000 -"
+    # Seed the user config on a fresh state dir only (C = never overwrite an
+    # existing file). After first boot the live file is the source of truth --
+    # Hermes rewrites it from the dashboard -- and scripts/check-hermes-config-drift.py
+    # is meant to PR changes back into ./hermes-config.yaml.
+    "C /var/lib/hermes/config.yaml ${./hermes-config.yaml} 0600 10000 10000 -"
   ];
 
   virtualisation.oci-containers.backend = "podman";
@@ -145,6 +150,17 @@ in
         MATRIX_ALLOWED_ROOMS = matrixRoom;
         MATRIX_REQUIRE_MENTION = "true";
         MATRIX_E2EE_MODE = "required";
+        # Email platform (Stalwart). Non-secret routing only; EMAIL_PASSWORD
+        # stays in the live profile .env until it moves to sops.
+        EMAIL_ADDRESS = "hermes@rueb.dev";
+        EMAIL_IMAP_HOST = "mail.rueb.dev";
+        EMAIL_IMAP_PORT = "993";
+        EMAIL_SMTP_HOST = "mail.rueb.dev";
+        EMAIL_SMTP_PORT = "587";
+        EMAIL_POLL_INTERVAL = "15";
+        EMAIL_ALLOWED_USERS = "r3v2@rueb.dev,monica@monicarosephotography.com";
+        EMAIL_HOME_ADDRESS = "r3v2@rueb.dev";
+        EMAIL_TRUST_FROM_HEADER = "true";
       };
       upsert = key: value: ''
         if grep -q "^${key}=" "$envf" 2>/dev/null; then
