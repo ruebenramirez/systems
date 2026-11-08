@@ -53,7 +53,8 @@ in
     slack # work chat app
 
     # web browsers
-    brave
+    # no brave: nixpkgs removed it (no maintainer to unblock security fixes), so
+    # re-adding it fails the build on every desktop host
     firefox
     tor-browser
 

@@ -38,10 +38,10 @@ if ! pgrep -f betterbird >/dev/null; then
     swaymsg "workspace 8; exec betterbird &"
 fi
 
-if ! pgrep -f brave >/dev/null; then
-    echo "Launching brave...";
-    swaymsg "workspace 9; exec brave &"
-    swaymsg "workspace 10; exec brave --new-window https://voice.google.com &"
+if ! pgrep -f firefox >/dev/null; then
+    echo "Launching firefox...";
+    swaymsg "workspace 9; exec firefox &"
+    swaymsg "workspace 10; exec firefox --new-window https://voice.google.com &"
 fi
 
 if ! pgrep -f slack >/dev/null; then
