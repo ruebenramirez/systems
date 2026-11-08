@@ -12,6 +12,7 @@
     ../_common/nix-deploy-user.nix
     ../_common/qemu-vm-guest.nix
     ../_common/services/k3s-cluster.nix
+    ../_common/services/k3s-harbor.nix
     ../_common/services/k3s-monitoring.nix
     ../_common/services/k3s-nfs-pvc.nix
     ../_common/tailscale-client.nix

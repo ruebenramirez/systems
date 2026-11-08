@@ -2,11 +2,14 @@
 # headroom for kubelet plus its pods. Per-node differences (hostName, and which
 # node initialises the cluster) stay in the machine's own configuration.nix.
 #
-# Sizing (issue #42: "4 vCPU / 8 GiB each, adjust if xps17 headroom requires"):
-# 4 vCPU / 6 GiB. xps17 already has 24 GiB committed to its four existing guests
-# out of 62 GiB, so three more 8 GiB guests would push the host into swap and
-# starve the ZFS arc that serves the Incus qcow2s. 6 GiB per node is the largest
-# set that fits without stealing the arc's room.
+# Sizing (issue #42 chose it; issue #51 re-examined it and kept it): 4 vCPU /
+# 6 GiB per node. xps17 has 62 GiB and already commits 42 GiB to its seven
+# guests, leaving ~20 GiB for the host and the ZFS arc that serves both the
+# Incus qcow2s and the tank NFS export the k3s PVCs ride on. Measured at
+# bring-up: guests sit near 2 GiB used of 5.9 GiB allocatable, and the cluster
+# had ~16 GiB of unclaimed pod requests against Harbor's ~3 GiB -- so Harbor
+# fits without growing anything, and growing would have taken ~6 GiB out of the
+# arc for headroom nothing was spending.
 {
   config,
   lib,

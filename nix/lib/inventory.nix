@@ -397,6 +397,18 @@ rec {
         target = "https://status.rueb.dev/";
       };
     };
+    harbor = {
+      host = "k3s-1";
+      title = "Harbor registry";
+      group = "registry";
+      # Harbor's own aggregate health endpoint: it reports on core, database,
+      # registry, redis and the portal in one answer, which is a better probe
+      # than the portal root (a 200 there only proves nginx is up).
+      probe = {
+        module = "http";
+        target = "https://harbor.rueb.dev/api/v2.0/health";
+      };
+    };
   };
 
   # --------------------------------------------------------- blackbox bits ---
