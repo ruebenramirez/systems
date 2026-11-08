@@ -276,6 +276,39 @@ nix_flake_update() {
     rm -f "$log" "$lock_backup"
 }
 
+# A switch can take its own ssh session down with it. Restarting tailscaled is
+# part of activating a config, and the session running `switch-to-configuration
+# switch` rides on that link: ssh exits 255, nix renders that as `while running
+# command with remote sudo, did you forget to use --ask-sudo-password?`, and the
+# host reads as failed after it has already switched. Homeserver did this on run
+# 226 while its generation 420 went active underneath the connection.
+current_system() {
+    ssh -o BatchMode=yes -o ConnectTimeout=10 "$(ssh_target "$1")" \
+        'readlink /run/current-system' 2>/dev/null
+}
+
+looks_like_connection_loss() {
+    grep -qE 'exit status 255|did you forget to use --ask-sudo-password\?|Connection (closed|reset)|Broken pipe|Timeout, server|kex_exchange' "$1"
+}
+
+# Both halves of the evidence, and neither alone is enough: a lost transport plus
+# a target that comes back on a different system profile. Retried because the
+# link usually returns within a few seconds of the restart that dropped it.
+switched_after_connection_drop() {
+    local host="$1" before="$2" now
+    [[ -n "$before" ]] || return 1
+    for _ in 1 2 3 4 5 6; do
+        sleep 5
+        now="$(current_system "$host")"
+        if [[ -n "$now" && "$now" != "$before" ]]; then
+            echo "::warning::$host: ssh died during activation, but $(basename "$now") is now current -- counting as updated"
+            return 0
+        fi
+    done
+    echo "::warning::$host: ssh died and the target never came back on a new system -- still failed" >&2
+    return 1
+}
+
 # Machines that failed this run. `all` keeps going past a failure so one
 # broken host does not leave the rest of the fleet un-deployed, then exits
 # non-zero so CI still reports the failure.
@@ -297,14 +330,26 @@ update_machine() {
     if [[ "$IS_BUILDER" != "true" ]]; then
         builder=(--build-host "$(ssh_target "$BUILDER_HOSTNAME")")
     fi
+    local before switch_log rc
+    before="$(current_system "$hostname")"
+    switch_log="$(mktemp)"
     # Do not let a single failure abort the caller's loop; record it instead.
-    if ! time nixos-rebuild switch \
+    # The tee exists only so a dropped connection can be recognised after the
+    # fact; the output still streams to the run log.
+    time nixos-rebuild switch \
         --flake "$FLAKE_DIR#$config" \
         "${builder[@]}" \
         --target-host "$(ssh_target "$hostname")" \
         --sudo \
         --use-substitutes \
-        --no-reexec; then
+        --no-reexec 2>&1 | tee "$switch_log"
+    rc=${PIPESTATUS[0]}
+    if [[ "$rc" -ne 0 ]] && looks_like_connection_loss "$switch_log" \
+        && switched_after_connection_drop "$hostname" "$before"; then
+        rc=0
+    fi
+    rm -f "$switch_log"
+    if [[ "$rc" -ne 0 ]]; then
         echo "✗ $hostname failed" >&2
         FAILED+=("$hostname")
         return 1

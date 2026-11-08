@@ -141,6 +141,35 @@ released the machine -- `runner-self-switch.service` fetches `master` into
   `sudo systemctl start runner-self-switch.service`. Starting it a second time
   should log `already at <rev>; nothing to do` in well under a second.
 
+### A switch that drops its own ssh connection
+
+Activating a config can restart the network the deploy is riding on. When it
+does, the ssh session carrying `switch-to-configuration switch` dies mid-call,
+ssh exits 255, and nix reports it as:
+
+```text
+error: while running command with remote sudo, did you forget to use --ask-sudo-password?
+```
+
+That message is a guess, and so far it has always been wrong: sudo was fine, the
+credential was fine, the machine switched. Run 226 reported
+`Failed machines (1): homeserver` for a host that had just made a new generation
+current and active underneath the dying connection. A red that needs no action is
+worse than no red, because it trains you to ignore the nightly.
+
+`nup-fleet` counts a failed switch as updated only when it can show both:
+
+- the failure text looks like a lost transport -- ssh 255, connection reset or
+  closed, broken pipe, that `--ask-sudo-password` line -- and
+- the target answers ssh again (retried for 30 seconds, since a tailnet link
+  usually takes a few) and is on a **different** system profile than the one it
+  held when the switch began.
+
+It logs a `::warning::` naming the new system and the host counts as updated.
+Neither half alone is enough: a real activation error still fails, and a host
+that never comes back still fails. The profile is compared against the pre-switch
+value rather than the path just built, so confirming costs no evaluation.
+
 ### Pushing over a protected `master`
 
 `master` is protected and the workflow token (`forgejo-actions`, uid `-2`) has
