@@ -112,7 +112,9 @@ tree exists, because checkout deletes the workspace before it fetches: run 211
 checkout, and every following step failed with `127: No such file or directory`
 -- including the step that mails the failure. A red nightly must still reach a
 human, so the guard is a plain test for the files on disk and does not depend on
-an expression evaluating.
+an expression evaluating. The Matrix notify job has no such fallback -- its
+script is in the checkout too -- so the failure mail is the alert that has to
+survive a dead checkout on its own.
 
 ### The runner deploys itself
 

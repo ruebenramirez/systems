@@ -138,7 +138,6 @@ jobs:
           RESULT: "failure"
           RUN_LOG: /var/lib/nixdeploy/nup-fleet-upgrade.log
           NUP_FLEET_SUMMARY: /var/lib/nixdeploy/nup-fleet-summary
-          RECIPIENT: r3v2@rueb.dev
         run: |
           set -uo pipefail
           if [[ -f scripts/ci-alert-mail.sh ]]; then
@@ -147,16 +146,18 @@ jobs:
           fi
           # Nothing in the repo is on disk to send the report with, which is how
           # run 211 failed a nightly in silence. msmtp and /etc/msmtprc come from
-          # the runner's own config, so a failure can still reach a human.
+          # the runner's own config, so a failure can still reach a human. The
+          # subject matches ci-alert-mail.sh's shape, including its recipient.
           command -v msmtp >/dev/null 2>&1 || {
               echo "::warning title=Alert mail not sent::msmtp is not on PATH on $(hostname)"; exit 0; }
-          recipient="$RECIPIENT"
+          recipient="${RECIPIENT:-r3v2@rueb.dev}"
           {
               printf 'From: root@rueb.dev\nTo: %s\n' "$recipient"
               printf 'Subject: [CI FAIL] %s (%s) on %s\n' \
-                  "${WORKFLOW:-systems}" "${TRIGGER:-unknown}" "$(hostname)"
+                  "${GITHUB_REPOSITORY:-systems}" "${TRIGGER:-unknown}" "$(hostname)"
               printf 'Date: %s\nContent-Type: text/plain; charset=utf-8\n\n' "$(date -R)"
               printf 'The job could not check out the flake; nothing else ran.\n'
+              printf 'Workflow:  %s\n' "${WORKFLOW:-}"
               printf 'Branch:  %s @ %s\nRun:     %s\nHost:    %s\n' \
                   "${BRANCH:-}" "${SHA:-}" "${RUN_URL:-}" "$(hostname)"
           } | msmtp "$recipient" \
