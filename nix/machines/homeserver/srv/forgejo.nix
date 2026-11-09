@@ -3,6 +3,7 @@
   pkgs,
   lib,
   secretFile,
+  pullImageWithRetry,
   ...
 }:
 
@@ -24,7 +25,7 @@ let
   subuidStart = 300000;
   dataUid = subuidStart + 999;
 
-  forgejoImage = pkgs.dockerTools.pullImage {
+  forgejoImage = pullImageWithRetry {
     imageName = "codeberg.org/forgejo/forgejo";
     imageDigest = "sha256:fcd19ff4ebc85fb098a67e8e1d0d5a84d07dd6e8a23edcfdfd5b71a6178953be";
     hash = "sha256-CXkioeBWOmg99purINt5qocTiRBVnJPINg2VNSbzSXY=";

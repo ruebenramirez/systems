@@ -1,10 +1,10 @@
-{ config, lib, pkgs, tailnet, secretFile, ... }:
+{ config, lib, pkgs, tailnet, secretFile, pullImageWithRetry, ... }:
 
 let
   # `nousresearch/hermes-agent:stable`, digest-pinned (amd64 manifest). Verified
   # 2026-10-09: Python 3.14.7, `import olm` OK (no pre-3.14 fallback needed),
   # runs as uid/gid 10000, state under HERMES_HOME=/opt/data.
-  hermesImage = pkgs.dockerTools.pullImage {
+  hermesImage = pullImageWithRetry {
     imageName = "nousresearch/hermes-agent";
     imageDigest = "sha256:9774f4f39a9bb8c2f68ce728ed5e99ddbad282163be56764afacf88ed952b784";
     hash = "sha256-DijWDU+wh7FBnF3hFPZKJhuxc8YkaEtPNGVrqZw7VUY=";

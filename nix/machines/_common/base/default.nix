@@ -17,6 +17,9 @@
   # module as the `tailnet` argument. See nix/lib/tailnet.nix.
   _module.args.tailnet = import ../../../lib/tailnet.nix;
 
+  # Retrying replacement for pkgs.dockerTools.pullImage; see nix/lib/pull-image.nix.
+  _module.args.pullImageWithRetry = import ../../../lib/pull-image.nix pkgs;
+
   environment.systemPackages = with pkgs; [
     awscli2
     bc

@@ -1,8 +1,8 @@
-{ config, pkgs, secretFile, ... }:
+{ config, secretFile, pullImageWithRetry, ... }:
 
 let
   bulwarkDataDir = "/tank/var/lib/bulwark";
-  bulwarkImage = pkgs.dockerTools.pullImage {
+  bulwarkImage = pullImageWithRetry {
     imageName = "ghcr.io/bulwarkmail/webmail";
     imageDigest = "sha256:0e8d1339277033b6569a76c6f8192396e6edd66fd917d64d9ed505e8b81dac6d";
     hash = "sha256-my8rWmlS9CglX1JtDJrAHPRNY8S9USpSwD+A0F9frpE=";

@@ -3,6 +3,7 @@
   pkgs,
   lib,
   secretFile,
+  pullImageWithRetry,
   ...
 }:
 
@@ -52,7 +53,7 @@ let
   # This wordpress digest is an upstream `latest` carrying WP 7.1.3, which neither
   # site runs: WordPress core lives in the html bind mount and the entrypoint only
   # seeds it when absent. What the pin buys is PHP 8.3.36 and Apache, unchanged.
-  wordpressImage = pkgs.dockerTools.pullImage {
+  wordpressImage = pullImageWithRetry {
     imageName = "docker.io/library/wordpress";
     imageDigest = "sha256:d42f63cb89ad0eab272c4b393164e63830d0df270009907919f7dcce52b1a20b";
     hash = "sha256-zKAtb08FAWNNvdV7f/6rfxB/f4Yc1eDxrASVE6n+rjo=";
@@ -66,7 +67,7 @@ let
   # `mariadb-upgrade` unless told otherwise, so an 11.6-era datadir is being served
   # by 13.0.2 today. Pinning holds that exactly; finishing the schema upgrade is a
   # separate change with a dump in front of it.
-  mariadbImage = pkgs.dockerTools.pullImage {
+  mariadbImage = pullImageWithRetry {
     imageName = "docker.io/library/mariadb";
     imageDigest = "sha256:0e4bb0f339feba125d1154fbacd36c16ec8518f52e44e1f82ecec7d6771caf39";
     hash = "sha256-q4EmAHMwcPiwQxlEslHFJ76LthvpJ07IV23cVMdb/+U=";
