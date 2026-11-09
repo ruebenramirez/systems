@@ -203,6 +203,17 @@ in
       description = "Hash of the harbor chart tarball.";
     };
 
+    dbImage = lib.mkOption {
+      type = lib.types.str;
+      default = "docker.io/goharbor/harbor-db:v2.15.4";
+      description = ''
+        Image used by the Postgres bootstrap initContainer below. It reuses the
+        chart's own database image so nothing extra has to be pulled; it has to
+        be spelled out because chart values cannot reference other chart values,
+        so it must be bumped alongside `chartVersion`.
+      '';
+    };
+
     persistence = lib.mkOption {
       type = lib.types.submodule {
         options = {
@@ -425,6 +436,43 @@ in
         # empty, so null here makes the chart render the password the seeding
         # unit put into the `harbor-database` Secret -- not a generated one.
         database.internal.password = null;
+        # The chart's own `data-permissions-ensurer` runs
+        # `chmod -R 700 /var/lib/postgresql/data/pgdata || true`. On a
+        # brand-new volume `pgdata` does not exist yet, so it no-ops, and
+        # Postgres then creates `pgdata/pg18` inheriting the group-write that
+        # kubelet's `fsGroup` put on the volume -- which Postgres refuses to
+        # serve ("data directory ... has invalid permissions"). That failure is
+        # permanent rather than transient: the half-written data directory makes
+        # the image skip its own first-boot init on every retry, so the
+        # `registry` database is never created and core crash-loops on it
+        # forever. Creating the directory at 0700 first gives the ensurer
+        # something to fix and gives `pg18` a clean parent. The chart's own
+        # comment says it added the ensurer for this on "some CSIs e.g. Ceph";
+        # the NFS provisioner hits it the same way. Note the value key is
+        # misspelled upstream and must be spelled this way to be read at all.
+        database.internal.extrInitContainers = [
+          {
+            name = "create-pgdata";
+            image = cfg.dbImage;
+            imagePullPolicy = "IfNotPresent";
+            command = [
+              "/bin/sh"
+              "-c"
+              "mkdir -p /var/lib/postgresql/data/pgdata && chmod 700 /var/lib/postgresql/data/pgdata"
+            ];
+            securityContext = {
+              runAsUser = 999;
+              runAsNonRoot = true;
+              allowPrivilegeEscalation = false;
+            };
+            volumeMounts = [
+              {
+                name = "database-data";
+                mountPath = "/var/lib/postgresql/data";
+              }
+            ];
+          }
+        ];
         redis.internal.resources = componentResources.redis;
 
         # kube-prometheus-stack selects ServiceMonitors in every namespace with

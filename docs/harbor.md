@@ -161,6 +161,19 @@ cluster (k3s runs with `--disable-network-policy`).
 - **`CreateContainerConfigError`** — `harbor-fleet-secrets` or `harbor-tls` is
   missing. `systemctl status harbor-secrets-sync harbor-tls-sync` on the node
   that issues them; both are re-run by sops when the underlying value changes.
+- **`harbor-database` crash-loops with `data directory ... has invalid
+  permissions`, and `core` then fails SASL auth or `database "registry" does not
+  exist`** — the chart's `data-permissions-ensurer` initContainer runs
+  `chmod -R 700 .../pgdata || true` before that directory exists on a fresh
+  volume, so it no-ops and Postgres creates `pgdata/pg18` inheriting the
+  group-write kubelet's `fsGroup` puts on the NFS volume. The module works
+  around it with a `create-pgdata` initContainer; if you are on an install made
+  before that existed, the data directory is permanently half-initialized — the
+  image skips its own first-boot init once the directory exists, so the
+  `registry` database is never created. Re-initialize it: scale the statefulset
+  to 0, `rm -rf` only `pgdata/pg18` on the homeserver under the PV's subdir,
+  scale back to 1. Deleting the pod alone is not enough, and neither is fixing
+  the password — the missing `registry` database is the part that does not heal.
 - **Pulls fail with x509** — the certificate renewed but `harbor-tls` did not.
   `systemctl restart harbor-tls-sync.service` on `k3s-1`.
 - **Pulls silently go to the upstream** — that is the fallback working. Check
