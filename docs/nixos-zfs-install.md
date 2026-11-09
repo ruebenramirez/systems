@@ -285,6 +285,22 @@ For `--luks` installs, the printed NixOS config includes `allowDiscards = true` 
 
 This helps with long-term SSD performance and wear behavior. The tradeoff is that someone with raw disk access may infer approximate free-space and allocation patterns. This does not expose plaintext, filenames, or passphrases, and it does not bypass encryption.
 
+## Dataset Properties Set At Create Time
+
+Properties passed to `zfs create` (or set right after it) apply only to hosts
+installed after they were added to `scripts/_bootstrap-nixos.sh`. A host installed
+earlier keeps whatever the pool default was, and nothing in the NixOS config sets
+them, so they drift silently.
+
+`zroot/safe/home` is the one that matters on an inference host: it holds the model
+files, and `atime=on` there turns every read of them into a metadata write. `fwai0`
+ran with `atime=on` for months for exactly this reason. Check and fix:
+
+```bash
+zfs get atime zroot/safe/home
+sudo zfs set atime=off zroot/safe/home
+```
+
 ## Suspend And Hibernate
 
 Normal suspend is not meaningfully affected by LUKS. The system remains powered, RAM still contains the unlocked keys, and the encrypted devices stay open.

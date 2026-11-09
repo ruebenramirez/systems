@@ -306,6 +306,218 @@ let
         ];
       }
 
+      # Model-server residency and drive health, from the textfile collector on
+      # hosts the inventory marks `llm = true`. These exist because the standard
+      # metrics cannot answer the one question that matters on an inference host:
+      # is the checkpoint in RAM or is it being read off the drive again. The
+      # weights are file-cache pages, so free(1) and node_exporter both book them
+      # as reclaimable cache, and the GPU only ever maps a window of them.
+      {
+        name = "fleet-llm";
+        rules = [
+          {
+            alert = "ModelMetricsMissing";
+            # Keyed on the checkpoint mapping rather than halogen_rss_bytes: rss is
+            # exported whenever a process named flash_serve exists, so it stays green
+            # when a renamed model file leaves only the residency families missing.
+            expr = ''
+              (up{job="fleet-node-exporters", llm="true"} == 1)
+                unless on (host, instance) (halogen_weights_mapped_bytes)
+            '';
+            for = "10m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "No model residency metrics from {{ $labels.instance }}";
+              description = "{{ $labels.host }} is scraping and is supposed to serve the model, but exports no checkpoint mapping: either the engine is not running or its model files were renamed out from under the collector's pattern.";
+            };
+          }
+          {
+            alert = "ModelCollectionStale";
+            expr = "time() - model_metrics_timestamp_seconds > 120";
+            for = "5m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "Model metrics from {{ $labels.instance }} have not updated in 2 minutes";
+              description = "model-metrics.timer is not refreshing the textfile, so the residency numbers for {{ $labels.host }} are frozen rather than missing.";
+            };
+          }
+          {
+            # The drive-health mirror of ModelMetricsMissing: smartctl going quiet
+            # takes three alerts out at once while every halogen_* series keeps
+            # looking healthy.
+            alert = "NvmeMetricsMissing";
+            expr = ''
+              (up{job="fleet-node-exporters", llm="true"} == 1)
+                unless on (host, instance) (nvme_smart_status_passed)
+            '';
+            for = "15m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "No NVMe health metrics from {{ $labels.instance }}";
+              description = "{{ $labels.host }} is scraping but reports no drive health, so endurance, spare blocks and media errors are unmonitored there; smartctl stopped answering or the device path moved.";
+            };
+          }
+          {
+            # The residency alerts below match their cold-boot gates on
+            # (host, instance), so a missing gate input does not raise an error, it
+            # silently disarms them: the host still exports residency numbers and
+            # looks fully instrumented. This is the net under that.
+            alert = "ModelGateMetricMissing";
+            expr = ''
+              halogen_rss_bytes unless on (host, instance) halogen_process_start_seconds
+            '';
+            for = "15m";
+            labels = {
+              severity = "warning";
+              tier = "service";
+            };
+            annotations = {
+              summary = "{{ $labels.host }} reports model residency without its cold-boot gate";
+              description = "The collector publishes residency but not halogen_process_start_seconds, so HalogenWeightsNotFullyResident is disarmed on this host. Usually a collector that predates the gate or a failed read of /proc.";
+            };
+          }
+          {
+            # The alarm this whole group exists for: the engine mapped the whole
+            # checkpoint but part of it is no longer resident, which means tokens
+            # are being served off the NVMe. The mapped_bytes gate keeps a
+            # half-loaded engine out of it; the start-time gate keeps a cold boot
+            # out of it, because after a reboot resident starts near zero and
+            # refills only as pages are touched, which is not eviction. An engine
+            # restart alone never trips this: the page cache is per-inode and
+            # survives it.
+            alert = "HalogenWeightsNotFullyResident";
+            expr = ''
+              (min by (host, instance) (halogen_weights_mapped_bytes) > 1e10)
+                and
+              (min by (host, instance) (
+                  halogen_weights_mapped_bytes - halogen_weights_resident_bytes
+                ) > 1e9)
+                and on (host, instance)
+              (time() - halogen_process_start_seconds > 3600)
+            '';
+            for = "15m";
+            labels = {
+              severity = "critical";
+              tier = "service";
+            };
+            annotations = {
+              summary = "{{ $labels.host }} has dropped checkpoint pages to disk";
+              description = "The engine has the whole checkpoint mapped, but part of it is no longer resident, so tokens are being read off the NVMe instead of RAM. Something evicted the model: look at what else claimed memory on {{ $labels.host }}.";
+            };
+          }
+          {
+            alert = "HalogenWeightsLockInactive";
+            expr = "halogen_mlocked_bytes == 0";
+            for = "15m";
+            labels = {
+              severity = "warning";
+              tier = "service";
+            };
+            annotations = {
+              summary = "HALOGEN_WEIGHTS_LOCK is not in effect on {{ $labels.host }}";
+              description = "Nothing is locked, so the checkpoint is reclaimable file cache and memory pressure can page the model out.";
+            };
+          }
+          {
+            # The table is paged by design and its residency grows with uptime
+            # (observed 16.7/51.2 GiB after four days on fwai0, ~4 GiB/day), so a
+            # cold page cache after a reboot is not starvation. The boot gate has
+            # to sit above the warm time, not just the boot: 20% takes ~2.5 days
+            # to reach at that rate, and a page before that is the warm-up. An
+            # engine restart alone never trips this: the cache is per-inode and
+            # survives it.
+            alert = "HalogenTableStarved";
+            expr = ''
+              (halogen_table_resident_bytes / halogen_table_mapped_bytes < 0.20)
+                and on (host, instance)
+              (time() - node_boot_time_seconds > 4 * 24 * 3600)
+            '';
+            for = "30m";
+            labels = {
+              severity = "warning";
+              tier = "service";
+            };
+            annotations = {
+              summary = "Only {{ humanizePercentage $value }} of the lookup table on {{ $labels.host }} is cached";
+              description = "The lookup table is paged by design, but this little of it resident means long prompts are paying for the drive. Look at what else is holding RAM.";
+            };
+          }
+          {
+            # The engine's own measurement of the cost, so this is the alert that
+            # says the drive - not the engine - is the limit. The exported value is
+            # the worst read in a 15-minute window refreshed every 30s, so `for:
+            # 10m` can fire on a single bad read from a quarter hour ago. That is
+            # intended: one 12s stall is a stall a user felt, and it is worth saying
+            # out loud once rather than averaging away.
+            alert = "HalogenTableReadSlow";
+            expr = "halogen_table_lookup_seconds > 10";
+            for = "10m";
+            labels = {
+              severity = "warning";
+              tier = "service";
+            };
+            annotations = {
+              summary = "Lookup-table reads taking {{ $value }}s on {{ $labels.host }}";
+              description = "The engine spent this long reading the lookup table for a request. Absence of this series is the normal state; a value in the tens of seconds means the table has nowhere to be cached.";
+            };
+          }
+          {
+            alert = "NvmeMediaErrors";
+            expr = "nvme_media_errors_total > 0";
+            for = "5m";
+            labels = {
+              severity = "critical";
+              tier = "host";
+            };
+            annotations = {
+              summary = "{{ $labels.instance }} reports NVMe media and integrity errors";
+              description = "The drive on {{ $labels.host }} has failed to write or read a block it should not have. Back it up and plan a replacement.";
+            };
+          }
+          {
+            alert = "NvmeEnduranceUsed";
+            expr = "nvme_percentage_used >= 80 or nvme_available_spare_percent <= 20";
+            for = "30m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "{{ $labels.instance }} NVMe endurance or spare blocks are running low";
+              description = "Either Percentage Used has reached 80 % of the drive's rated endurance or Available Spare has fallen to 20 %; check nvme_percentage_used and nvme_available_spare_percent on {{ $labels.host }} and order a replacement drive.";
+            };
+          }
+          {
+            alert = "NvmeSmartStatusFailed";
+            expr = "nvme_smart_status_passed == 0";
+            for = "5m";
+            labels = {
+              severity = "critical";
+              tier = "host";
+            };
+            annotations = {
+              summary = "{{ $labels.instance }} reports its NVMe health status as failing";
+              description = "The drive on {{ $labels.host }} says so about itself. Back it up and replace it.";
+            };
+          }
+          # Deliberately not alerted on: gpu_memory_used_bytes and
+          # gpu_memory_pool_used_bytes{pool="gtt"}. On a unified-memory APU those
+          # count the GPU's mapping window, not what is resident: fwai0 serves a
+          # 62 GiB checkpoint with about 13 GiB of GTT in use, and a healthy
+          # machine looks nearly empty there by design. Alerting on low GTT usage
+          # reads a working host as a broken one (issue #888).
+        ];
+      }
+
       {
         name = "fleet-services";
         rules = [

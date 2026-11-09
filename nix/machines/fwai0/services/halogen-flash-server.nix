@@ -19,6 +19,10 @@ in
       environment = {
         HALOGEN_KV_POOL_POSITIONS = "262144";
         HALOGEN_MAX_TOK = "8192";
+        # Locks the checkpoint into the kernel's sense too, so `free` stops
+        # counting the weights as reclaimable and memory pressure cannot page
+        # them back out to the drive. Needs LimitMEMLOCK below.
+        HALOGEN_WEIGHTS_LOCK = "1";
       };
       volumes = [ "${modelDir}:/models:ro" ];
       devices = [
@@ -58,6 +62,14 @@ in
       LimitMEMLOCK = "infinity";
       RestartSec = "10s";
     };
+  };
+
+  # The collector reads residency out of the engine's own mappings, so it has to
+  # look for these exact filenames: setting them here keeps a modelRevision bump
+  # and the metrics from drifting apart.
+  my.monitoring.exporters.model = {
+    checkpointPattern = checkpoint;
+    tablePattern = lookupTable;
   };
 
   networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 8731 ];

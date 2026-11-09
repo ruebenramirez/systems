@@ -251,6 +251,11 @@ mount -t zfs "$ZFS_DS_NIX" /mnt/nix
 info "Creating '$ZFS_DS_HOME' ZFS dataset ..."
 zfs create -p -o mountpoint=legacy "$ZFS_DS_HOME"
 
+# Home is where model files live on inference hosts, and bulk reads there turn
+# into a metadata write per access without this.
+info "Disabling access time setting for '$ZFS_DS_HOME' ZFS dataset ..."
+zfs set atime=off "$ZFS_DS_HOME"
+
 info "Mounting '$ZFS_DS_HOME' to /mnt/home ..."
 mkdir -p /mnt/home
 mount -t zfs "$ZFS_DS_HOME" /mnt/home

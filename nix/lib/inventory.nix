@@ -26,7 +26,8 @@ rec {
   # excluded by decision (a laptop, not a server). `gpu = true` says the host has
   # a GPU whose metrics must show up: it labels the scrape target, turns on the
   # collector in nix/machines/_common/monitoring.nix, and is what the
-  # GpuMetricsMissing alert holds the host to.
+  # GpuMetricsMissing alert holds the host to. `llm = true` does the same for the
+  # host running the model server, whose memory no other metric can see.
   hosts = {
     homeserver = {
       description = "Mail (Stalwart), media, headscale, Forgejo origin, tank NFS";
@@ -36,6 +37,7 @@ rec {
     fwai0 = {
       description = "Fleet build farm, LLM inference";
       gpu = true;
+      llm = true;
     };
     ssdnodes-1 = {
       description = "Public VPS: public MX, Matrix, DERP, hosted sites";
@@ -481,7 +483,8 @@ rec {
       host = h;
       instance = h;
     }
-    // (if hosts.${h}.gpu or false then { gpu = "true"; } else { });
+    // (if hosts.${h}.gpu or false then { gpu = "true"; } else { })
+    // (if hosts.${h}.llm or false then { llm = "true"; } else { });
   }) monitoredHosts;
 
   # Names used as Grafana dashboard template variables and Gatus groups.

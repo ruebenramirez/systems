@@ -129,6 +129,112 @@ node_textfile_scrape_error 0        # 1 means the file was rejected entirely
 VRAM with an inference engine and sit near 100 %: an alert there fires daily and
 educates no one. Both are on the dashboards, which is where they belong.
 
+## Model metrics
+
+The engine's memory is invisible to every metric above. Its weights are
+file-cache pages, so `free` and `node_memory_*` book 62 GiB of the model as
+reclaimable cache, and the GPU maps only a window of them -- fwai0 serves a
+62 GiB checkpoint while `gpu_memory_pool_used_bytes{pool="gtt"}` sits near
+13 GiB. Reading that as "the model is not loaded" is the trap this section
+exists to close: on a unified-memory APU the GPU's mapping window says nothing
+about residency, and low GTT usage is the healthy state.
+
+The one place residency is visible is the process's own address space, so the
+collector reads it there (`/proc/<pid>/smaps` for the two model files,
+`smaps_rollup` for RSS and locked bytes, `stat` for major faults) and pairs it
+with the drive's own health log, since both answer one question: is the model in
+RAM, and what does the NVMe do when it is not.
+
+Enabling it is the inventory flag `hosts.<name>.llm = true`, with the same three
+effects as the GPU flag:
+
+| Effect | Where |
+|---|---|
+| node_exporter gains the `textfile` collector and its directory | `_common/monitoring.nix` |
+| the scrape target carries an `llm="true"` label | `nodeScrapeTargets` in `nix/lib/inventory.nix` |
+| `ModelMetricsMissing` expects metrics from that host | `monitoring-stack/prometheus.nix` |
+
+Exported names: `halogen_weights_mapped_bytes` / `halogen_weights_resident_bytes`,
+`halogen_table_mapped_bytes` / `halogen_table_resident_bytes`,
+`halogen_rss_bytes`, `halogen_mlocked_bytes`, `halogen_major_faults_total`,
+`halogen_table_lookup_seconds`, `halogen_process_start_seconds` (the gate the
+residency alerts use to tell a cold boot from an eviction), the `nvme_*` endurance
+set including `nvme_smart_status_passed`, and `model_metrics_timestamp_seconds`.
+The monotonic families (`halogen_major_faults_total`, `nvme_data_units_*`,
+`nvme_media_errors_total`, `nvme_unsafe_shutdowns_total`) are counters and the rest
+are gauges. Details that are load-bearing:
+
+- **`resident < mapped` is the whole alarm.** Size is what the engine mapped, Rss
+  what is resident; a gap means pages were evicted and are coming off the drive
+  again. `HalogenWeightsNotFullyResident` is the critical one, and it is the
+  fastest way to tell a loaded model from a starved one.
+- **The residency gates are blind windows, deliberately.** `HalogenWeightsNotFullyResident`
+  waits an hour of engine uptime and `HalogenTableStarved` four days of host
+  uptime, because after a reboot resident starts near zero and refilling pages is
+  not eviction. Four days sits above the ~2.5 days the table takes to reach the
+  20 % this calls starved, so the gate covers the warm-up rather than sitting next
+  to it, and the cost is real: for four days after every reboot the table alert
+  cannot fire. Gate inputs are also what disarm an alert when they go missing, so
+  `ModelGateMetricMissing` pages when residency is exported without
+  `halogen_process_start_seconds` and the critical rule is silently off.
+- **`halogen_mlocked_bytes` is the proof `HALOGEN_WEIGHTS_LOCK` is doing
+  anything.** At zero the checkpoint is reclaimable file cache and memory
+  pressure can page the model out; `HalogenWeightsLockInactive` says so. It also
+  means `MemAvailable` overstates free RAM by the size of the model when it is
+  zero, which is what tripped the original investigation. Locking it takes roughly
+  62 GiB back out of that number (~95 → ~33 GiB on fwai0), and mlock does not make
+  the process immune to the OOM killer: badness tracks RSS, so if a build burst
+  exhausts what is left the model is the likeliest victim rather than the build.
+  The levers if that bites are builder `MemoryHigh`, a lower `max-jobs`, or
+  `OOMScoreAdjust` on the container, none of which are set today; `HostMemoryPressure`
+  at 10 % of MemTotal is the early warning.
+- **Absence of `halogen_table_lookup_seconds` is the good state.** The engine
+  times its own lookup-table reads and logs one only when a read takes two
+  seconds or more, so the series normally does not exist; the value exported is
+  the worst read in the window. It is the trigger for storage changes such as a
+  smaller `recordsize`: tens of seconds says the drive is the limit, seconds or
+  silence says it is not. That reading is tied to the engine's log phrasing, and a
+  phrasing change makes the series disappear, which is indistinguishable from a
+  healthy host.
+- **`Power On Hours` is not exported.** The SN7100 firmware has been observed
+  reporting it far under real uptime, so anything scheduled from it would be
+  wrong; endurance is read from `nvme_percentage_used` and
+  `nvme_available_spare_percent` instead. Data units are converted from thousands
+  of 512-byte blocks.
+- **`smartctl` is read as JSON, not text** (`-j -a`, with `jq` named by store path
+  because a unit's PATH does not carry it). The text layout is not a contract and
+  its `-l` names move between releases -- `-l nvm-smart` is not a valid option on
+  smartmontools 7.5, which silently produced a metrics file with no `nvme_*` in
+  it at all during development of this collector. Unparsable values are dropped
+  and a file that will not re-parse is not published, for the same reason as the
+  GPU collector.
+- **The collector fails closed on absence, not only on garbage.** If the engine is
+  running but neither model file matched, or smartctl had nothing usable to say, it
+  exits non-zero and publishes nothing. A partial file parses happily and leaves
+  `HalogenWeightsNotFullyResident`, `NvmeMediaErrors` and friends unable to match
+  while the host looks fully instrumented, which is the failure this exists to
+  prevent. `NvmeMetricsMissing` and `ModelMetricsMissing` catch the same thing from
+  the other side; the latter is keyed on the checkpoint mapping rather than
+  `halogen_rss_bytes`, because rss is exported whenever a process by that name
+  exists at all. A missing engine is not a failure: then the timestamp-only file
+  publishes, so the page is "engine missing" and not "collection stale".
+- **`exporters.model.checkpointPattern` / `tablePattern` name the files** matched in
+  `/proc/<pid>/smaps`, and `halogen-flash-server.nix` sets them from the same strings
+  it hands the container. They have no default on purpose: a model revision bump that
+  renames the `.hgn` would otherwise leave the collector counting bytes for a file
+  that no longer exists, quietly.
+- **Reading the engine's mappings is not free.** A full `/proc/<pid>/smaps` walk of
+  an 86 GiB-RSS process costs ~0.7 s of system time on fwai0 and runs under
+  `mmap_lock` beside live inference, so one walk covers both model files and
+  `smaps_rollup` supplies total RSS and locked bytes. The first version walked five
+  times and a tick took ~6 s; `exporters.model.interval` is the knob if that ever
+  matters again.
+
+```console
+$ ssh fwai0 'sudo systemctl start model-metrics && cat /var/lib/node_exporter/textfile/model.prom'
+$ curl -s fwai0.tailnet.rueb.dev:9100/metrics | grep halogen_weights
+```
+
 ## Access
 
 All three UIs are reached through Traefik on the k3s nodes over **HTTPS**, and
