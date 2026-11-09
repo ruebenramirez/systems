@@ -526,21 +526,38 @@ in
         set -uo pipefail
         export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 
-        # The chart is deployed by k3s' helm controller, so the database may
-        # legitimately not exist yet when this runs. Fifteen minutes covers a
-        # slow first install without hanging the boot.
+        want=$(cat /run/secrets/harbor-database-password)
+        have=$(kubectl -n ${cfg.namespace} get secret harbor-database \
+          -o jsonpath='{.data.POSTGRES_PASSWORD}' 2>/dev/null | base64 -d || true)
+
+        # Repair a blank Secret before anything is asked to be healthy. If the
+        # helm controller renders before the seeding unit, `lookup` finds
+        # nothing, `password = null` renders empty, and postgres refuses to
+        # start at all on a blank POSTGRES_PASSWORD. Neither the seeding unit
+        # (guard: create only if absent -- and the chart made one) nor a later
+        # activation fixes that, because the chart's `default` keeps
+        # re-deriving empty from the present-but-blank key. Writing the real
+        # value here lets the crashlooping pod initialise on its next restart.
+        if [ -z "$have" ]; then
+          kubectl -n ${cfg.namespace} create secret generic harbor-database \
+            --from-file=POSTGRES_PASSWORD=/run/secrets/harbor-database-password \
+            --dry-run=client -o yaml | kubectl apply -f -
+          echo "harbor database Secret was blank; re-seeded from sops"
+          exit 0
+        fi
+
+        if [ "$want" = "$have" ]; then
+          echo "harbor database password already converged"
+          exit 0
+        fi
+
+        # A real rotation. The chart is deployed by k3s' helm controller, so the
+        # database may legitimately not exist yet when this runs; fifteen minutes
+        # covers a slow first install without hanging the boot.
         if ! kubectl -n ${cfg.namespace} wait --for=condition=available \
              --timeout=15m statefulset/harbor-database >/dev/null 2>&1; then
           echo "harbor-database is not available; password was not converged" >&2
           exit 1
-        fi
-
-        want=$(cat /run/secrets/harbor-database-password)
-        have=$(kubectl -n ${cfg.namespace} get secret harbor-database \
-          -o jsonpath='{.data.POSTGRES_PASSWORD}' | base64 -d)
-        if [ "$want" = "$have" ]; then
-          echo "harbor database password already converged"
-          exit 0
         fi
 
         # ALTER ROLE, not a re-init: the running pod's env keeps the old value,
