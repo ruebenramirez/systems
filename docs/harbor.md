@@ -11,7 +11,7 @@ Three places, and it is worth keeping them separate in your head:
 | Where | What it owns |
 |---|---|
 | [`nix/machines/_common/services/k3s-harbor.nix`](../nix/machines/_common/services/k3s-harbor.nix) | the deployment: chart pin, values, TLS, PVCs, the sops→Kubernetes secret bridge |
-| [`tofu/harbor/`](../tofu/harbor/) | Harbor's content: upstream endpoints, proxy-cache projects, the CI robot account, GC schedule |
+| [`tofu/harbor/`](../tofu/harbor/) | Harbor's content: upstream endpoints, proxy-cache projects, GC schedule, system config |
 | [`nix/lib/registry-mirrors.nix`](../nix/lib/registry-mirrors.nix) | which upstreams are mirrored, and under which project name — read by both the k3s nodes and the CI runner |
 
 Harbor is not a NixOS service. nixpkgs has no Harbor server package and no
@@ -49,8 +49,8 @@ The pieces have to arrive in this order; anything else produces a pod stuck in
 `CreateContainerConfigError` rather than a useful error.
 
 1. **Secrets.** `systems-secrets/secrets/harbor-shared.yaml` must exist with
-   `harbor-admin-password`, `harbor-core-secret-key`, `harbor-database-password`
-   and `harbor-robot-ci-secret`, encrypted to the `k3s-cluster` recipient group.
+   `harbor-admin-password`, `harbor-core-secret-key` and
+   `harbor-database-password`, encrypted to the `k3s-cluster` recipient group.
    `harbor-core-secret-key` must be **exactly 16 characters** — it is a cipher
    key, not a password, and Harbor refuses anything else.
 2. **DNS.** `harbor.rueb.dev` needs a Cloudflare A record pointing at the
@@ -114,7 +114,7 @@ pulls through Harbor fail; the fallback endpoints mean they succeed upstream.
 | `harbor-admin-password` | `secrets/harbor-shared.yaml` | `TF_VAR_harbor_admin_password` on the next `tofu apply`; the chart reads it only at first install, so **change it in Harbor too** (portal → admin → password) or the two drift |
 | `harbor-core-secret-key` | same file | nothing, but see the warning below |
 | `harbor-database-password` | same file | nothing else — `harbor-database-password-sync` (in sops' `restartUnits`) `ALTER ROLE`s the running database and re-applies the `harbor-database` Secret; the chart's `lookup` then re-renders from the live Secret on the next helm upgrade |
-| `harbor-robot-ci-secret` | same file | bump `robot_ci_secret_version` in `tofu/harbor` — it is a write-only argument, so the provider cannot diff it and will not notice otherwise |
+| `harbor-robot-ci-secret` | same file | nothing — no robot account exists (the cache is public and pulls are anonymous), so this key is currently unused |
 | Docker Hub token | `secrets/docker-hub-client.yaml` (create it when the token exists) | `tofu apply` with the two `TF_VAR_dockerhub_*` exports |
 
 **`harbor-core-secret-key` is not just a password.** It is the key Harbor
@@ -131,11 +131,16 @@ held. GC is scheduled weekly by `tofu/harbor`; a manual run is
 `tofu/harbor` → change `gc_schedule`, or the UI for a one-off. Watch the tank:
 `inventory.zfsPools` already alerts on `tank` capacity.
 
-**The proxy-cache projects are public.** `dockerhub`, `ghcr`, `quay` and `gcr`
+**The proxy-cache projects are public.** `dockerhub`, `ghcr` and `quay`
 allow anonymous pulls on purpose — every artifact in them came from a public
 registry, and requiring a login would mean distributing credentials to every node
 for no access-control gain. Anything *private* belongs in a project you create
 yourself, which is why `project_creation_restriction = "adminonly"`.
+
+`gcr.io` is not mirrored. Harbor's `google` registry adapter refuses to validate
+an anonymous endpoint, and Google has sunset gcr.io for new content; Kubernetes
+images come from `registry.k8s.io`, a different host, and k3s takes its own from
+Docker Hub.
 
 **Trivy is deployed but does not scan the caches.** Scanning a proxy-cache project
 puts vulnerability work in the latency path of every cold pull without changing

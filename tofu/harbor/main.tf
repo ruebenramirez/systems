@@ -18,26 +18,29 @@ resource "harbor_registry" "ghcr" {
 }
 
 resource "harbor_registry" "quay" {
-  provider_name = "quay"
+  # `quay` is a replication adapter, not a proxy-cache one: a project with this
+  # registry id fails "unsupported registry type quay". quay.io speaks the
+  # Docker Registry v2 API, so the generic adapter proxies it fine.
+  provider_name = "docker-registry"
   name          = "quay"
   endpoint_url  = "https://quay.io"
-}
-
-resource "harbor_registry" "gcr" {
-  provider_name = "google"
-  name          = "gcr"
-  endpoint_url  = "https://gcr.io"
 }
 
 locals {
   # The project name is what appears in the pull path
   # (harbor.rueb.dev/<project>/<upstream path>), so it is also what
   # my.k3sHarbor.containerdProxyProjects rewrites to and the two must agree.
+  #
+  # gcr.io is deliberately absent. Harbor's `google` registry adapter will not
+  # validate an anonymous endpoint -- creating it fails "the registry is
+  # unhealthy" even though gcr.io answers /v2/ from inside the cluster -- and
+  # Google has sunset gcr.io for new content anyway. Nothing here pulls from it:
+  # k3s takes its images from Docker Hub, and Kubernetes' own registry is
+  # registry.k8s.io, a different host that is not mirrored.
   proxy_projects = {
     dockerhub = harbor_registry.docker_hub.registry_id
     ghcr      = harbor_registry.ghcr.registry_id
     quay      = harbor_registry.quay.registry_id
-    gcr       = harbor_registry.gcr.registry_id
   }
 }
 
@@ -76,29 +79,13 @@ resource "harbor_retention_policy" "proxy_cache" {
   }
 }
 
-# Pull account for CI and anything else that needs an authenticated identity
-# against the registry. System-level with pull on every project: the cache is
-# public, so this exists for rate-limit-free pulls and for a name in Harbor's
-# audit log, not for a permission boundary.
-resource "harbor_robot_account" "ci" {
-  name        = "ci"
-  description = "Fleet pull account (CI, node containerd)"
-  level       = "system"
-  duration    = 365
-
-  secret_wo         = var.robot_ci_secret
-  secret_wo_version = var.robot_ci_secret_version
-
-  permissions {
-    kind      = "system"
-    namespace = "/"
-
-    access {
-      action   = "pull"
-      resource = "repository"
-    }
-  }
-}
+# No robot account. The cache is public and every node pulls anonymously, so
+# there is nothing for one to grant: Harbor rejects `repository:pull` on a
+# system-level robot outright ("bad request permission: repository:pull" --
+# `repository` is not a system resource in 2.15), and a project-scoped robot
+# would only be worth having once something private exists to pull from.
+# `harbor-robot-ci-secret` in systems-secrets is therefore unused; it returns
+# with the robot when there is a private project that needs one.
 
 # GC is what actually returns space to the tank: deleting tags (retention does
 # that) only unlinks manifests; GC reclaims the blobs they held.
@@ -117,10 +104,6 @@ resource "harbor_config_system" "fleet" {
   # can reach the API can still create accounts -- they just cannot create
   # projects. Closing it needs the Harbor UI/API config or a provider bump.
   project_creation_restriction = "adminonly"
-  # robot$ci's secret expires this many days after creation and nothing
-  # schedules the rotation docs/harbor.md describes: it is a calendar reminder,
-  # not a mechanism.
-  robot_token_expiration = 365
-  token_expiration       = 30
-  session_timeout        = 60
+  token_expiration             = 30
+  session_timeout              = 60
 }

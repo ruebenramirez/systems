@@ -1,7 +1,7 @@
 terraform {
-  # secret_wo (main.tf) is a write-only argument: 1.10 parses the syntax but
-  # 1.11 is the first release where write-only attributes are usable in
-  # resources, so an older tofu fails with "Unsupported argument: secret_wo".
+  # Floor chosen for the provider rather than for any one argument: 3.12 targets
+  # current OpenTofu, and 1.11 is what the fleet's admin host runs. The write-only
+  # `secret_wo` that used to force this floor is gone with the robot account.
   required_version = ">= 1.11"
 
   required_providers {

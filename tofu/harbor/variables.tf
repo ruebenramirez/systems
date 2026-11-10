@@ -10,20 +10,6 @@ variable "harbor_admin_password" {
   sensitive   = true
 }
 
-variable "robot_ci_secret" {
-  type        = string
-  description = "Secret for the robot$ci pull account. From secrets/harbor-shared.yaml (key harbor-robot-ci-secret)."
-  sensitive   = true
-}
-
-# Bump to push a new value through `secret_wo`; write-only arguments have no
-# state to diff, so the version is what makes the provider re-send it.
-variable "robot_ci_secret_version" {
-  type        = number
-  description = "Change to rotate robot_ci_secret into Harbor."
-  default     = 1
-}
-
 # Docker Hub pulls through the proxy cache are anonymous unless these are set:
 # anonymous pulls from Docker Hub are rate-limited per source IP, and the whole
 # cluster shares one egress address. Empty means "leave the endpoint uncredentialed".

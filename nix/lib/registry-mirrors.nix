@@ -32,9 +32,5 @@ rec {
       registry = "quay.io";
       project = "quay";
     }
-    {
-      registry = "gcr.io";
-      project = "gcr";
-    }
   ];
 }

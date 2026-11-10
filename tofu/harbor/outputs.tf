@@ -5,8 +5,3 @@ output "proxy_cache_projects" {
     name => "${var.harbor_url}/${name}"
   }
 }
-
-output "robot_ci_name" {
-  description = "Login name of the CI robot account (the secret is in systems-secrets, never here)."
-  value       = harbor_robot_account.ci.full_name
-}
