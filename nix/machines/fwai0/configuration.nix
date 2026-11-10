@@ -6,6 +6,7 @@
     ../_common/monitoring.nix
     ../_common/nix-deploy-user.nix
     ../_common/build-machine.nix
+    ../_common/container-mirrors.nix
     ../_common/desktop/default.nix
     #../_common/gaming.nix
     ../_common/gpu-amd.nix
@@ -71,6 +72,12 @@
       ];
     }
   ];
+
+  # fwai0 is the fleet's build host, and `pkgs.dockerTools.pullImage` is skopeo:
+  # every digest-pinned image this flake builds (forgejo, webmail, wordpress,
+  # mariadb, hermes-agent) is fetched here, so this is the host where putting
+  # those pulls behind Harbor actually buys something (issue #51).
+  my.containerMirrors.enable = true;
 
   # ZFS
   services.zfs = {

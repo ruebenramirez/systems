@@ -26,21 +26,44 @@ resource "harbor_registry" "quay" {
   endpoint_url  = "https://quay.io"
 }
 
+resource "harbor_registry" "k8s" {
+  # Upstream Kubernetes' registry: kube-state-metrics and the `kubectl` init
+  # container from kube-prometheus-stack, and every csi-driver-nfs image.
+  #
+  # Plain v2 with an anonymous bearer token service, so the generic adapter takes
+  # it. Note manifests 307-redirect offsite (registry.k8s.io fronts a Google
+  # Artifact Registry bucket): the proxy has to follow that redirect, which is
+  # the first thing to check if `k8s/...` pulls come back "not found".
+  provider_name = "docker-registry"
+  name          = "k8s"
+  endpoint_url  = "https://registry.k8s.io"
+}
+
+resource "harbor_registry" "codeberg" {
+  # forgejo's own registry, pulled at build time by dockerTools.pullImage.
+  # Gitea speaks v2 with an anonymous bearer token, same as quay.
+  provider_name = "docker-registry"
+  name          = "codeberg"
+  endpoint_url  = "https://codeberg.org"
+}
+
 locals {
   # The project name is what appears in the pull path
   # (harbor.rueb.dev/<project>/<upstream path>), so it is also what
   # my.k3sHarbor.containerdProxyProjects rewrites to and the two must agree.
+  # scripts/check-registry-mirrors.sh fails CI when they do not.
   #
   # gcr.io is deliberately absent. Harbor's `google` registry adapter will not
   # validate an anonymous endpoint -- creating it fails "the registry is
   # unhealthy" even though gcr.io answers /v2/ from inside the cluster -- and
-  # Google has sunset gcr.io for new content anyway. Nothing here pulls from it:
-  # k3s takes its images from Docker Hub, and Kubernetes' own registry is
-  # registry.k8s.io, a different host that is not mirrored.
+  # Google has sunset gcr.io for new content anyway. Kubernetes' registry is
+  # registry.k8s.io, a different host, and it is the `k8s` project below.
   proxy_projects = {
     dockerhub = harbor_registry.docker_hub.registry_id
     ghcr      = harbor_registry.ghcr.registry_id
     quay      = harbor_registry.quay.registry_id
+    k8s       = harbor_registry.k8s.registry_id
+    codeberg  = harbor_registry.codeberg.registry_id
   }
 }
 

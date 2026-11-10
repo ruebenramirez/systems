@@ -1,10 +1,7 @@
-{ lib, ... }:
-let
-  mirrors = import ../../../lib/registry-mirrors.nix;
-  # registries.conf mirror locations carry no scheme: host/path, not a URL.
-  hostPath = m: "${mirrors.host}/${m.project}";
-in
+{ ... }:
 {
+  imports = [ ../../_common/container-mirrors.nix ];
+
   # The Actions runner's container backend is Podman, reached through the Docker
   # Engine API it serves, which is what the `docker://` labels speak.
   #
@@ -25,33 +22,9 @@ in
     autoPrune.enable = true;
   };
 
-  # Pulls go through the Harbor proxy cache first (issue #51), so a Docker Hub
-  # rate limit or an upstream outage does not fail a job.
-  #
-  # A drop-in rather than `virtualisation.containers.registries`: that option
-  # only writes the `[registries]` table (search/insecure/block), and mirrors
-  # need `[[registry]]` entries, which the module cannot express -- writing
-  # /etc/containers/registries.conf directly would fight the module's own
-  # `environment.etc` entry. containers-common reads this directory after the
-  # main file, so the two compose instead of overwriting each other.
-  #
-  # `mirror-by-digest-only = false` is the default and is left alone: it is what
-  # makes a plain `podman pull docker.io/library/nginx` go to
-  # harbor.rueb.dev/dockerhub/library/nginx. Containers' mirror fallback stays
-  # on, so an unreachable Harbor pulls from the upstream instead of failing.
-  environment.etc."containers/registries.conf.d/20-harbor-mirrors.conf" =
-    lib.mkIf (mirrors.projects != [ ])
-      {
-        text = lib.concatMapStrings (m: ''
-          [[registry]]
-          prefix = "${m.registry}"
-          location = "${m.registry}"
-
-          [[registry.mirror]]
-          location = "${hostPath m}"
-
-        '') mirrors.projects;
-      };
+  # Job pulls go through the Harbor proxy cache first (issue #51), so a Docker
+  # Hub rate limit or an upstream outage does not fail a job.
+  my.containerMirrors.enable = true;
 
   # The API socket is 0660 root:podman.
   users.users.nixdeploy.extraGroups = [ "podman" ];

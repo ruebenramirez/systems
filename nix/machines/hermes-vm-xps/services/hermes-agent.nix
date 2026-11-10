@@ -53,6 +53,10 @@ let
   '';
 in
 {
+  imports = [ ../../_common/container-mirrors.nix ];
+
+  my.containerMirrors.enable = true;
+
   sops.secrets = {
     hermes-dashboard-basic-auth-username =
       secretFile "hermes-agent-server-hermes-vm-xps";

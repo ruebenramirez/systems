@@ -123,6 +123,10 @@ let
   '';
 in
 {
+  imports = [ ../../_common/container-mirrors.nix ];
+
+  my.containerMirrors.enable = true;
+
   virtualisation.podman.enable = true;
 
   users.groups.wordpress.gid = gid;

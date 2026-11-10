@@ -57,6 +57,10 @@ a machine at activation.
 
 ## Notes on specific choices
 
+- The proxy-cache projects here and `nix/lib/registry-mirrors.nix` are the same
+  list written twice, in two languages: this file creates `harbor.rueb.dev/<project>/...`,
+  the Nix side rewrites pulls to it. `scripts/check-registry-mirrors.sh` (run by
+  the PR check) fails if they drift; add an upstream to both in one commit.
 - Proxy-cache projects are **public**. Node and CI pulls are anonymous; every
   artifact in them came from a public registry anyway.
 - Harbor creates a 7-day retention on each proxy-cache project by itself. That

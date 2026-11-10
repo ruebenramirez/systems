@@ -83,6 +83,14 @@ jobs:
         if: ${{ steps.checkout.outcome == 'success' }}
         run: scripts/check-docs-paths.sh
 
+      # The container mirror list lives twice, in two languages: the Nix side
+      # rewrites pulls to a Harbor project, the tofu side creates that project.
+      # Only a mismatch check catches the pair drifting, and the failure shows up
+      # as a pull error on some node weeks later.
+      - name: Check registry mirrors
+        if: ${{ steps.checkout.outcome == 'success' }}
+        run: scripts/check-registry-mirrors.sh
+
       # Parse locally, then ship the source and inputs to fwai0 and evaluate and
       # build there; the runner neither compiles nor evaluates the fleet.
       - name: Check the flake

@@ -5,6 +5,7 @@
     ../_common/monitoring.nix
     ../_common/nix-deploy-user.nix
     ../_common/qemu-vm-guest.nix
+    ../_common/container-mirrors.nix
     ../_common/dev.nix
     ../_common/tailscale-client.nix
     ../_common/rust-dev.nix
@@ -77,6 +78,8 @@
     enable = true;
     dockerCompat = true;
   };
+
+  my.containerMirrors.enable = true;
 
   users.users.rramirez = {
     isNormalUser = true;

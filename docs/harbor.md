@@ -6,19 +6,59 @@ through `harbor.rueb.dev` first, so an upstream outage or a Docker Hub rate limi
 stops being a build failure. Issue [#51](https://code.rueb.dev/rueb/systems/issues/51)
 has the reasoning; this file is how it is put together and how to operate it.
 
-Three places, and it is worth keeping them separate in your head:
+Four places, and it is worth keeping them separate in your head:
 
 | Where | What it owns |
 |---|---|
 | [`nix/machines/_common/services/k3s-harbor.nix`](../nix/machines/_common/services/k3s-harbor.nix) | the deployment: chart pin, values, TLS, PVCs, the sops→Kubernetes secret bridge |
 | [`tofu/harbor/`](../tofu/harbor/) | Harbor's content: upstream endpoints, proxy-cache projects, GC schedule, system config |
-| [`nix/lib/registry-mirrors.nix`](../nix/lib/registry-mirrors.nix) | which upstreams are mirrored, and under which project name — read by both the k3s nodes and the CI runner |
+| [`nix/lib/registry-mirrors.nix`](../nix/lib/registry-mirrors.nix) | which upstreams are mirrored, and under which project name — the one list every consumer reads |
+| [`nix/machines/_common/container-mirrors.nix`](../nix/machines/_common/container-mirrors.nix) | the registries.conf drop-in that puts that list in front of Podman and skopeo on the hosts that opt in |
+
+`scripts/check-registry-mirrors.sh` (run by the PR check) fails when
+`registry-mirrors.nix` and `tofu/harbor/main.tf` disagree, which is the one kind
+of drift that only shows up as a failed pull on some node weeks later.
 
 Harbor is not a NixOS service. nixpkgs has no Harbor server package and no
 service module, so the flake does not install Harbor; it installs the Helm
 release that installs Harbor, via k3s' helm controller — the same mechanism
 [`k3s-nfs-pvc.nix`](../nix/machines/_common/services/k3s-nfs-pvc.nix) and the
 [monitoring stack](monitoring.md) use.
+
+## What is mirrored, and who asks for it
+
+Every upstream is a public registry cached under its own project; the pull path
+is `harbor.rueb.dev/<project>/<upstream path>`.
+
+| Upstream | Project | What the fleet pulls from it |
+|---|---|---|
+| `docker.io` | `dockerhub` | k3s' own system images (`rancher/mirrored-*`), Traefik, the Harbor chart (`goharbor/*`), Grafana and its sidecars, `library/wordpress` + `library/mariadb`, `nousresearch/hermes-agent`, the CI runner's `library/node` |
+| `quay.io` | `quay` | the prometheus-operator family: `prometheus`, `alertmanager`, `thanos`, `node-exporter`, `brancz/kube-rbac-proxy`, `kiwigrid/k8s-sidecar`, blackbox-exporter |
+| `ghcr.io` | `ghcr` | Gatus, `bulwarkmail/webmail`, `halogen-flash-server`, `jkroepke/kube-webhook-certgen` |
+| `registry.k8s.io` | `k8s` | `kube-state-metrics`, kube-prometheus-stack's `kubectl` init container, and **all** of csi-driver-nfs (`sig-storage/nfsplugin` plus its csi-provisioner/resizer/snapshotter/registrar/livenessprobe sidecars) |
+| `codeberg.org` | `codeberg` | `forgejo/forgejo`, at build time only |
+
+Three consumers read that one list, and they are different mechanisms:
+
+- **containerd on the k3s nodes** gets `/etc/rancher/k3s/registries.yaml`
+  rewrite rules from `my.k3sHarbor.containerdProxyProjects`. This is what the
+  Helm charts' images and every pod pull go through.
+- **Podman and Docker** get `/etc/containers/registries.conf.d/20-harbor-mirrors.conf`
+  from `my.containerMirrors` — the CI runner (job images), `fwai0`
+  (`halogen-flash-server`, `pull = "missing"`), `dev-vm-xps`, `homeserver`,
+  `ssdnodes-1`, `hermes-vm-xps`.
+- **skopeo, and therefore `pkgs.dockerTools.pullImage`.** `pullImage` is a
+  wrapper around `skopeo copy docker://<image>@<digest>`, and skopeo reads the
+  same registries.conf — so enabling `my.containerMirrors` on the *build host*
+  (`fwai0`) is what puts the digest-pinned images this flake builds into a
+  closure behind the cache. The digest is what is verified, not the path, so
+  routing them through Harbor does not change any `outputHash`.
+
+Adding an upstream means editing `nix/lib/registry-mirrors.nix` and
+`tofu/harbor/main.tf` and nothing else: the containerd rewrite list, the
+registries.conf drop-in and the Harbor projects are all derived from those two.
+Then `nup-fleet` on the k3s nodes (the `registries.yaml` change restarts k3s —
+see *When it is broken*) and `tofu apply`.
 
 ## Where it runs, and the circularity that comes with it
 
@@ -72,8 +112,15 @@ The pieces have to arrive in this order; anything else produces a pod stuck in
 sudo crictl pull docker.io/library/alpine:3.20     # via the mirror
 sudo crictl images | grep alpine
 
-# The mirror is doing what it says: the path carries the project name.
-curl -s https://harbor.rueb.dev/api/v2.0/health | jq .
+# Every project must actually proxy, and two of them are only reachable this way:
+# nothing pulls them on day one. `k8s` is the one to watch -- registry.k8s.io
+# 307-redirects manifests offsite, and a proxy that will not follow that answers
+# "not found" instead of an error.
+sudo crictl pull harbor.rueb.dev/k8s/sig-storage/nfsplugin:v4.13.6
+sudo crictl pull harbor.rueb.dev/codeberg/forgejo/forgejo:17
+
+# What Harbor thinks each project holds.
+curl -s "https://harbor.rueb.dev/api/v2.0/repositories?project_name=k8s" | jq -r '.[].name'
 
 # The acceptance test: with WAN access cut off, a cached image must still pull.
 ```
@@ -131,15 +178,16 @@ held. GC is scheduled weekly by `tofu/harbor`; a manual run is
 `tofu/harbor` → change `gc_schedule`, or the UI for a one-off. Watch the tank:
 `inventory.zfsPools` already alerts on `tank` capacity.
 
-**The proxy-cache projects are public.** `dockerhub`, `ghcr` and `quay`
-allow anonymous pulls on purpose — every artifact in them came from a public
-registry, and requiring a login would mean distributing credentials to every node
-for no access-control gain. Anything *private* belongs in a project you create
-yourself, which is why `project_creation_restriction = "adminonly"`.
+**The proxy-cache projects are public.** `dockerhub`, `ghcr`, `quay`, `k8s` and
+`codeberg` allow anonymous pulls on purpose — every artifact in them came from a
+public registry, and requiring a login would mean distributing credentials to
+every node for no access-control gain. Anything *private* belongs in a project
+you create yourself, which is why `project_creation_restriction = "adminonly"`.
 
 `gcr.io` is not mirrored. Harbor's `google` registry adapter refuses to validate
-an anonymous endpoint, and Google has sunset gcr.io for new content; Kubernetes
-images come from `registry.k8s.io`, a different host, and k3s takes its own from
+an anonymous endpoint, and Google has sunset gcr.io for new content. Nothing here
+needs it: Kubernetes' registry is `registry.k8s.io` (the `k8s` project, a plain
+v2 registry the generic adapter proxies), and k3s takes its own images from
 Docker Hub.
 
 **Trivy is deployed but does not scan the caches.** Scanning a proxy-cache project
@@ -186,7 +234,13 @@ cluster (k3s runs with `--disable-network-policy`).
 - **A change to the mirror list did nothing** — containerd reads
   `/etc/rancher/k3s/registries.yaml` when k3s starts. The module sets a
   `restartTriggers` on `k3s.service` so activation restarts it; if you edited
-  the file by hand, restart k3s yourself.
+  the file by hand, restart k3s yourself. Podman and skopeo need no restart; they
+  read registries.conf per invocation.
+- **`k8s/...` pulls fail with `not found` while `curl https://registry.k8s.io/v2/`
+  works** — registry.k8s.io answers manifest requests with a 307 to a Google
+  Artifact Registry bucket, so the proxy has to follow redirects. Confirm the
+  upstream itself is fine (`crictl pull registry.k8s.io/sig-storage/nfsplugin:v4.13.6`)
+  and then look at `kubectl -n harbor logs deploy/harbor-core | grep -i proxy`.
 
 ## Not done here
 
@@ -198,10 +252,14 @@ cluster (k3s runs with `--disable-network-policy`).
   `tofu/harbor`). Someone has to create the Docker account and an access token
   before that changes; `tofu plan` showing an update to
   `harbor_registry.docker_hub` is how you confirm the token was actually read.
-- **`dockerTools.pullImage` still goes direct.** It fetches from the upstream
-  registry itself rather than through a container engine, so a registry mirror
-  does not reach it. Mirroring it would mean a `nix.settings` change on the
-  builders and is a separate piece of work.
+- **Only the build host is wired for `dockerTools.pullImage`.** `pullImage` is
+  `skopeo copy docker://<image>@<digest>`, so it does honour a registry mirror —
+  but registries.conf is per-host, and the only host that matters is the one that
+  does the building, which is `fwai0` (`dotfiles/bin/nup-fleet` refuses local
+  builds elsewhere). A machine that builds this flake without `my.containerMirrors`
+  set fetches straight from the upstream; that is a missed cache, not a failure.
+  The rewrite cannot change any `outputHash` either way, because the digest is
+  what the derivation pins.
 - **No retention override.** Harbor's own 7-day proxy-cache rule is left in
   place; adding a longer one through tofu would not extend the cache, because
   the shorter of the two is what evicts.

@@ -26,11 +26,13 @@ if [[ -z "${SECRETS_DIR:-}" ]]; then
 fi
 
 fails=0
-mapfile -t md < <(find . -name '*.md' -not -path './result/*' -not -path './.git/*' | sort)
+# Vendored provider binaries under .terraform/ ship READMEs whose relative links
+# point at their own source repo, and `tofu init` puts them inside this tree.
+mapfile -t md < <(find . -name '*.md' -not -path './result/*' -not -path './.git/*' -not -path '*/.terraform/*' | sort)
 # Paths hide in comments and in helper scripts, not just prose: `verify-reality-pair.sh`
 # kept reading a deleted secrets file straight through the migration.
 mapfile -t txt < <(find . \( -name '*.md' -o -name '*.nix' -o -name '*.sh' \) \
-  -not -path './result/*' -not -path './.git/*' | sort)
+  -not -path './result/*' -not -path './.git/*' -not -path '*/.terraform/*' | sort)
 
 # Fenced code blocks are examples, not references; inline spans are kept, because
 # inventory rows name real files inside backticks.
