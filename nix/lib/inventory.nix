@@ -23,7 +23,9 @@ rec {
   # ---------------------------------------------------------------- hosts ---
 
   # `monitored = false` keeps a host out of every generated list; `driver` is
-  # excluded by decision (a laptop, not a server). `gpu = true` says the host has
+  # excluded by decision (a laptop, not a server). `offlineOk = true` lets a
+  # whole-fleet deploy skip an unreachable host instead of failing the run.
+  # `gpu = true` says the host has
   # a GPU whose metrics must show up: it labels the scrape target, turns on the
   # collector in nix/machines/_common/monitoring.nix, and is what the
   # GpuMetricsMissing alert holds the host to. `llm = true` does the same for the
@@ -75,6 +77,8 @@ rec {
     driver = {
       description = "Personal laptop -- deliberately unmonitored";
       monitored = false;
+      # not expected to be awake at 03:30; dark is normal, not an incident
+      offlineOk = true;
     };
   };
 
@@ -84,6 +88,10 @@ rec {
 
   # Derived: the hosts that get an exporter and a scrape target.
   monitoredHosts = builtins.filter (n: (hosts.${n}.monitored or true)) (builtins.attrNames hosts);
+
+  # Derived: hosts a whole-fleet deploy may skip when ssh fails instead of
+  # failing the run (laptops that are legitimately asleep at 03:30).
+  offlineOkHosts = builtins.filter (n: (hosts.${n}.offlineOk or false)) (builtins.attrNames hosts);
 
   # ------------------------------------------------------------ zfs pools ---
 

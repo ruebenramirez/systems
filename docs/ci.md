@@ -73,7 +73,9 @@ dispatch (optionally naming machines). One job moves the lock exactly once:
    secrets revision cannot break the deploy.
 3. `nup-fleet` — deploys at that lock. **Best-effort:** every reachable machine
    is upgraded; unreachable ones are reported and the run fails, so one dark
-   host does not leave the rest unpatched.
+   host does not leave the rest unpatched. Hosts marked `offlineOk = true` in
+   `nix/lib/inventory.nix` (laptops) are skipped with a warning when ssh fails
+   instead of failing the run; naming one explicitly still demands a deploy.
 4. `scripts/ci-push-flake-lock.sh` — pushes the new `flake.lock` if at least one
    machine was updated, even when the run is red. A targeted dispatch
    (`machines=` set) never pushes.

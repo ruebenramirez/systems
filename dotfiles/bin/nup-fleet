@@ -73,6 +73,23 @@ load_fleet() {
 
 load_fleet
 
+# Hosts allowed to be dark during a whole-fleet deploy (inventory `offlineOk`,
+# e.g. laptops). An ssh failure for these is a skip, not a failure; a machine
+# named explicitly on the command line is still deployed exactly as asked.
+OFFLINE_OK=()
+mapfile -t OFFLINE_OK < <(
+    nix eval --raw --impure \
+        --extra-experimental-features 'nix-command flakes' \
+        --expr "builtins.concatStringsSep \"\\n\" (import \"$FLAKE_DIR/nix/lib/inventory.nix\").offlineOkHosts" 2>/dev/null
+) || true
+offline_ok() {
+    local name="$1" h
+    for h in "${OFFLINE_OK[@]:-}"; do
+        [[ -n "$h" && "$h" == "$name" ]] && return 0
+    done
+    return 1
+}
+
 # Optional SSH user override. If unset, SSH resolves the user per host
 # from ~/.ssh/config. Set SSH_USER=root to force a different user.
 SSH_USER="${SSH_USER:-}"
@@ -314,6 +331,8 @@ switched_after_connection_drop() {
 # non-zero so CI still reports the failure.
 FAILED=()
 
+# update_machine return codes: 0 updated, 1 failed, 2 offline but tolerated.
+
 update_machine() {
     local host_config="$1"
     local hostname config
@@ -321,6 +340,11 @@ update_machine() {
     config="$(config_of "$host_config")"
     echo "Updating $hostname ($config)..."
     if ! ssh_reachable "$hostname"; then
+        if [[ "$WHOLE_FLEET" == "true" ]] && offline_ok "$hostname"; then
+            echo "::warning::$hostname is offline and marked offlineOk -- skipping"
+            echo "⊘ $hostname offline, tolerated"
+            return 2
+        fi
         ssh_unreachable_help "$hostname"
         echo "✗ $hostname failed" >&2
         FAILED+=("$hostname")
@@ -755,7 +779,7 @@ case "$ACTION" in
         done
         ;;
     "deploy")
-        updated=0 skipped=0
+        updated=0 skipped=0 tolerated=0
         for machine in "${TARGETS[@]}"; do
             IFS=':' read -r hostname _config <<< "$machine"
             if [[ "$WHOLE_FLEET" == "true" ]] && skip_machine "$hostname"; then
@@ -764,12 +788,15 @@ case "$ACTION" in
                 continue
             fi
             # Continue past failures; the summary at the end reports the outcome.
-            if update_machine "$machine"; then
-                updated=$((updated + 1))
-            fi
+            rc=0
+            update_machine "$machine" || rc=$?
+            case "$rc" in
+                0) updated=$((updated + 1)) ;;
+                2) tolerated=$((tolerated + 1)) ;;
+            esac
         done
         failed=${#FAILED[@]}
-        summary="SUMMARY updated=$updated failed=$failed skipped=$skipped"
+        summary="SUMMARY updated=$updated failed=$failed skipped=$((skipped + tolerated))"
         echo
         echo "$summary"
         # NUP_FLEET_SUMMARY, when set, lets CI decide whether to persist the
