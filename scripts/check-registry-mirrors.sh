@@ -35,6 +35,9 @@ nix_pairs="$(nix eval --impure --raw \
 
 # "<project>\t<endpoint_url>" from the Terraform side: each proxy_projects entry
 # paired with the endpoint_url of the harbor_registry resource it points at.
+# A proxy_projects line whose registry resource's endpoint_url was never parsed
+# (interpolated value, reformat, comment) is a parser failure, not a mismatch --
+# say so loudly instead of printing an empty URL and blaming the wrong thing.
 tf_pairs="$(awk '
   /^resource "harbor_registry"/ { split($0, q, "\""); res = q[4]; next }
   /^[[:space:]]*endpoint_url[[:space:]]*=/ { split($0, q, "\""); url[res] = q[2]; next }
@@ -42,9 +45,15 @@ tf_pairs="$(awk '
       split($0, a, /[[:space:]]*=[[:space:]]*/)
       sub(/^[[:space:]]+/, "", a[1]); sub(/[[:space:]]+$/, "", a[1])
       split(a[2], r, "\\.")
+      if (!(r[2] in url)) { print "PARSEFAIL " r[2] > "/dev/stderr"; exit 1 }
       print a[1] "\t" url[r[2]]
   }
 ' "$TERRAFORM")"
+awk_rc=$?
+if [[ $awk_rc -ne 0 ]]; then
+  echo "FAIL  could not parse proxy_projects/endpoint_url pairs out of $TERRAFORM (awk exit $awk_rc)"
+  exit 1
+fi
 
 if [[ -z "$tf_pairs" ]]; then
   echo "FAIL  found no proxy_projects entries in $TERRAFORM (the parser and the file disagree)"
@@ -86,6 +95,9 @@ done <<< "$tf_pairs"
 
 # The hostname is the third string that has to match: it is what the rewrite
 # prefix is built from on one side and what the provider talks to on the other.
+# Caveat: this compares against the *default* of the harbor_url variable. A
+# deployment that sets TF_VAR_harbor_url drifts past this check silently --
+# acceptable for CI, which runs with the default; don't over-trust it.
 mirror_host="$(nix eval --impure --raw --extra-experimental-features 'nix-command flakes' \
   --expr "let m = import ./$MIRRORS; in m.host")"
 tf_host="$(awk '/^variable "harbor_url"/ { invar = 1 }
