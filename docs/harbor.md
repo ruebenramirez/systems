@@ -52,13 +52,20 @@ Three consumers read that one list, and they are different mechanisms:
   same registries.conf — so enabling `my.containerMirrors` on the *build host*
   (`fwai0`) is what puts the digest-pinned images this flake builds into a
   closure behind the cache. The digest is what is verified, not the path, so
-  routing them through Harbor does not change any `outputHash`.
+  routing them through Harbor does not change any `outputHash`. One catch: the
+  Nix sandbox (on by default) hides `/etc/containers` from the build, so the
+  build host also needs `nix.settings.extra-sandbox-paths` for
+  `registries.conf` and `registries.conf.d` — set in
+  `nix/machines/fwai0/configuration.nix`; without it skopeo finds no
+  registries.conf inside the sandbox and pulls direct.
 
 Adding an upstream means editing `nix/lib/registry-mirrors.nix` and
-`tofu/harbor/main.tf` and nothing else: the containerd rewrite list, the
-registries.conf drop-in and the Harbor projects are all derived from those two.
-Then `nup-fleet` on the k3s nodes (the `registries.yaml` change restarts k3s —
-see *When it is broken*) and `tofu apply`.
+`tofu/harbor/main.tf` — nothing else is authored, because the containerd rewrite
+list, the registries.conf drop-in and the Harbor projects are all derived from
+those two — but the change only lands after activation: `tofu apply` for the
+projects, and `nup-fleet` on the k3s nodes, where the `registries.yaml` change
+restarts k3s (see *When it is broken*). Hosts with `my.containerMirrors` pick
+the drop-in up on their next activation with no extra step.
 
 ## Where it runs, and the circularity that comes with it
 
@@ -254,12 +261,13 @@ cluster (k3s runs with `--disable-network-policy`).
   `harbor_registry.docker_hub` is how you confirm the token was actually read.
 - **Only the build host is wired for `dockerTools.pullImage`.** `pullImage` is
   `skopeo copy docker://<image>@<digest>`, so it does honour a registry mirror —
-  but registries.conf is per-host, and the only host that matters is the one that
-  does the building, which is `fwai0` (`dotfiles/bin/nup-fleet` refuses local
-  builds elsewhere). A machine that builds this flake without `my.containerMirrors`
-  set fetches straight from the upstream; that is a missed cache, not a failure.
-  The rewrite cannot change any `outputHash` either way, because the digest is
-  what the derivation pins.
+  once the sandbox is given `/etc/containers` via `extra-sandbox-paths`, which
+  `fwai0` sets — but registries.conf is per-host, and the only host that matters
+  is the one that does the building, which is `fwai0` (`dotfiles/bin/nup-fleet`
+  refuses local builds elsewhere). A machine that builds this flake without
+  `my.containerMirrors` set fetches straight from the upstream; that is a missed
+  cache, not a failure. The rewrite cannot change any `outputHash` either way,
+  because the digest is what the derivation pins.
 - **No retention override.** Harbor's own 7-day proxy-cache rule is left in
   place; adding a longer one through tofu would not extend the cache, because
   the shorter of the two is what evicts.

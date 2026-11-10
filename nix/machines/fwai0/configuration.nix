@@ -79,6 +79,16 @@
   # those pulls behind Harbor actually buys something (issue #51).
   my.containerMirrors.enable = true;
 
+  # The sandbox hides /etc/containers from the build: a fixed-output build's
+  # chroot only gets resolv.conf, services, hosts, nsswitch.conf and the CA
+  # bundle, so skopeo inside `pullImage` would find no registries.conf and pull
+  # direct. Mount the config and the drop-in dir into the sandbox (directories
+  # mount recursively, so the drop-ins under registries.conf.d come with it).
+  nix.settings.extra-sandbox-paths = [
+    "/etc/containers/registries.conf"
+    "/etc/containers/registries.conf.d"
+  ];
+
   # ZFS
   services.zfs = {
     autoScrub = {
