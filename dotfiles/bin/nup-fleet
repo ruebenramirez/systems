@@ -40,6 +40,25 @@ if [[ "$IS_BUILDER" != "true" && "${ALLOW_LOCAL_BUILD:-false}" != "true" && -z "
     exit 2
 fi
 
+# Disable ssh connection multiplexing for nix's ssh store connections.
+#
+# nix passes `-oLocalCommand=echo started` on every ssh it opens to an ssh store
+# so ssh can signal that the connection is up, and nix reads that token back and
+# swallows it before the `nix-store --serve` protocol starts
+# (src/libstore/ssh.cc). It skips the read when it believes a control master is
+# already up -- and nixos-rebuild-ng injects its own `NIX_SSHOPTS`
+# (ControlMaster=auto, ControlPath=<temp dir>, ControlPersist=60) which nix
+# honours too, so a copy can ride a mux nix knows nothing about, leave `started`
+# in the stream, and die as
+#   error: 'nix-store --serve' protocol mismatch from '<host>', got 'started'
+# Which it does intermittently, because it hinges on whether a mux is still warm
+# inside ControlPersist: seen on four hosts, one needing three tries and two
+# failing every try, all of them clean with multiplexing off.
+#
+# ssh keeps the first value given for an option and nixos-rebuild-ng appends
+# what it sets, so putting these first wins.
+export NIX_SSHOPTS="-o ControlMaster=no -o ControlPath=none ${NIX_SSHOPTS:-}"
+
 FLAKE_DIR="${FLAKE_DIR:-/home/rramirez/code/systems}"
 
 # Fleet from the flake; NUP_FLEET_MACHINES overrides it.
