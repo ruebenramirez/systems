@@ -25,8 +25,10 @@ is **one edit there**, and the following all follow on the next deploy:
 | `fleet-node-exporters` scrape job | Prometheus |
 | blackbox modules + probe jobs (`blackbox-http`, `blackbox-tcp`, `blackbox-imap`) | blackbox exporter |
 | status page endpoints, groups, and alert routing | Gatus |
+| `pushStatusEndpoints` → push-based (external) status tiles | Gatus |
 | dashboard template variables | Grafana |
 | `gpu = true` on a host → scrape target label, GPU alerts | Prometheus (see *GPU metrics*) |
+| `exitNode = true` on a host → scrape target label, exit-node alerts | Prometheus (see *Exit-node metrics*) |
 | `zfsPools` → ZFS capacity and pool-state panels on the overview dashboard | Grafana |
 
 Hosts are keyed by `networking.hostName`. `monitored = false` removes a host from
@@ -45,6 +47,7 @@ storage row generated from `zfsPools`, come from the inventory.
 |---|---|
 | `nix/lib/inventory.nix` | hosts, services, probes, status endpoints, scrape targets, ZFS pools |
 | `nix/machines/_common/monitoring.nix` | node exporter (plus the GPU textfile collector) + firewall scoping, imported per machine |
+| `nix/machines/_common/exit-node-monitor.nix` | exit-node egress probe (textfile collector + status-page push) on the exit node |
 | `nix/machines/_common/monitoring-stack/` | generated scrape config, alert rules, dashboards, k8s manifests |
 | `nix/machines/_common/services/k3s-cluster.nix` | the 3-node k3s control plane that hosts the stack |
 | `nix/machines/_common/services/k3s-nfs-pvc.nix` | NFS-backed `StorageClass` for stateful monitoring |
@@ -233,6 +236,57 @@ are gauges. Details that are load-bearing:
 ```console
 $ ssh fwai0 'sudo systemctl start model-metrics && cat /var/lib/node_exporter/textfile/model.prom'
 $ curl -s fwai0.tailnet.rueb.dev:9100/metrics | grep halogen_weights
+```
+
+## Exit-node metrics
+
+`download-vm-xps` is the tailnet exit node: forwarded traffic must egress the
+Mullvad tunnel (`wg1`), never the LAN default route. That contract fails
+silently — a dead `wg1` or missing `tailnet-route-fix` rules just sends traffic
+out the ISP — so the node proves its egress identity every 60s
+([`_common/exit-node-monitor.nix`](../nix/machines/_common/exit-node-monitor.nix),
+routing background in [tailnet-exit-node.md](tailnet-exit-node.md)).
+
+The verdict is the kernel's own route walk: `ip route get 1.1.1.1` must
+resolve `dev wg1`. Locally generated and forwarded packets walk the same
+`ip rule` list, and both reach `wg1` through wg-quick's `lookup 51820` rule;
+the leak case (rule gone → fall through to `main` → ISP) is exactly what the
+walk reports, so no external truth is needed and no allow-list can rot.
+Mullvad's echo (`curl https://am.i.mullvad.net/ip`) stays as corroboration
+only: Mullvad rents relays (this node's `us-mkc-wg-003`, provider Tzulo) whose
+addresses sit outside its announced AS395776 space, so prefix membership is an
+informational gauge, never the verdict. A known gap: the local probe cannot see
+forwarding-only breakage (tailscaled's `ts-postrouting` masquerade, loose
+reverse-path filtering); `exit_node_nat_masquerade` is a partial gauge-only
+guard for that class.
+
+| Metric | Meaning | Alert |
+|---|---|---|
+| `exit_node_egress_is_mullvad` | 1 = `ip route get` resolves `dev wg1` | `ExitNodeEgressNotMullvad` (critical — the ISP-leak page) |
+| `exit_node_egress_probe_ok` | Mullvad's echo answered at all | `ExitNodeProbeUnreachable` (warn — Mullvad/internet outage, not a leak) |
+| `exit_node_egress_in_mullvad_prefix` | echo IP inside Mullvad's announced v4 space (informational; rented relays are not) | none |
+| `exit_node_route_fix_present{fam}` | the `proto 66` tailnet rule exists **and** outranks wg-quick's `lookup 51820` rule, per family | `ExitNodeRouteFixMissing` (critical, per family) |
+| `exit_node_fwmark_route_ok` | `ip route get ... mark 0x80000` does not resolve via wg1 (tailscaled's own traffic not stranded in the tunnel) | `ExitNodeFwmarkRouteStranded` (critical) |
+| `exit_node_nat_masquerade` | tailscaled's `ts-postrouting` masquerade rule present | none (corroboration only) |
+| `exit_node_wg_handshake_age_seconds` | `wg1` last handshake age | `ExitNodeWgHandshakeStale` (warn, > 5 min) |
+| `exit_node_metrics_timestamp_seconds` | collector freshness | `ExitNodeCollectionStale`; `ExitNodeMetricsMissing` when the series vanish while the host scrapes |
+
+The same verdict also drives a **push-based status tile**: Gatus cannot ask
+"is this node's egress Mullvad" from the cluster, so the collector POSTs each
+result to `https://status.rueb.dev/api/v1/endpoints/network_exit-node/external`
+(Gatus external endpoint; token in sops `exit-node-monitor`, seeded into the
+cluster by `k3s-cluster-secrets` and injected as `GATUS_EXIT_NODE_TOKEN` —
+Gatus expands env vars in its config, so the token never sits in the
+ConfigMap). `heartbeat.interval = 5m` means the tile flips DOWN when pushes
+stop, not just when they report failure — a dead collector cannot freeze the
+tile green. The push itself rides the tailnet route-fix rules, so a route-fix
+failure also shows up as a missed heartbeat. Inventory entries for these live
+in `pushStatusEndpoints`, not `services.*` — the probe schema only models
+active probes.
+
+```console
+$ ssh download-vm-xps 'sudo systemctl start exit-node-metrics && cat /var/lib/node_exporter/textfile/exit-node.prom'
+$ curl -s download-vm-xps.tailnet.rueb.dev:9100/metrics | grep exit_node
 ```
 
 ## Access

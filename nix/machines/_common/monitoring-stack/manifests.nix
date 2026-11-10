@@ -262,6 +262,26 @@ let
       path = "/data/gatus.db";
     };
     "remote-timeout" = "15s";
+    # Push-based tiles (inventory.pushStatusEndpoints): Gatus cannot probe
+    # "is the exit node's egress Mullvad" from the cluster -- only the node
+    # itself can answer -- so the node POSTs each verdict and Gatus marks the
+    # tile DOWN when pushes stop (heartbeat). Gatus runs os.ExpandEnv over its
+    # config before parsing, so the token rides in as a Secret-backed env var
+    # rather than sitting in the ConfigMap; it only grants writing this one
+    # tile's status.
+    external-endpoints = map (e: {
+      name = e.name;
+      group = e.group;
+      token = "\${GATUS_EXIT_NODE_TOKEN}";
+      heartbeat.interval = e.heartbeat;
+      alerts = [
+        {
+          type = "email";
+          failure-threshold = 2;
+          success-threshold = 2;
+        }
+      ];
+    }) inventory.pushStatusEndpoints;
     alerting = {
       email = {
         from = mail.from;
@@ -344,6 +364,20 @@ let
                   {
                     name = "GATUS_CONFIG_PATH";
                     value = "/config";
+                  }
+                  # Expanded into the external-endpoint token at config load.
+                  # Seeded from sops by k3s-cluster-secrets; check-sops-secrets
+                  # gates the sops side in CI and the seeding unit converges at
+                  # activation. optional: true so an unseeded Secret cannot
+                  # block the Pod from starting -- one missing secret must not
+                  # blackhole the whole status page (issue #89 review).
+                  {
+                    name = "GATUS_EXIT_NODE_TOKEN";
+                    valueFrom.secretKeyRef = {
+                      name = "gatus-exit-node-token";
+                      key = "token";
+                      optional = true;
+                    };
                   }
                 ];
                 ports = [

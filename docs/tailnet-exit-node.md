@@ -145,6 +145,34 @@ Three things that mislead during an exit-node complaint, all observed for real:
 that window: tailscaled is saying it cannot reach the internet, which is upstream
 of `wg1` rather than of Tailscale.
 
+## Monitoring
+
+The contract above is watched continuously by
+`nix/machines/_common/exit-node-monitor.nix` (see *Exit-node metrics* in
+[monitoring.md](monitoring.md)): a 60s probe on this node publishes
+`exit_node_egress_is_mullvad`, `exit_node_route_fix_present{fam}`, and
+`exit_node_wg_handshake_age_seconds` through the node_exporter textfile
+collector, and pushes the same verdict to the `network/exit-node` tile on
+`status.rueb.dev`. The leak page is `ExitNodeEgressNotMullvad`; a dead
+collector pages too (`ExitNodeMetricsMissing` / `ExitNodeCollectionStale` /
+the tile's heartbeat), because absence of the proof is the same operational
+state as a leak.
+
+Failure drill (on `download-vm-xps`; record the actual page and tile-DOWN
+latencies when you run it — the timings come from three different mechanisms,
+collector interval, alert `for:`, and the tile heartbeat, so measure rather
+than derive):
+
+```shell
+sudo systemctl stop wg-quick-wg1
+# exit_node_egress_is_mullvad flips to 0: `ip route get` now falls through
+# to main and resolves dev eth0.
+sudo systemctl start wg-quick-wg1
+sudo systemctl start tailnet-route-fix
+# partOf propagates stop/restart, not start: without the second start the
+# proto-66 rules stay gone and the route-fix alerts stay red after "recovery".
+```
+
 ## Regenerating the diagram
 
 Render the SVG from the Mermaid source (from the repository root):

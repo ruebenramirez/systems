@@ -11,11 +11,14 @@ let
 
   # Where the textfile collector looks. node_exporter's own default for this is
   # empty, so the collector does nothing until the flag below spells it out.
-  textfileDir = "/var/lib/node_exporter/textfile";
+  # An option (not a let constant) so other collectors writing into the same
+  # directory take the path from here instead of duplicating it.
+  textfileDir = cfg.textfileDir;
 
   # Several collectors write into that one directory, so the textfile collector is
   # enabled if any of them is.
-  textfileEnabled = cfg.exporters.gpu.enable || cfg.exporters.model.enable;
+  textfileEnabled =
+    cfg.exporters.textfile.enable || cfg.exporters.gpu.enable || cfg.exporters.model.enable;
 
   # amdgpu sysfs counters, written once per timer tick for the textfile
   # collector. Metric names are vendor-neutral on purpose: a host with another
@@ -407,6 +410,12 @@ in
       description = "Prometheus exporters for fleet-wide monitoring.";
     };
 
+    textfileDir = lib.mkOption {
+      type = lib.types.str;
+      default = "/var/lib/node_exporter/textfile";
+      description = "Directory the textfile collector reads; other collectors writing .prom files take the path from here.";
+    };
+
     exporters.node.enable = lib.mkOption {
       type = lib.types.bool;
       default = true;
@@ -418,6 +427,16 @@ in
       default = [ ];
       example = [ "textfile" ];
       description = "Extra node_exporter collectors beyond systemd (plus zfs where the host has a pool).";
+    };
+
+    exporters.textfile.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable the textfile collector without turning on a specific collector
+        (gpu/model imply it themselves). A host that writes its own .prom files
+        through another module sets this.
+      '';
     };
 
     exporters.gpu.enable = lib.mkOption {

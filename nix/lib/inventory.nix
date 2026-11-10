@@ -58,6 +58,10 @@ rec {
     };
     download-vm-xps = {
       description = "Torrent/NAS download VM, Mullvad exit";
+      # Must export exit-node egress metrics (see _common/exit-node-monitor.nix);
+      # labels the scrape target the way `gpu`/`llm` do, so the missing-metric
+      # alert can hold this host to producing them.
+      exitNode = true;
     };
     hermes-vm-xps = {
       description = "Hermes agent VM";
@@ -496,6 +500,24 @@ rec {
   # Status-page endpoints (Gatus): everything not marked `status = false`.
   statusServices = builtins.filter (s: s.status or true) serviceList;
 
+  # ------------------------------------------------- push status endpoints ---
+
+  # Status-page tiles whose result is pushed from the host itself (Gatus
+  # external endpoints). The `services.*.probe` schema only models active
+  # probes Gatus runs from the cluster; these are questions only the machine
+  # can answer (e.g. "is my egress Mullvad?"), so the host POSTs each verdict
+  # and Gatus marks the tile DOWN if pushes stop arriving for `heartbeat`.
+  pushStatusEndpoints = [
+    {
+      host = "download-vm-xps";
+      group = "network";
+      name = "exit-node";
+      # Collector runs every 60s; 5m means ~5 missed pushes before the tile
+      # flips DOWN, so a single flaky tick does not page.
+      heartbeat = "5m";
+    }
+  ];
+
   # node_exporter scrape targets, one group per host.
   nodeScrapeTargets = map (h: {
     targets = [ "${tailnet.host h}:${toString nodeExporterPort}" ];
@@ -504,7 +526,8 @@ rec {
       instance = h;
     }
     // (if hosts.${h}.gpu or false then { gpu = "true"; } else { })
-    // (if hosts.${h}.llm or false then { llm = "true"; } else { });
+    // (if hosts.${h}.llm or false then { llm = "true"; } else { })
+    // (if hosts.${h}.exitNode or false then { exit_node = "true"; } else { });
   }) monitoredHosts;
 
   # Names used as Grafana dashboard template variables and Gatus groups.

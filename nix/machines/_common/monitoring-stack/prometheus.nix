@@ -519,6 +519,131 @@ let
       }
 
       {
+        name = "fleet-exit-node";
+        rules = [
+          {
+            # The ISP-leak page: the kernel's route walk on the node no longer
+            # reaches wg1, so tailnet traffic is egressing the local ISP. The
+            # verdict is the route walk itself, not Mullvad's echo -- rented
+            # Mullvad relays sit outside its announced prefixes, so an
+            # IP-allow-list verdict pages on healthy nodes (issue #89 review).
+            alert = "ExitNodeEgressNotMullvad";
+            expr = "exit_node_egress_is_mullvad == 0";
+            for = "2m";
+            labels = {
+              severity = "critical";
+              tier = "service";
+            };
+            annotations = {
+              summary = "Exit node {{ $labels.host }} egress is NOT via wg1";
+              description = "`ip route get` on {{ $labels.host }} no longer resolves through wg1: tailnet traffic is leaking through the local ISP (wg1 down, or wg-quick's rule fell through to main).";
+            };
+          }
+          {
+            # Mullvad's echo endpoint unreachable while the route walk still
+            # proves wg1: a Mullvad-side or internet outage, not a leak. Kept
+            # separate from the leak page so that one stays honest (issue #89
+            # review: probe failure and not-Mullvad must not collapse).
+            alert = "ExitNodeProbeUnreachable";
+            expr = "exit_node_egress_probe_ok == 0";
+            for = "10m";
+            labels = {
+              severity = "warning";
+              tier = "service";
+            };
+            annotations = {
+              summary = "Exit node {{ $labels.host }} cannot reach Mullvad's egress echo";
+              description = "am.i.mullvad.net did not answer from {{ $labels.host }}. The route-walk verdict is unaffected; this only removes the corroboration that the tunnel really lands on Mullvad.";
+            };
+          }
+          {
+            # One alert per family: a missing family breaks that family's
+            # return path on its own (issue #55 review).
+            alert = "ExitNodeRouteFixMissing";
+            expr = "exit_node_route_fix_present == 0";
+            for = "2m";
+            labels = {
+              severity = "critical";
+              tier = "service";
+            };
+            annotations = {
+              summary = "tailnet-route-fix rules missing or outranked on {{ $labels.host }} ({{ $labels.fam }})";
+              description = "The proto-66 tailnet rule is absent or sits at/below wg-quick's lookup-51820 rule, so exit-node return traffic is swallowed by wg-quick's Mullvad default route. The unit died or wg-quick restarted without re-running it.";
+            };
+          }
+          {
+            # The incident failure: wg-quick's catch-all above Tailscale's
+            # fwmark exemption strands tailscaled's control stream, DNS
+            # forwarder and DERP conns inside the dead tunnel. Node stays
+            # reachable, exit node is unusable -- invisible to the proto-66
+            # check above (issue #89 review).
+            alert = "ExitNodeFwmarkRouteStranded";
+            expr = "exit_node_fwmark_route_ok == 0";
+            for = "2m";
+            labels = {
+              severity = "critical";
+              tier = "service";
+            };
+            annotations = {
+              summary = "Marked (0x80000) traffic on {{ $labels.host }} routes via wg1, not the LAN";
+              description = "Tailscale's fwmark exemption is outranked by wg-quick's rule: tailscaled's control stream and DERP conns are inside the tunnel they manage. Check `ip route get 1.1.1.1 mark 0x80000` and the rule order.";
+            };
+          }
+          {
+            # A stale handshake is the step before a leak: warn while wg1
+            # still holds its last-known-good state.
+            alert = "ExitNodeWgHandshakeStale";
+            expr = "exit_node_wg_handshake_age_seconds > 300";
+            for = "5m";
+            labels = {
+              severity = "warning";
+              tier = "service";
+            };
+            annotations = {
+              summary = "wg1 handshake on {{ $labels.host }} is over 5 minutes old";
+              description = "The Mullvad tunnel has not re-handshaked recently; when the key expires the tunnel dies and egress falls back to the ISP.";
+            };
+          }
+          {
+            # The GpuMetricsMissing precedent: the scrape target carries
+            # exit_node="true" from the inventory, so this is "a host that
+            # must prove its egress and stopped reporting" -- a dead collector
+            # must page as loudly as a leak, because absence of the proof is
+            # the same operational state.
+            alert = "ExitNodeMetricsMissing";
+            expr = ''
+              (up{job="fleet-node-exporters", exit_node="true"} == 1)
+                unless on (host, instance) (exit_node_egress_is_mullvad)
+            '';
+            for = "10m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "No exit-node egress metrics from {{ $labels.instance }}";
+              description = "{{ $labels.host }} is scraping but exports no exit_node_* metrics: the exit-node-metrics timer is dead, so the ISP-leak guarantee is unmonitored there.";
+            };
+          }
+          {
+            # Freshness, not presence: the textfile collector serves a stale
+            # file forever, so a dead timer would freeze a green egress gauge.
+            alert = "ExitNodeCollectionStale";
+            expr = "time() - exit_node_metrics_timestamp_seconds > 180";
+            for = "5m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "Exit-node metrics from {{ $labels.instance }} have not updated in 3 minutes";
+              description = "exit-node-metrics.timer is not refreshing the textfile, so the egress verdict for {{ $labels.host }} is frozen rather than missing.";
+            };
+          }
+        ];
+      }
+
+      {
         name = "fleet-services";
         rules = [
           {

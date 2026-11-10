@@ -182,6 +182,14 @@ in
       restartUnits = [ "k3s-cluster-secrets.service" ];
     };
 
+    # Bearer token for the exit-node status-page tile (Gatus external
+    # endpoint). download-vm-xps sends it with each push; Gatus validates it.
+    # Same sops file as the exit node's own copy, so the two can never drift.
+    sops.secrets.gatus-exit-node-token = secretFile "exit-node-monitor" // {
+      mode = "0400";
+      restartUnits = [ "k3s-cluster-secrets.service" ];
+    };
+
     services.k3s = {
       # The k3s manifest submodule takes attrs (or lists of them) and renders
       # the YAML itself, so these stay structured data rather than strings.
@@ -438,6 +446,9 @@ in
         kubectl -n monitoring create secret generic grafana-admin \
           --from-literal=admin-user=admin \
           --from-file=admin-password=/run/secrets/grafana-admin-password \
+          --dry-run=client -o yaml | kubectl apply -f -
+        kubectl -n monitoring create secret generic gatus-exit-node-token \
+          --from-file=token=/run/secrets/gatus-exit-node-token \
           --dry-run=client -o yaml | kubectl apply -f -
       '';
     };
