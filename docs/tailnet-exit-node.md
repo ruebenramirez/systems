@@ -57,6 +57,7 @@ Policy rules (lower `pref` = higher priority), IPv4 and IPv6 alike:
 | 0 | `from all` | `lookup local` | kernel |
 | 5208 | `from all` | `lookup main suppress_prefixlength 0` | Tailscale |
 | **5208** | `to 100.64.0.0/10` / `to fd7a:115c:a1e0::/48` | `lookup 52 protocol 66` | **`tailnet-route-fix`** |
+| **5208** | `from all fwmark 0x80000/0xff0000` | `lookup main protocol 66` | **`tailnet-route-fix`** |
 | 5209 | `not from all fwmark 0xca6c` | `lookup 51820` | wg-quick |
 | 5210 / 5230 / 5250 | `from all fwmark 0x80000/0xff0000` | `lookup main` / `default` / `unreachable` | Tailscale |
 | 5270 | `from all` | `lookup 52` | Tailscale |
@@ -82,6 +83,17 @@ rejected as a duplicate (`EEXIST`). Instead, `tailnet-route-fix` reads wg-quick'
 lowest priority at runtime and inserts the tailnet rules **one priority above
 it**, tagged `protocol 66` so teardown only ever removes its own rules.
 
+The same catch-all also outranks Tailscale's `fwmark 0x80000/0xff0000 -> lookup
+main` exemption at 5210, and that one matters more than it looks: `0x80000` is how
+tailscaled keeps *its own* traffic off the paths it creates — the control stream to
+headscale, its DNS forwarder, every DERP conn. Stranded in `51820` those dial into
+the tunnel they manage, so the node goes on answering on the tailnet while its
+control plane black-holes; `PollNetMap: ... context deadline exceeded` in the
+tailscaled log is the fingerprint. The fix pins that exemption above wg-quick too,
+but only for a family with a default route in `main` to fall back to: this host has
+no IPv6 on the LAN, so a v6 rule could never match and is deliberately not
+installed.
+
 ## 3. Mechanisms implementing the routing
 
 - **wg-quick (Mullvad `wg1`)** — `wireguard-tools` brings the tunnel up with
@@ -98,7 +110,8 @@ it**, tagged `protocol 66` so teardown only ever removes its own rules.
   ordered `after wg-quick-wg1.service` and `partOf` it (so it re-runs if the
   tunnel restarts) plus `after tailscaled.service`; derives wg-quick's priority
   and installs the `protocol 66` tailnet-destination rules just above it, for
-  both IPv4 and IPv6.
+  both IPv4 and IPv6, plus the `0x80000` fwmark exemption wherever that family
+  has a default route in `main`.
 - **NixOS firewall** — `networking.firewall.checkReversePath = "loose"`
   (`fib saddr . mark oif exists`) so forwarded reply traffic is not dropped by
   the rpfilter chain.
@@ -110,6 +123,7 @@ Verification after deploying:
 ```shell
 ip -4 rule show        # tailnet rule with `proto 66` sits above wg-quick's
 ip -6 rule show
+ip route get 1.1.1.1 mark 0x80000  # -> via 192.168.8.1 dev eth0, never `dev wg1`
 ip route get 100.64.0.5 from 1.1.1.1 iif wg1   # -> dev tailscale0 table 52
 ip -6 route get fd7a:115c:a1e0::6 from 2606:4700:4700::1111 iif wg1
 ```
