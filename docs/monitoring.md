@@ -294,6 +294,12 @@ never sits in the ConfigMap). Inventory entries for these tiles live in
 `pushStatusEndpoints`, not `services.*` — the probe schema only models active
 probes.
 
+A deploy is held to the same verdict: after a switch on this host, `nup-fleet`
+re-runs this collector and fails the deploy if `exit_node_egress_is_mullvad`,
+`exit_node_route_fix_present` or `exit_node_fwmark_route_ok` is not 1, so a
+config that activates cleanly and then strands the route is a red deploy rather
+than a green deploy plus a page ([ci.md](ci.md), *Post-switch exit-node checks*).
+
 ```console
 $ ssh download-vm-xps 'sudo systemctl start exit-node-metrics && cat /var/lib/node_exporter/textfile/exit-node.prom'
 $ curl -s download-vm-xps.tailnet.rueb.dev:9100/metrics | grep exit_node

@@ -8,7 +8,7 @@ share the `fwai0-builder` concurrency group, because every build must happen on
 | Trigger | Workflow / job | Outcome |
 |---|---|---|
 | PR to `master` (or manual) | `flake check (PR)` / `check` | Validates only; never deploys or pushes |
-| Nightly 03:30 CT, push to `master` (or manual) | `nup-fleet upgrade` / `upgrade` | Re-locks, deploys best-effort, persists the lock |
+| Nightly 03:30 CT, push to `master` (or manual) | `nup-fleet upgrade` / `upgrade` | Re-locks, deploys best-effort, re-probes the exit node after its switch, persists the lock |
 
 ## Invariants
 
@@ -172,6 +172,44 @@ It logs a `::warning::` naming the new system and the host counts as updated.
 Neither half alone is enough: a real activation error still fails, and a host
 that never comes back still fails. The profile is compared against the pre-switch
 value rather than the path just built, so confirming costs no evaluation.
+
+### Post-switch exit-node checks
+
+A switch proves a config activated. It does not prove the exit node is honouring
+its contract, and the two come apart: `tailnet-route-fix` is `RemainAfterExit`,
+so it stays `active` even when wg-quick restarts and re-adds its catch-all above
+the pinned rules — after which the node strands its own tailnet traffic into
+Mullvad with every unit green. Run 280 failed only because a unit died on the
+way up; the slower shape of the same failure activates cleanly.
+
+So after a successful switch — and after a rollback — `nup-fleet` re-runs the
+collector the switch just installed and reads its verdict before it is allowed
+to call the host updated:
+
+```text
+  exit-node checks: egress via wg1, route fix (v4+v6), fwmark exemption
+✓ download-vm-xps updated
+```
+
+Four gauges gate it: `exit_node_egress_is_mullvad`, `exit_node_route_fix_present`
+for both families, and `exit_node_fwmark_route_ok`. Those are exactly the ones
+the alerts and the status tile already agree on, and the failure names are the
+tile's, so the deploy log, the tile and Prometheus describe one outage in one
+vocabulary. `exit_node_egress_probe_ok` and `exit_node_nat_masquerade` are
+deliberately not gates: a Mullvad-side echo failure is not evidence that this
+deploy was wrong.
+
+The host is recognised by the presence of the `exit-node-metrics` unit rather
+than by the inventory, because what matters is what the host actually runs — a
+host without the unit costs one extra ssh round trip and nothing else. An ssh
+that *fails* on that recognition step is not read as "not an exit node": it
+falls into the probe loop and fails closed, because a link that dropped during
+activation is the very case being checked for. Because a switch restarts
+tailscaled and wg-quick, an unsatisfying first probe is retried three times at
+15s; after that the host counts as failed (`✗ <host> failed`, the failing gauges
+and any stderr from the probe printed) and the run exits non-zero like any other
+failed machine. Manual and CI runs take the same path, and there is no bypass
+flag: the state an override would skip is the state the check exists to catch.
 
 ### Pushing over a protected `master`
 

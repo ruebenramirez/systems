@@ -345,6 +345,84 @@ switched_after_connection_drop() {
     return 1
 }
 
+# What a switch cannot prove about the exit node.
+#
+# A config can activate with every unit green and still strand the tailnet.
+# wg-quick re-adds its catch-all above the pinned rules whenever it restarts,
+# and the unit that pins them stays `active` (RemainAfterExit) whether or not
+# the rules survived -- that is the #55 shape, and what #90 caught live: the
+# deploy reported a switch and the node was unreachable to every peer. So the
+# collector the switch just installed is re-run and its verdict read before the
+# host may be called updated.
+#
+# The four gauges are the ones the alerts and the status tile already agree on,
+# and the failure names are the tile's, so the deploy log, the tile and
+# Prometheus describe one outage in one vocabulary. `egress_probe_ok` and
+# `nat_masquerade` are deliberately not gates: a Mullvad-side echo failure or a
+# corroboration gauge is not evidence that this deploy was wrong.
+#
+# The unit's presence is the trigger rather than an inventory lookup, because
+# what matters is what the host actually runs.
+verify_exit_node() {
+    local hostname="$1"
+    local target; target="$(ssh_target "$hostname")"
+    # An absent unit means "not an exit node"; an ssh that never ran means the
+    # opposite, so the two must not share a branch. `ssh | grep || return 0`
+    # would take a dropped link -- the thing that happens during a switch -- as
+    # "not an exit node" and skip the gate on the one host that needs it.
+    local unit_files
+    if unit_files="$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$target" \
+            'systemctl list-unit-files --no-legend exit-node-metrics.service' 2>/dev/null)" \
+       && ! grep -q exit-node-metrics <<<"$unit_files"; then
+        return 0
+    fi
+
+    # The textfile dir is `my.monitoring.textfileDir` on the host; no host
+    # overrides it, so the path is spelled out rather than discovered.
+    local raw metrics bad attempt=1 pair err
+    while :; do
+        bad=()
+        # stderr is kept with the metrics: when `sudo systemctl start` itself
+        # fails, that text is the whole explanation of a red deploy.
+        raw="$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$target" \
+            'sudo systemctl start exit-node-metrics && cat /var/lib/node_exporter/textfile/exit-node.prom' 2>&1)"
+        metrics="$(printf '%s\n' "$raw" | grep '^exit_node' || true)"
+        err="$(printf '%s\n' "$raw" | grep -vE '^(exit_node|#)|^[[:space:]]*$' | head -3 | tr '
+' ' ' || true)"
+        if [[ -z "$metrics" ]]; then
+            bad+=("collector-produced-nothing")
+        else
+            # `<gauge>:<reason>` -- the reason is the status tile's word for the
+            # same failure, so the deploy log and the tile read as one outage.
+            for pair in 'exit_node_egress_is_mullvad:egress-not-via-wg1' \
+                        'exit_node_route_fix_present{fam="ipv4"}:route-fix-missing-ipv4' \
+                        'exit_node_route_fix_present{fam="ipv6"}:route-fix-missing-ipv6' \
+                        'exit_node_fwmark_route_ok:fwmark-stranded'; do
+                printf '%s\n' "$metrics" | grep -qxF -- "${pair%%:*} 1" || bad+=("${pair##*:}")
+            done
+        fi
+        if [[ ${#bad[@]} -eq 0 ]]; then
+            echo "  exit-node checks: egress via wg1, route fix (v4+v6), fwmark exemption"
+            return 0
+        fi
+        # A switch restarts tailscaled and wg-quick, so the first probe can land
+        # mid-recovery. Three retries is ~45s, still cheap next to a switch.
+        if (( attempt >= 4 )); then
+            break
+        fi
+        echo "  exit-node checks not satisfied yet (${bad[*]}); retrying in 15s..."
+        sleep 15
+        attempt=$((attempt + 1))
+    done
+    echo "error: $hostname switched cleanly but its exit-node checks failed: ${bad[*]}" >&2
+    if [[ -n "$err" ]]; then
+        echo "  probe said: $err" >&2
+    fi
+    printf '%s\n' "$metrics" \
+        | grep -E '^exit_node_(egress_is_mullvad|route_fix_present|fwmark_route_ok)' >&2
+    return 1
+}
+
 # Machines that failed this run. `all` keeps going past a failure so one
 # broken host does not leave the rest of the fleet un-deployed, then exits
 # non-zero so CI still reports the failure.
@@ -393,6 +471,12 @@ update_machine() {
     fi
     rm -f "$switch_log"
     if [[ "$rc" -ne 0 ]]; then
+        echo "✗ $hostname failed" >&2
+        FAILED+=("$hostname")
+        return 1
+    fi
+    # A green activation is not the contract; see verify_exit_node.
+    if ! verify_exit_node "$hostname"; then
         echo "✗ $hostname failed" >&2
         FAILED+=("$hostname")
         return 1
@@ -734,6 +818,10 @@ rollback_machine() {
     fi
     echo "Generations on $hostname after rollback:"
     system_generations "$hostname" || true
+    if ! verify_exit_node "$hostname"; then
+        echo "✗ $hostname rolled back but its exit-node checks failed" >&2
+        return 1
+    fi
     echo "✓ $hostname rolled back"
 }
 
