@@ -59,15 +59,19 @@
         ip "$fam" rule del "$@" protocol 66 2>/dev/null || true
         ip "$fam" rule add "$@" pref "$pref" protocol 66
       }
+      # IPv4 first, and every IPv4 pin before any IPv6 one. The two families are
+      # independent, but a failure partway through strands whatever came after
+      # it: a missing `to` in the v6 selector once took the v4 tailnet rule with
+      # it and the node went offline on the tailnet entirely.
       pin_above_wg_quick -4 to 100.64.0.0/10 lookup 52
-      pin_above_wg_quick -6 fd7a:115c:a1e0::/48 lookup 52
-
       # The fwmark exemption only does something on a family that has a default
       # route in `main` to fall back to. On this host IPv6 exists only inside the
       # tunnels, so a v6 rule could never match and would only pretend to fix v6.
       if [ -n "$(ip -4 route show table main default)" ]; then
         pin_above_wg_quick -4 fwmark 0x80000/0xff0000 lookup main
       fi
+
+      pin_above_wg_quick -6 to fd7a:115c:a1e0::/48 lookup 52
       if [ -n "$(ip -6 route show table main default)" ]; then
         pin_above_wg_quick -6 fwmark 0x80000/0xff0000 lookup main
       fi
