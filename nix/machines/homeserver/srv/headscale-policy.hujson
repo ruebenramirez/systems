@@ -14,6 +14,13 @@
   },
   "autoApprovers": { "exitNode": ["tag:exit"] },
 
+  // `tag:exit` (download-vm-xps) deliberately gets no outbound grant: an exit
+  // node is a position that should not gain the ability to dial the tailnet.
+  // That is why its own status-page heartbeat is pushed from inside the cluster
+  // by reading its Prometheus series (docs/monitoring.md, "Exit-node metrics";
+  // rationale and live proof in issue #90) -- do not "fix" the tile by adding a
+  // grant here.
+
   "grants": [
     { "src": ["group:admins"],     "dst": ["group:admins"],     "ip": ["*"] },
     { "src": ["group:admins"],     "dst": ["tag:exit"],         "ip": ["*"] },
