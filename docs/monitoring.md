@@ -25,7 +25,7 @@ is **one edit there**, and the following all follow on the next deploy:
 | `fleet-node-exporters` scrape job | Prometheus |
 | blackbox modules + probe jobs (`blackbox-http`, `blackbox-tcp`, `blackbox-imap`) | blackbox exporter |
 | status page endpoints, groups, and alert routing | Gatus |
-| `pushStatusEndpoints` → push-based (external) status tiles | Gatus |
+| `pushStatusEndpoints` → push-based (external) status tiles | Gatus, fed by the `exit-node-status-push` CronJob |
 | dashboard template variables | Grafana |
 | `gpu = true` on a host → scrape target label, GPU alerts | Prometheus (see *GPU metrics*) |
 | `exitNode = true` on a host → scrape target label, exit-node alerts | Prometheus (see *Exit-node metrics*) |
@@ -47,7 +47,7 @@ storage row generated from `zfsPools`, come from the inventory.
 |---|---|
 | `nix/lib/inventory.nix` | hosts, services, probes, status endpoints, scrape targets, ZFS pools |
 | `nix/machines/_common/monitoring.nix` | node exporter (plus the GPU textfile collector) + firewall scoping, imported per machine |
-| `nix/machines/_common/exit-node-monitor.nix` | exit-node egress probe (textfile collector + status-page push) on the exit node |
+| `nix/machines/_common/exit-node-monitor.nix` | exit-node egress probe (textfile collector) on the exit node |
 | `nix/machines/_common/monitoring-stack/` | generated scrape config, alert rules, dashboards, k8s manifests |
 | `nix/machines/_common/services/k3s-cluster.nix` | the 3-node k3s control plane that hosts the stack |
 | `nix/machines/_common/services/k3s-nfs-pvc.nix` | NFS-backed `StorageClass` for stateful monitoring |
@@ -271,22 +271,34 @@ guard for that class.
 | `exit_node_wg_handshake_age_seconds` | `wg1` last handshake age | `ExitNodeWgHandshakeStale` (warn, > 5 min) |
 | `exit_node_metrics_timestamp_seconds` | collector freshness | `ExitNodeCollectionStale`; `ExitNodeMetricsMissing` when the series vanish while the host scrapes |
 
-The same verdict also drives a **push-based status tile**: Gatus cannot ask
-"is this node's egress Mullvad" from the cluster, so the collector POSTs each
-result to `https://status.rueb.dev/api/v1/endpoints/network_exit-node/external`
-(Gatus external endpoint; token in sops `exit-node-monitor`, seeded into the
-cluster by `k3s-cluster-secrets` and injected as `GATUS_EXIT_NODE_TOKEN` —
-Gatus expands env vars in its config, so the token never sits in the
-ConfigMap). `heartbeat.interval = 5m` means the tile flips DOWN when pushes
-stop, not just when they report failure — a dead collector cannot freeze the
-tile green. The push itself rides the tailnet route-fix rules, so a route-fix
-failure also shows up as a missed heartbeat. Inventory entries for these live
-in `pushStatusEndpoints`, not `services.*` — the probe schema only models
-active probes.
+The same verdict drives a **push-based status tile**, but the push does not come
+from the node: the tailnet policy grants `tag:exit` nothing outbound, so the
+exit node can receive from any peer and dial none (see
+[tailnet-exit-node.md](tailnet-exit-node.md)). Instead a CronJob in the cluster,
+`exit-node-status-push` (generated beside the Gatus manifests in
+`_common/monitoring-stack/manifests.nix`), reads the series above back out of
+Prometheus every minute and POSTs the verdict to Gatus's external-endpoint API
+over cluster DNS. Each check is an instant query whose result vector is empty
+exactly when the check fails — `min(<gauge>) == 1` for the three verdicts, and
+`time() - exit_node_metrics_timestamp_seconds < 180` for freshness — so a
+collector that stops writing starves the tile instead of freezing it green, and
+a Prometheus that cannot answer is reported as `prometheus-unreachable` rather
+than as a leak. Nothing on the tailnet gains outbound access to monitoring.
+
+The tile's `heartbeat.interval = 5m` means it flips DOWN when pushes stop, not
+only when they report failure, so a dead pusher is visible too. The push token
+lives in sops `exit-node-monitor`, is seeded into the cluster by
+`k3s-cluster-secrets`, and reaches both Gatus and the CronJob as
+`GATUS_EXIT_NODE_TOKEN` (Gatus expands env vars in its config, so the token
+never sits in the ConfigMap). Inventory entries for these tiles live in
+`pushStatusEndpoints`, not `services.*` — the probe schema only models active
+probes.
 
 ```console
 $ ssh download-vm-xps 'sudo systemctl start exit-node-metrics && cat /var/lib/node_exporter/textfile/exit-node.prom'
 $ curl -s download-vm-xps.tailnet.rueb.dev:9100/metrics | grep exit_node
+# the pusher's own verdict, and why a tile is DOWN:
+$ sudo kubectl -n monitoring logs -l app.kubernetes.io/name=exit-node-status-push --tail=20
 ```
 
 ## Access

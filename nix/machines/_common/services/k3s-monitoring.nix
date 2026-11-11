@@ -43,6 +43,7 @@ let
   stackManifests = import ../monitoring-stack/manifests.nix {
     inherit
       inventory
+      lib
       mail
       urls
       ;
@@ -111,6 +112,9 @@ in
       default = {
         blackbox = "quay.io/prometheus/blackbox-exporter:v0.29.1";
         gatus = "ghcr.io/twin/gatus:v5.38.0";
+        # curl + sh, nothing else: the exit-node status pusher's checks are
+        # PromQL queries, so there is no JSON to parse in the container.
+        exitNodeStatusPush = "docker.io/curlimages/curl:8.23.0";
       };
       description = "Pinned images for the generated manifests.";
     };
@@ -197,6 +201,7 @@ in
         "monitoring-namespace".content = stackManifests.namespace;
         "blackbox-exporter".content = stackManifests.blackbox;
         "gatus".content = stackManifests.gatus;
+        "exit-node-status-push".content = stackManifests.exitNodeStatusPush;
         "monitoring-ingress".content = stackManifests.ingresses;
       }
       // (builtins.listToAttrs (

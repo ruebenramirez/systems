@@ -166,8 +166,19 @@ The contract above is watched continuously by
 [monitoring.md](monitoring.md)): a 60s probe on this node publishes
 `exit_node_egress_is_mullvad`, `exit_node_route_fix_present{fam}`, and
 `exit_node_wg_handshake_age_seconds` through the node_exporter textfile
-collector, and pushes the same verdict to the `network/exit-node` tile on
-`status.rueb.dev`. The leak page is `ExitNodeEgressNotMullvad`; a dead
+collector.
+
+The `network/exit-node` tile on `status.rueb.dev` is fed from the cluster side,
+never from this node. The tailnet policy has no `src: ["tag:exit"]` grant, so
+the node may be reached by peers but may not initiate to any of them: the
+route-fix rules put a SYN to `100.64.0.15` on `tailscale0` correctly and the
+peer's own filter drops it with no reply at all (`tailscale ping` still gets a
+pong, because disco pings never consult the filter). Prometheus scrapes the
+node inbound, so the `exit-node-status-push` CronJob reads these series back
+out of Prometheus and POSTs the tile heartbeat from inside the cluster; that
+keeps an isolated exit node from needing outbound tailnet access.
+
+The leak page is `ExitNodeEgressNotMullvad`; a dead
 collector pages too (`ExitNodeMetricsMissing` / `ExitNodeCollectionStale` /
 the tile's heartbeat), because absence of the proof is the same operational
 state as a leak.

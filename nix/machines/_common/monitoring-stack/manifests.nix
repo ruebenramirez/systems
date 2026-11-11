@@ -6,6 +6,7 @@
 # the namespace both live in.
 {
   inventory,
+  lib,
   urls,
   mail,
   images,
@@ -263,12 +264,13 @@ let
     };
     "remote-timeout" = "15s";
     # Push-based tiles (inventory.pushStatusEndpoints): Gatus cannot probe
-    # "is the exit node's egress Mullvad" from the cluster -- only the node
-    # itself can answer -- so the node POSTs each verdict and Gatus marks the
-    # tile DOWN when pushes stop (heartbeat). Gatus runs os.ExpandEnv over its
-    # config before parsing, so the token rides in as a Secret-backed env var
-    # rather than sitting in the ConfigMap; it only grants writing this one
-    # tile's status.
+    # "is the exit node's egress Mullvad" -- only the node itself can answer --
+    # so the node writes the answer to its textfile collector, Prometheus reads
+    # it, and the job below POSTs the verdict here. Gatus marks the tile DOWN
+    # when pushes stop (heartbeat) as well as when they report failure.
+    # Gatus runs os.ExpandEnv over its config before parsing, so the token
+    # rides in as a Secret-backed env var rather than sitting in the ConfigMap;
+    # it only grants writing this one tile's status.
     external-endpoints = map (e: {
       name = e.name;
       group = e.group;
@@ -487,6 +489,221 @@ let
     }
   ];
 
+  # ---- push-based status tile -------------------------------------------
+  # The exit node cannot push its own status tile: the tailnet policy grants
+  # `tag:exit` nothing outbound, so the node may receive from any peer but can
+  # never dial one -- a node-side POST to status.rueb.dev goes out `tailscale0`
+  # and is dropped by the peer's filter with no reply at all (issue #90). So
+  # the direction is inverted: Prometheus already scrapes the node inbound,
+  # and this job reads those series back out of Prometheus and POSTs the
+  # verdict to Gatus over cluster DNS. Nothing on the tailnet gains outbound
+  # access, and a collector that stops writing starves the tile instead of
+  # freezing it green.
+  #
+  # Today there is exactly one push tile and its checks are exit-node-specific,
+  # so the job is written for that one tile; the key comes from the inventory so
+  # the tile and the pusher cannot drift apart.
+  exitNodePushTile = builtins.head inventory.pushStatusEndpoints;
+
+  # Gatus's endpoint key is `<group>_<name>`, lowercase, spaces as underscores.
+  exitNodePushKey =
+    lib.toLower (builtins.replaceStrings [ " " ] [ "_" ] "${exitNodePushTile.group}_${exitNodePushTile.name}");
+
+  # A healthy sample is at most one collector interval plus one scrape old
+  # (60s + 30s); 180s is three missed collector ticks, which is what "stale"
+  # has to mean before it is a real outage rather than a slow run.
+  exitNodePushStaleAfter = "180";
+
+  exitNodePushScript = ''
+    set -eu
+
+    prom=$PROM_URL
+    gatus=$GATUS_URL
+    key=$EXIT_NODE_KEY
+    stale_after=$STALE_AFTER_SECONDS
+    # A literal $ in a Nix indented string is two single quotes before it; `$$`
+    # is no escape -- Nix emits it and bash reads the PID (issue #90 item 1).
+    token=''${GATUS_EXIT_NODE_TOKEN:-}
+
+    reason=""
+
+    fail() {
+      if [ -z "$reason" ]; then
+        reason="$1"
+      else
+        reason="$reason,$1"
+      fi
+    }
+
+    # Each check is an instant query whose result vector is non-empty exactly
+    # when the check passes: `min(<gauge>) == 1` drops the series when the
+    # gauge reads 0 *or* when it is gone entirely (host down, collector dead,
+    # series expired), so absence is the failure and there is no JSON to parse.
+    passes() {
+      curl -fsS -m 10 -G --data-urlencode "query=$1" "$prom/api/v1/query" 2>/dev/null \
+        | grep -q '"result":\[{'
+    }
+
+    if ! curl -fsS -m 10 "$prom/-/ready" >/dev/null 2>&1; then
+      # Fail closed: an unreadable Prometheus is never reported as a healthy
+      # exit node, and naming it beats labelling the outage as a leak.
+      fail prometheus-unreachable
+    else
+      if ! passes 'min(exit_node_egress_is_mullvad) == 1'; then
+        fail egress-not-via-wg1
+      fi
+      if ! passes 'min(exit_node_route_fix_present) == 1'; then
+        fail route-fix-missing
+      fi
+      if ! passes 'min(exit_node_fwmark_route_ok) == 1'; then
+        fail fwmark-stranded
+      fi
+      if ! passes "time() - min(exit_node_metrics_timestamp_seconds) < $stale_after"; then
+        fail collector-stale
+      fi
+    fi
+
+    if [ -z "$token" ]; then
+      echo 'exit-node-status-push: GATUS_EXIT_NODE_TOKEN is empty; cannot push' >&2
+      exit 1
+    fi
+
+    if [ -z "$reason" ]; then
+      query='success=true'
+    else
+      # Gatus shows this on the tile; keep it URL-safe.
+      safe=$(printf '%s' "$reason" | tr -c 'A-Za-z0-9._-' '_')
+      query="success=false&error=$safe"
+    fi
+
+    code=$(curl -sS -o /dev/null -w '%{http_code}' -m 10 -X POST \
+      -H "Authorization: Bearer $token" \
+      "$gatus/api/v1/endpoints/$key/external?$query" 2>/dev/null || echo no-response)
+
+    if [ "$code" != 200 ]; then
+      echo "exit-node-status-push: gatus returned $code" >&2
+      exit 1
+    fi
+  '';
+
+  exitNodeStatusPush = [
+    {
+      apiVersion = "v1";
+      kind = "ConfigMap";
+      metadata = {
+        name = "exit-node-status-push";
+        namespace = ns;
+        labels = labels // {
+          "app.kubernetes.io/name" = "exit-node-status-push";
+        };
+      };
+      data = {
+        "push.sh" = exitNodePushScript;
+      };
+    }
+    {
+      apiVersion = "batch/v1";
+      kind = "CronJob";
+      metadata = {
+        name = "exit-node-status-push";
+        namespace = ns;
+        labels = labels // {
+          "app.kubernetes.io/name" = "exit-node-status-push";
+        };
+      };
+      spec = {
+        # Well inside the tile's heartbeat, so the tile only goes DOWN once the
+        # pusher has failed several times over, not on one missed minute.
+        schedule = "* * * * *";
+        concurrencyPolicy = "Forbid";
+        startingDeadlineSeconds = 30;
+        successfulJobsHistoryLimit = 1;
+        failedJobsHistoryLimit = 3;
+        jobTemplate.spec = {
+          backoffLimit = 0;
+          # Worst case is five 10s curls; the deadline is the backstop, and
+          # `Forbid` means a slow run skips a tick rather than overlapping.
+          activeDeadlineSeconds = 90;
+          template = {
+            metadata.labels = labels // {
+              "app.kubernetes.io/name" = "exit-node-status-push";
+            };
+            spec = {
+              restartPolicy = "Never";
+              automountServiceAccountToken = false;
+              containers = [
+                {
+                  name = "push";
+                  # curl + sh and nothing else: the checks are answered by
+                  # PromQL, so there is no JSON to parse here.
+                  image = images.exitNodeStatusPush;
+                  # The image's entrypoint is curl itself.
+                  command = [ "/bin/sh" "/config/push.sh" ];
+                  env = [
+                    {
+                      name = "PROM_URL";
+                      value = "http://prometheus-operated.${ns}.svc.cluster.local:9090";
+                    }
+                    {
+                      name = "GATUS_URL";
+                      value = "http://gatus.${ns}.svc.cluster.local";
+                    }
+                    {
+                      name = "EXIT_NODE_KEY";
+                      value = exitNodePushKey;
+                    }
+                    {
+                      name = "STALE_AFTER_SECONDS";
+                      value = exitNodePushStaleAfter;
+                    }
+                    # Same Secret Gatus validates against, seeded by
+                    # k3s-cluster-secrets. optional: true so an unseeded Secret
+                    # fails this one job loudly instead of wedging the pod.
+                    {
+                      name = "GATUS_EXIT_NODE_TOKEN";
+                      valueFrom.secretKeyRef = {
+                        name = "gatus-exit-node-token";
+                        key = "token";
+                        optional = true;
+                      };
+                    }
+                  ];
+                  resources = {
+                    requests = {
+                      cpu = "10m";
+                      memory = "32Mi";
+                    };
+                    limits.memory = "64Mi";
+                  };
+                  securityContext = {
+                    runAsNonRoot = true;
+                    runAsUser = 100;
+                    readOnlyRootFilesystem = true;
+                    allowPrivilegeEscalation = false;
+                    capabilities.drop = [ "ALL" ];
+                  };
+                  volumeMounts = [
+                    {
+                      name = "script";
+                      mountPath = "/config";
+                      readOnly = true;
+                    }
+                  ];
+                }
+              ];
+              volumes = [
+                {
+                  name = "script";
+                  configMap.name = "exit-node-status-push";
+                }
+              ];
+            };
+          };
+        };
+      };
+    }
+  ];
+
   namespace = [
     {
       apiVersion = "v1";
@@ -578,6 +795,7 @@ in
     namespace
     blackbox
     gatus
+    exitNodeStatusPush
     ingresses
     ;
 

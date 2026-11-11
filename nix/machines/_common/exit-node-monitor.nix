@@ -5,8 +5,15 @@
 # tailnet-route-fix rules vanish, forwarded traffic just egresses eth0. This
 # module runs a periodic probe on the node itself (the only place the question
 # can be answered), publishes the answer as textfile-collector gauges for the
-# fleet Prometheus, and pushes the same verdict to the Gatus status page as an
-# external (push-based) tile.
+# fleet Prometheus.
+#
+# The status-page tile is fed from the cluster side, never from here: the
+# tailnet policy gives `tag:exit` no outbound grants, so this node can receive
+# from peers but can never dial one -- every node-side push timed out with no
+# reply at all (issue #90). The heartbeat is pushed by the in-cluster job in
+# _common/monitoring-stack/manifests.nix, which reads these same series back
+# out of Prometheus, so a dead collector starves the tile instead of freezing it
+# green.
 #
 # Verdict source (issue #89 review): the route walk itself, not an external
 # echo. `ip route get <probe-addr>` runs the same ip-rule walk that locally
@@ -27,7 +34,6 @@
   config,
   lib,
   pkgs,
-  secretFile,
   ...
 }:
 let
@@ -67,7 +73,6 @@ let
     # Any public v4 address works: the question is which interface the kernel
     # route walk picks, not who answers.
     probe_addr=1.1.1.1
-    egress_reason=""
 
     # ---- egress verdict: does the route walk reach wg1? --------------------
     # The leak condition is exactly "wg1 gone or wg-quick's rule preempted ->
@@ -77,8 +82,6 @@ let
     is_mullvad=0
     if ip -4 route get "$probe_addr" 2>/dev/null | grep -qE '(^|[[:space:]])dev wg1([[:space:]]|$)'; then
       is_mullvad=1
-    else
-      egress_reason="egress-not-via-wg1"
     fi
     printf 'exit_node_egress_is_mullvad %d\n' "$is_mullvad" >> "$tmp"
 
@@ -208,43 +211,6 @@ let
     done < "$tmp"
     chmod 0644 "$tmp"
     mv "$tmp" "$out_dir/exit-node.prom"
-
-    # ---- status page push -----------------------------------------------
-    # The tile answers "is the exit node honouring its contract", so a
-    # missing route-fix counts as DOWN even when egress still reads Mullvad:
-    # return traffic is being swallowed and the exit node is broken anyway.
-    # The push itself rides the tailnet route-fix rules (status.rueb.dev is a
-    # tailnet address), so a route-fix failure also shows up as a missed
-    # heartbeat on the tile -- a free cross-check of the same failure.
-    token=$(cat ${config.sops.secrets.gatus-exit-node-token.path} 2>/dev/null)
-    if [ -n "$token" ]; then
-      if [ "$is_mullvad" = 1 ] && [ "$route4" = 1 ] && [ "$route6" = 1 ]; then
-        success=true
-        reason=ok
-      else
-        success=false
-        if [ -n "$egress_reason" ]; then
-          reason="$egress_reason"
-        else
-          reason="route-fix-missing"
-        fi
-      fi
-      # Gatus reads the error from the query string; keep it URL-safe.
-      reason=$(printf '%s' "$reason" | tr -c 'A-Za-z0-9._-' '_')
-      query="success=$${success}"
-      if [ "$success" = false ]; then
-        query="$query&error=$${reason}"
-      fi
-      code=$(curl -sS -o /dev/null -w '%{http_code}' -m 10 -X POST \
-        -H "Authorization: Bearer ***" \
-        "${cfg.gatusUrl}/api/v1/endpoints/network_exit-node/external?$${query}" \
-        2>/dev/null)
-      if [ "$code" != 200 ]; then
-        printf 'exit-node-metrics: gatus push returned %s\n' "$${code:-no-response}" >&2
-      fi
-    else
-      printf 'exit-node-metrics: no push token; skipping status page update\n' >&2
-    fi
   '';
 in
 {
@@ -254,19 +220,13 @@ in
       # Same inventory-driven default as gpu/llm: importing the module must
       # not switch monitoring on by itself (issue #89 review).
       default = self.exitNode or false;
-      description = "Probe exit-node egress identity and publish it to Prometheus and the status page.";
+      description = "Probe exit-node egress identity and publish it to the fleet Prometheus.";
     };
 
     interval = lib.mkOption {
       type = lib.types.str;
       default = "60s";
       description = "Probe cadence; matches the blackbox scrape cadence and sits well inside the alert windows.";
-    };
-
-    gatusUrl = lib.mkOption {
-      type = lib.types.str;
-      default = "https://status.rueb.dev";
-      description = "Gatus base URL the tile result is pushed to (tailnet-only name).";
     };
   };
 
@@ -298,16 +258,9 @@ in
     # directory once this is set.
     my.monitoring.exporters.textfile.enable = true;
 
-    # The push token: same secret the k3s servers seed into Gatus (see
-    # services/k3s-monitoring.nix); one value, two consumers.
-    sops.secrets.gatus-exit-node-token = secretFile "exit-node-monitor" // {
-      mode = "0400";
-    };
-
     systemd.services.exit-node-metrics = {
-      description = "Probe exit-node egress identity for the textfile collector and the status page";
-      after = [ "network-online.target" "sops-install-secrets.service" ];
-      wants = [ "sops-install-secrets.service" ];
+      description = "Probe exit-node egress identity for the textfile collector";
+      after = [ "network-online.target" ];
       # Root: `wg show` reads a root-only socket.
       serviceConfig = {
         Type = "oneshot";
