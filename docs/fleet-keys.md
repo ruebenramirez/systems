@@ -260,12 +260,14 @@ Outside sops, outside this repo's reach, and therefore invisible to
 | `pi-syncoid-target:/persist/secrets/syncoid-replication/id_ed25519_nop` | no-passphrase ZFS replication key | documented gap; move into sops |
 | `ssdnodes-1` WordPress containers (`:8011`, `:8012`) | `wp-config.php` DB password + auth salts | no declarative home at all |
 | headscale SQLite (`/var/lib/headscale`) | node keys, pre-auth key set | rotate via the `headscale` CLI, not sops |
-| `openrouter-client-homeserver.yaml` | OpenRouter key used by OpenWebUI | in sops but declared by nothing: `check-sops-secrets.sh` warns on it, and OpenWebUI holds its own copy — rotate in the OpenRouter dashboard and update both |
+| `openrouter-client-homeserver.yaml` | OpenRouter key for the removed OpenWebUI | orphaned by #98: revoke the key in the OpenRouter dashboard, then delete the file from systems-secrets |
 
 The last row is a different failure mode from the rest: the credential is
 encrypted with the right recipients, but no `sops.secrets` entry reads it, so no
-host ever decrypts it. The file exists to stop the value being lost, not to
-deliver it; a rotation has to be done in the dashboard *and* in the file.
+host ever decrypts it. With OpenWebUI gone there is no consumer left, but the
+key itself is live at the provider — deleting the sops file only removes the
+repo's copy. Revoke it in the OpenRouter dashboard first, then delete the file
+from systems-secrets.
 
 ## See also
 

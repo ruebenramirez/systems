@@ -60,7 +60,7 @@
         # Override `python313` (not `python3`): nixpkgs derives `python3`,
         # `python3Packages` and `python313Packages` from `python313`, so
         # overriding the alias alone does not reach real consumers such as
-        # open-webui or ocrmypdf. `python3` follows `python313` automatically.
+        # ocrmypdf. `python3` follows `python313` automatically.
         (final: prev: {
           python313 = prev.python313.override {
             packageOverrides = pfinal: pprev: {

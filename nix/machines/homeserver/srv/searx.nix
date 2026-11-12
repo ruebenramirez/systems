@@ -26,7 +26,7 @@
         port = 11188;
         secret_key = "@SEARXNG_SECRET@";
 
-        # Private local service for Open WebUI.
+        # Private local service; not a public instance.
         limiter = false;
         public_instance = false;
       };
