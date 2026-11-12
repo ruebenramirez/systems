@@ -201,8 +201,11 @@ deploy was wrong.
 
 The host is recognised by the presence of the `exit-node-metrics` unit rather
 than by the inventory, because what matters is what the host actually runs — a
-host without the unit costs one extra ssh round trip and nothing else. An ssh
-that *fails* on that recognition step is not read as "not an exit node": it
+host without the unit costs one extra ssh round trip and nothing else. That
+recognition must normalise `list-unit-files`' exit code: systemctl exits 1 when
+the pattern matches nothing (ENOENT since v246), and without `; true` every
+non-exit-node host reads as a dead link and fails closed (nightlies 225/227).
+An ssh that *fails* on that recognition step is not read as "not an exit node": it
 falls into the probe loop and fails closed, because a link that dropped during
 activation is the very case being checked for. Because a switch restarts
 tailscaled and wg-quick, an unsatisfying first probe is retried three times at

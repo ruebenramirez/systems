@@ -371,8 +371,12 @@ verify_exit_node() {
     # would take a dropped link -- the thing that happens during a switch -- as
     # "not an exit node" and skip the gate on the one host that needs it.
     local unit_files
+    # `list-unit-files` exits 1 when the pattern matches nothing (systemd
+    # returns ENOENT since v246), so the remote command normalizes that with
+    # `; true`: it masks systemctl's no-match status only. An ssh that never
+    # ran still exits 255 and still falls into the probe loop.
     if unit_files="$(ssh -o BatchMode=yes -o ConnectTimeout=10 "$target" \
-            'systemctl list-unit-files --no-legend exit-node-metrics.service' 2>/dev/null)" \
+            'systemctl list-unit-files --no-legend exit-node-metrics.service; true' 2>/dev/null)" \
        && ! grep -q exit-node-metrics <<<"$unit_files"; then
         return 0
     fi
