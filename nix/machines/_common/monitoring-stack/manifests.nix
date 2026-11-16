@@ -289,9 +289,10 @@ let
         from = mail.from;
         to = mail.to;
         host = mail.smtpHostAddr;
-        port = 25;
-        # Stalwart's MX listener does not advertise STARTTLS on the tailnet and
-        # the traffic never leaves the network, so plaintext is deliberate.
+        port = mail.smtpPort;
+        # Stalwart's internal listener does not advertise STARTTLS on the
+        # tailnet and the traffic never leaves the network, so plaintext is
+        # deliberate.
         starttls = false;
         "html-content" = false;
       };

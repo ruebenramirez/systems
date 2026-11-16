@@ -2,8 +2,9 @@
 
 {
   # Stalwart is the MX for rueb.dev and binds [::]:25, so alert mail is submitted
-  # to it over loopback. Local recipients are delivered by Stalwart's own queue
-  # and never traverse the SMTP2GO outbound route.
+  # to its internal listener (port 2525) over loopback. Local recipients are
+  # delivered by Stalwart's own queue and never traverse the SMTP2GO outbound
+  # route. The internal listener is exempt from SPF/spam checks; port 25 is not.
   environment.etc."msmtprc" = {
     mode = "0644";
     text = ''
@@ -16,7 +17,7 @@
 
       account localhost
       host localhost
-      port 25
+      port 2525
 
       account default : localhost
     '';

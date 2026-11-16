@@ -1,16 +1,32 @@
-{ ... }:
+{ pkgs, tailnet, ... }:
 
 {
-  # Postfix is already installed here as the rueb.dev MX relay, so its sendmail
-  # wrapper is the alert transport.
+  # Alert mail goes out via msmtp straight to Stalwart's internal listener
+  # (port 2525) over the tailnet, bypassing this host's postfix MX relay:
+  # unauthenticated fleet mail is exempt from SPF/spam checks on that listener,
+  # and transport_maps cannot distinguish local alerts from relayed public mail.
   #
-  # Caveat observed while testing: mail submitted from this host fails SPF, DKIM
-  # and DMARC checks on the Stalwart side (it is accepted as ham today, but a
-  # stricter policy would start dropping alerts). Worth signing outbound or
-  # marking the tailnet relay trusted in Stalwart if alerts ever go missing.
+  # Postfix keeps handling this host's relay duty (public MX -> Stalwart :25).
+  environment.etc."msmtprc" = {
+    mode = "0644";
+    text = ''
+      defaults
+      tls off
+      from root@rueb.dev
+      # Stalwart rejects a bare hostname with "550 Invalid EHLO domain".
+      domain mail.rueb.dev
+
+      account stalwart
+      host ${tailnet.host "homeserver"}
+      port 2525
+
+      account default : stalwart
+    '';
+  };
+
   rueb.failureMail = {
     enable = true;
-    sendmailCmd = "/run/wrappers/bin/sendmail -i -f root@rueb.dev";
+    sendmailCmd = "${pkgs.msmtp}/bin/msmtp --from=root@rueb.dev";
 
     units = [
       "acme-order-renew-derp.rueb.dev.service"

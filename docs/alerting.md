@@ -74,32 +74,32 @@ A happy-path-only test shipped three bugs in the first draft of this:
 `matrix-snapshot.service.service` and alerted on nothing), `%n` already includes
 the suffix, and Stalwart rejects a non-FQDN EHLO with `550 Invalid EHLO domain`.
 
-## Known weakness: alert mail from `ssdnodes-1` fails SPF/DKIM/DMARC
+## Alert mail submits to Stalwart's internal listener (port 2525)
 
-Diagnosis, so nobody re-derives it or "fixes" the wrong thing:
+History: fleet alert mail used to be submitted to Stalwart's MX listener on
+port 25 over the tailnet. Stalwart evaluated the connecting IP (a CGNAT
+tailnet address) against the sender domain's public SPF record, so every
+alert scored `SPF_FAIL`/`DMARC_NA` and landed in Junk. The public SPF record
+(`v=spf1 ip4:172.93.51.14 -all`) authorizes only the VPS's public address,
+and putting carrier-NAT space in it would mean nothing to real receivers.
 
-- `rueb.dev` SPF is `v=spf1 ip4:172.93.51.14 -all` — the VPS's public address is
-  already authorized.
-- Postfix on `ssdnodes-1` relays to Stalwart **over the tailnet**, so Stalwart
-  evaluates the connecting IP as `100.64.0.4`, which is not in the record — hence
-  `smtp.spf-ehlo-fail` / `smtp.spf-from-fail` / `dkim-fail` / `dmarc-fail` on a
-  legitimate local message. It is still delivered (`message-ingest.ham`) because
-  DMARC is `p=quarantine` with relaxed alignment.
+Fix: Stalwart listens on an additional internal SMTP port (2525, tailnet-only
+in the firewall). Stalwart's own defaults already skip SPF/DMARC/IPrev
+verification on any port other than 25; two settings keys complete the
+exemption (`session.auth.require` and `session.data.spam-filter` both key on
+`listener == 'internal'`). All fleet submitters (Alertmanager, Gatus, msmtp
+on homeserver/ssdnodes-1, CI runner mail) point at 2525.
 
-The mail is not unauthenticated; it is authenticated against an address Stalwart
-is not looking at. Options, in increasing order of correctness:
+Deploy order: homeserver first. Every submitter flips to 2525 in the same
+fleet rollout, and a host that flips before homeserver binds 2525 loses its
+alert path silently in the gap (failure-mail has no feedback loop when its
+own transport is down). Switch homeserver with `nixos-rebuild --target-host`
+first, verify 2525 answers, then the submitters.
 
-1. Add `ip4:100.64.0.4` to the SPF record — works, but puts carrier-NAT space in a
-   public SPF record where it means nothing to every other receiver.
-2. Mark `100.64.0.0/10` as a trusted relay in Stalwart so mail from it skips
-   authentication checks. Correct semantics; needs the right key for the installed
-   version.
-3. Submit alerts over authenticated SMTP, so identity comes from auth, not IP.
-
-Deliberately **not** done: alerts are delivered today, and changing public SPF or
-the mail server's trust model to silence a warning on a working path is the same
-class of low-value risk that caused an outage during that session. If it is
-picked up, start from the cause above rather than the symptom.
+The exemption keys on the **listener**, never on the source IP. That matters
+because legitimate public mail also arrives from the tailnet — the
+`ssdnodes-1` MX relay forwards to Stalwart on port 25 — and that path keeps
+full SPF/DKIM/DMARC verification and spam filtering.
 
 ## CI notifications
 

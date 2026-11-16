@@ -858,8 +858,9 @@ let
       smtp_smarthost = mail.smtpHost;
       smtp_hello = mail.heloDomain;
       smtp_from = mail.from;
-      # Submission is to Stalwart's public MX listener over the tailnet; it is
-      # an unauthenticated relay by design, and STARTTLS is not offered there.
+      # Submission is to Stalwart's internal listener (2525) over the tailnet;
+      # unauthenticated fleet mail is exempt from SPF/spam checks there, and
+      # STARTTLS is not required on the tailnet.
       smtp_require_tls = false;
     };
 

@@ -1,11 +1,11 @@
 { config, lib, pkgs, secretFile, ... }:
 
 let
-  # Settings that live in the Stalwart datastore (RocksDB), not in the
-  # generated config file. `services.stalwart.settings` only seeds an empty
-  # store, so anything changed in the WebUI after first boot must be carried
-  # here to survive a rebuild-from-scratch. `server add-config` upserts, so
-  # re-applying converges without duplicating anything.
+  # Settings that live in the Stalwart datastore (RocksDB). The generated
+  # config file wins over the store at startup (boot.rs merges store keys with
+  # or_insert), so file keys override WebUI edits; store keys apply only where
+  # the file is silent (e.g. server.allowed-ip, excluded from local-keys).
+  # `server add-config` upserts, so re-applying converges.
   #
   # These are 0.15.x settings keys. The 1.0 object/plan API that `stalwart-cli
   # apply` speaks does not exist on the 0.15.5 server nixpkgs ships.
@@ -168,6 +168,21 @@ in
           protocol             = "smtp";
         };
 
+        # Internal submission for fleet-generated mail (Alertmanager, Gatus,
+        # msmtp, CI). These hosts submit unauthenticated over the tailnet, so
+        # their connecting IP can never satisfy the public SPF record, and
+        # relaying through the MX listener made every alert SPF_FAIL/DMARC_NA
+        # and land in Junk. On any port other than 25 Stalwart's own defaults
+        # skip SPF/DMARC/IPrev verification, and the spam filter is disabled
+        # for this listener below -- the trusted-relay exemption keys on the
+        # listener, never on the source IP, so public mail on port 25 (which
+        # also arrives from the tailnet, via the ssdnodes-1 MX relay) is still
+        # fully authenticated and filtered.
+        internal = {
+          bind     = [ "[::]:2525" ];
+          protocol = "smtp";
+        };
+
         # Client submission — implicit TLS (SSL/TLS mode in mail clients).
         submissions = {
           bind         = [ "[::]:465" ];
@@ -202,6 +217,32 @@ in
           protocol = "http";
         };
       };
+
+      # Internal listener: fleet-generated mail (Alertmanager, Gatus, msmtp,
+      # CI) is submitted unauthenticated over the tailnet, so the connecting
+      # IP can never satisfy the public SPF record. Stalwart's own defaults
+      # already skip SPF/DMARC/IPrev verification and the EHLO FQDN check on
+      # any port other than 25; these two keys relax the non-25 auth
+      # requirement and exempt the listener from spam filtering. Public mail
+      # (which also arrives over the tailnet, via the ssdnodes-1 MX relay)
+      # keeps full authentication and filtering on the smtp listener.
+      session.auth.require = [
+        { "if" = "listener == 'internal'"; "then" = "false"; }
+        { "if" = "local_port != 25"; "then" = "true"; }
+        { "else" = "false"; }
+      ];
+      session.data.spam-filter = [
+        { "if" = "listener == 'internal'"; "then" = "false"; }
+        { "else" = "true"; }
+      ];
+      # Pin the relay policy explicitly (same as the 0.15.x default): relaying
+      # stays auth-only on every listener, so 2525 can never become an open
+      # relay via a store/WebUI edit or a future default change -- file keys
+      # override the store.
+      session.rcpt.relay = [
+        { "if" = "!is_empty(authenticated_as)"; "then" = "true"; }
+        { "else" = "false"; }
+      ];
 
       # -----------------------------------------------------------------------
       # Outbound relay: SMTP2GO
@@ -301,8 +342,8 @@ in
   # loopback and JMAP 8080 comes from bulwark. Forgejo's own submissions need no
   # rule of their own -- app.ini points at mail.rueb.dev, this machine's own
   # tailnet address, so stalwart sees them from that address rather than from a
-  # container network.
-  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 25 465 587 993 4190 ];
+  # container network. 2525 is the internal alert-submission listener.
+  networking.firewall.interfaces.tailscale0.allowedTCPPorts = [ 25 465 587 993 2525 4190 ];
 
 
   # ---------------------------------------------------------------------------

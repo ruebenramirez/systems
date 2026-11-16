@@ -30,11 +30,14 @@ let
   # One mail description, two consumers: Alertmanager's global SMTP settings and
   # Gatus' own alerting block. Both deliver to the same mailbox by different
   # routes on purpose -- if one path breaks, the other still pages.
-  mail = {
+  # Port 2525 is Stalwart's internal listener: unauthenticated fleet mail is
+  # exempt there, so it no longer trips SPF/DMARC spam scoring (port 25 does).
+  mail = rec {
     from = "alertmanager@rueb.dev";
     to = cfg.alertEmail;
-    smtpHost = "${tailnet.host "homeserver"}:25";
     smtpHostAddr = tailnet.host "homeserver";
+    smtpPort = 2525;
+    smtpHost = "${smtpHostAddr}:${toString smtpPort}";
     # Stalwart rejects a bare hostname ("550 Invalid EHLO domain"), so the HELO
     # has to be a real FQDN -- same constraint homeserver/srv/alerting.nix notes.
     heloDomain = cfg.hosts.alertmanager;

@@ -133,6 +133,18 @@ rec {
       };
       status = false;
     };
+    stalwart-internal-smtp = {
+      host = "homeserver";
+      title = "Stalwart Internal SMTP";
+      group = "mail";
+      probe = {
+        # Connect-only, same rationale as the :25 probe. Every fleet alert
+        # path submits here, so a dead 2525 is a silent monitoring failure.
+        module = "tcp";
+        target = "${tailnet.host "homeserver"}:2525";
+      };
+      status = false;
+    };
     stalwart-submission = {
       host = "homeserver";
       title = "Stalwart Submission";
