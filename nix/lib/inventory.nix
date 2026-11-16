@@ -171,6 +171,15 @@ rec {
         target = "https://webmail.rueb.dev/";
       };
     };
+    chat = {
+      host = "homeserver";
+      title = "Element Web";
+      group = "matrix";
+      probe = {
+        module = "http";
+        target = "https://chat.rueb.dev/";
+      };
+    };
     forgejo = {
       host = "homeserver";
       title = "Forgejo";

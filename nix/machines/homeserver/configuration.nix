@@ -20,6 +20,7 @@
     ./srv/acme-wildcard.nix
     ./srv/alerting.nix
     ./srv/audiobookshelf.nix
+    ./srv/element-web.nix
     ./srv/firewall.nix
     ./srv/forgejo.nix
     ./srv/freshrss.nix
