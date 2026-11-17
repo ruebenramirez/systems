@@ -1,0 +1,78 @@
+# Regenerates the README commit-volume chart weekly and opens a PR when the
+# data changed. Renders with mermaid-cli on the runner itself -- nothing is
+# built on fwai0, so this workflow deliberately stays out of the
+# fwai0-builder concurrency group. See docs/ci.md.
+name: flake chart refresh
+run-name: "flake chart refresh (${{ github.event_name }})"
+
+on:
+  schedule:
+    - cron: "0 10 * * 1" # Monday 10:00 UTC (04:00 America/Chicago)
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: nixos
+    # mermaid-cli is built from nixpkgs on first run; steady-state is minutes.
+    timeout-minutes: 45
+    steps:
+      - name: Check out the repo
+        id: checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          # The chart counts commits across years of history; a shallow
+          # checkout would silently chart a stub.
+          fetch-depth: 0
+
+      - name: Verify the checkout produced a tree
+        if: ${{ !cancelled() }}
+        run: |
+          set -uo pipefail
+          missing=0
+          for f in scripts/generate-system-flake-chart.sh scripts/fit-chart-labels.mjs \
+                   scripts/ci-refresh-flake-chart.sh docs/system-flake-commit-volume.mmd; do
+              [[ -e "$f" ]] \
+                || { echo "::error::$f is missing: the checkout did not populate the workspace" >&2; missing=1; }
+          done
+          exit "$missing"
+
+      # node is needed by fit-chart-labels.mjs; pin the same nixpkgs channel
+      # the render step inside the script uses.
+      - name: Refresh the chart and open a PR if it changed
+        if: ${{ steps.checkout.outcome == 'success' }}
+        env:
+          CI_FLAKELOCK_PUSH: ${{ secrets.CI_FLAKELOCK_PUSH }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.ref_name }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          nix shell --extra-experimental-features 'nix-command flakes' \
+            github:NixOS/nixpkgs/nixos-unstable#nodejs \
+            --command scripts/ci-refresh-flake-chart.sh
+
+  # Failure-only Matrix ping: a quiet no-op week stays silent.
+  notify:
+    needs: [refresh]
+    if: failure()
+    runs-on: nixos
+    timeout-minutes: 5
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Notify Hermes
+        env:
+          HERMES_WEBHOOK_URL: "${{ vars.HERMES_WEBHOOK_URL }}"
+          HERMES_WEBHOOK_SECRET: "${{ secrets.HERMES_WEBHOOK_SECRET }}"
+          WORKFLOW: "${{ github.workflow }}"
+          EVENT_NAME: ${{ github.event_name }}
+          RUN_NUMBER: ${{ github.run_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CHECK_RESULT: ${{ needs.refresh.result }}
+        run: |
+          set -euo pipefail
+          case "$CHECK_RESULT" in
+            cancelled) status=cancelled ;;
+            *)         status=failure ;;
+          esac
+          scripts/hermes-notify.sh "$status"

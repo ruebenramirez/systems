@@ -1,14 +1,15 @@
 # CI
 
-Two Forgejo Actions workflows in `.forgejo/workflows/` keep the fleet safe and
-current. Both run on the `nixos` host-mode runner on `forgejo-ci-runner-vm` and
-share the `fwai0-builder` concurrency group, because every build must happen on
-`fwai0` and must not overlap.
+Three Forgejo Actions workflows in `.forgejo/workflows/` keep the fleet safe and
+current. All run on the `nixos` host-mode runner on `forgejo-ci-runner-vm`; the
+two that build share the `fwai0-builder` concurrency group, because every build
+must happen on `fwai0` and must not overlap.
 
 | Trigger | Workflow / job | Outcome |
 |---|---|---|
 | PR to `master` (or manual) | `flake check (PR)` / `check` | Validates only; never deploys or pushes |
 | Nightly 03:30 CT, push to `master` (or manual) | `nup-fleet upgrade` / `upgrade` | Re-locks, deploys best-effort, re-probes the exit node after its switch, persists the lock |
+| Weekly Monday 04:00 CT (or manual) | `flake chart refresh` / `refresh` | Regenerates the README commit-volume chart; opens a PR if the data changed |
 
 ## Invariants
 
@@ -21,8 +22,11 @@ share the `fwai0-builder` concurrency group, because every build must happen on
   (`unix:///run/podman/podman.sock`). The `nixos` host-mode label both workflows
   here actually use never touches a container engine at all.
 - **One builder, one build at a time.** Every build runs on `fwai0`, so both
-  workflows share `concurrency.group: fwai0-builder` with
+  build workflows share `concurrency.group: fwai0-builder` with
   `cancel-in-progress: false`. Any new workflow that builds there must join it.
+  `flake chart refresh` renders mermaid on the runner and fetches only cached
+  binaries, so it deliberately stays out of the group and never queues behind a
+  deploy.
 
 ## Pull request check
 
@@ -222,6 +226,24 @@ error. The persist step therefore pushes with the `CI_FLAKELOCK_PUSH` secret and
 a `git -c http.…/.extraheader=…` override, which outranks the blanked checkout
 header. `flake.lock` is an unprotected file pattern, so a lock-only commit is
 allowed; `paths-ignore` keeps that commit from retriggering the workflow.
+
+## Chart refresh
+
+`flake chart refresh` runs weekly (Monday 04:00 CT) and on manual dispatch.
+`scripts/ci-refresh-flake-chart.sh` regenerates
+`docs/system-flake-commit-volume.{mmd,svg}` with
+`scripts/generate-system-flake-chart.sh --render` (mermaid-cli and node come
+from nixpkgs on the runner; nothing is built on `fwai0`), compares the data
+lines of the `.mmd` against the committed copy, and:
+
+- unchanged: restores the tree and exits 0. The `.mmd` header embeds the head
+  hash, so a raw file diff would open a PR on every commit; the data lines are
+  what actually matters.
+- changed: commits on `ci/flake-chart-refresh`, force-pushes it with the
+  `CI_FLAKELOCK_PUSH` bot token (the task token cannot touch a protected repo),
+  and opens a PR -- or updates the open one, since the branch is fixed.
+
+A failure pings Matrix; a no-op week is silent.
 
 ## Notifications
 

@@ -23,3 +23,7 @@ The script derives quarterly commit volume from git author dates
 (`ce788b1^..master`) and appends the machine-addition labels from a table in the
 script. Machine labels only appear when their add-quarter falls inside the
 window. Pass a different ref as an argument to chart another branch or commit.
+
+A weekly CI job (`flake chart refresh`, see [CI](ci.md#chart-refresh)) runs the
+`--render` form against `master` and opens a PR when the data changes, so the
+committed chart stays current without a manual step.
