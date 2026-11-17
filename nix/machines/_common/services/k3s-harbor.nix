@@ -629,6 +629,100 @@ in
       '';
     };
 
+    # kubelet re-applies a pod's fsGroup -- `chown -R :<fsGroup>` plus `g+rwX`
+    # and the setgid bit, recursively over the whole volume -- every time it
+    # sets that volume up again, and it does so on every k3s restart, not only
+    # when a pod is created. The chart hardcodes `fsGroup: 999` on the database
+    # pod and sets no `fsGroupChangePolicy`, so the policy is the default
+    # "always"; the chart's own `data-permissions-ensurer` initContainer only
+    # runs at pod start, so a re-application that lands later is never undone.
+    # Postgres checks the data directory mode only at startup, so the damage
+    # stays latent until the next container restart -- and then it refuses to
+    # serve ("data directory ... has invalid permissions") and nothing inside
+    # the pod can repair it, because init containers do not re-run for a
+    # container restart. That is a crashloop that cannot heal itself: issue #973,
+    # where a k3s restart silently set pgdata to 0770 and the database died on
+    # its next restart six days later.
+    #
+    # The repair has to live outside the pod. The volume is NFS-mounted on
+    # whichever node holds the pod, where root can reset the modes the way the
+    # ensurer does. That alone makes the crashloop self-heal; the unit also arms
+    # the prevention the chart forgot on this one component -- `registry` gets
+    # `fsGroupChangePolicy: OnRootMismatch`, `database` does not -- so kubelet
+    # stops touching a volume root that already carries the fsGroup.
+    systemd.services.harbor-database-perms-sync = {
+      description = "Repair the Postgres data-directory modes that kubelet's fsGroup resets";
+      after = [ "k3s.service" ];
+      wants = [ "k3s.service" ];
+      wantedBy = [ "multi-user.target" ];
+      path = [
+        config.services.k3s.package
+        pkgs.kubectl
+        pkgs.coreutils
+        pkgs.findutils
+      ];
+      serviceConfig = {
+        Type = "oneshot";
+      };
+      script = ''
+        set -uo pipefail
+        export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+        # Only the node the pod is scheduled on can see the volume; the timer
+        # runs on every server so it follows the pod wherever it lands.
+        node=$(kubectl -n ${cfg.namespace} get pod harbor-database-0 \
+          -o jsonpath='{.spec.nodeName}' 2>/dev/null || true)
+        if [ "$node" != "$(uname -n)" ]; then
+          exit 0
+        fi
+        uid=$(kubectl -n ${cfg.namespace} get pod harbor-database-0 \
+          -o jsonpath='{.metadata.uid}')
+
+        drifted=0
+        shopt -s nullglob
+        for pgdata in /var/lib/kubelet/pods/$uid/volumes/kubernetes.io~csi/*/mount/pgdata; do
+          # Postgres refuses to serve a data directory that is group- or
+          # world-writable, and refuses group-writable postgresql.conf likewise.
+          if [ -n "$(find "$pgdata" -maxdepth 2 -perm /g+w,o+w -print -quit 2>/dev/null)" ]; then
+            # The chart's own ensurer command, verbatim. Safe against a running
+            # cluster: chmod does not disturb already-open files.
+            chmod -R 0700 "$pgdata"
+            echo "harbor database: reset $pgdata to 0700; kubelet's fsGroup had made it group-writable"
+            drifted=1
+          fi
+        done
+        if [ "$drifted" != 1 ]; then
+          exit 0
+        fi
+
+        # Arm the prevention, and only once drift has actually been seen -- a helm
+        # re-render that drops the field then costs a rollout at the moment it
+        # matters rather than on every activation. Adding the field rolls the
+        # statefulset, whose init containers fix the modes themselves; that is
+        # cheaper than waiting for the next container restart to notice.
+        policy=$(kubectl -n ${cfg.namespace} get statefulset harbor-database \
+          -o jsonpath='{.spec.template.spec.securityContext.fsGroupChangePolicy}' 2>/dev/null || true)
+        if [ "$policy" != "OnRootMismatch" ]; then
+          kubectl -n ${cfg.namespace} patch statefulset harbor-database --type=merge \
+            -p '{"spec":{"template":{"spec":{"securityContext":{"fsGroupChangePolicy":"OnRootMismatch"}}}}}'
+          echo "harbor database: statefulset now sets fsGroupChangePolicy=OnRootMismatch"
+        fi
+      '';
+    };
+
+    # Short enough that a re-application cannot outlive the gap before Postgres
+    # notices; the work is one stat walk of a small directory, and only on the
+    # node holding the pod.
+    systemd.timers.harbor-database-perms-sync = {
+      description = "Keep Harbor's Postgres data-directory modes serviceable";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnBootSec = "2m";
+        OnUnitActiveSec = "2m";
+        RandomizedDelaySec = "30s";
+      };
+    };
+
     security.acme = lib.mkIf issuesTls {
       acceptTerms = true;
       defaults.email = "postmaster@rueb.dev";

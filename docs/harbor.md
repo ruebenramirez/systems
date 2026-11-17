@@ -222,18 +222,38 @@ cluster (k3s runs with `--disable-network-policy`).
   missing. `systemctl status harbor-secrets-sync harbor-tls-sync` on the node
   that issues them; both are re-run by sops when the underlying value changes.
 - **`harbor-database` crash-loops with `data directory ... has invalid
-  permissions`, and `core` then fails SASL auth or `database "registry" does not
-  exist`** — the chart's `data-permissions-ensurer` initContainer runs
-  `chmod -R 700 .../pgdata || true` before that directory exists on a fresh
-  volume, so it no-ops and Postgres creates `pgdata/pg18` inheriting the
-  group-write kubelet's `fsGroup` puts on the NFS volume. The module works
-  around it with a `create-pgdata` initContainer; if you are on an install made
-  before that existed, the data directory is permanently half-initialized — the
-  image skips its own first-boot init once the directory exists, so the
-  `registry` database is never created. Re-initialize it: scale the statefulset
-  to 0, `rm -rf` only `pgdata/pg18` on the homeserver under the PV's subdir,
-  scale back to 1. Deleting the pod alone is not enough, and neither is fixing
-  the password — the missing `registry` database is the part that does not heal.
+  permissions`** — Postgres refuses a data directory that is group- or
+  world-writable, and kubelet's `fsGroup` management makes it exactly that: the
+  chart hardcodes `fsGroup: 999` on the database pod with no
+  `fsGroupChangePolicy`, so on **every k3s restart** kubelet re-runs its
+  recursive `chown -R :999` + `g+rwX` over the volume. The chart's
+  `data-permissions-ensurer` initContainer is the only thing that undoes it, and
+  init containers do not re-run for a *container* restart — so the damage is
+  applied quietly, sits there while Postgres keeps running (it checks the mode
+  only at startup), and turns into a permanent crashloop the next time the
+  container restarts. That gap is issue
+  [#973](https://code.rueb.dev/rueb/notes/issues/973): a k3s restart set
+  `pgdata` to `0770` and the database died six days later.
+  `harbor-database-perms-sync.timer` (every 2 min, on each server, no-op unless
+  it holds the pod) repairs the modes through the node's CSI mount and sets
+  `fsGroupChangePolicy: OnRootMismatch` on the statefulset so kubelet stops
+  doing it. If you are standing in that crashloop by hand, the same repair is
+  `chmod -R 0700` on `pgdata` under the pod's
+  `/var/lib/kubelet/pods/<pod-uid>/volumes/kubernetes.io~csi/<pv>/mount/` on
+  the node that holds the pod — **not** a delete of the volume, and not a pod
+  delete, which changes nothing.
+- **`harbor-database` crash-loops and `core` then fails SASL auth or says
+  `database "registry" does not exist`** — a *fresh-volume* variant of the same
+  permission problem: the ensurer runs `chmod -R 700 .../pgdata || true` before
+  that directory exists, so it no-ops and Postgres creates `pgdata/pg18`
+  inheriting the group-write the volume root has. The module works around it
+  with a `create-pgdata` initContainer; on an install made before that existed
+  the data directory is permanently half-initialized — the image skips its own
+  first-boot init once the directory exists, so the `registry` database is
+  never created. Confirm it with `ls <pv subdir>/pgdata/pg18/base`: a cluster
+  that was initialised has more than the two template databases. Re-initialize
+  it only if it really is missing: scale the statefulset to 0, `rm -rf` only
+  `pgdata/pg18` on the homeserver under the PV's subdir, scale back to 1.
 - **Pulls fail with x509** — the certificate renewed but `harbor-tls` did not.
   `systemctl restart harbor-tls-sync.service` on `k3s-1`.
 - **Pulls silently go to the upstream** — that is the fallback working. Check
