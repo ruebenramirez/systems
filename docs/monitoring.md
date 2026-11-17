@@ -171,13 +171,13 @@ are gauges. Details that are load-bearing:
   what is resident; a gap means pages were evicted and are coming off the drive
   again. `HalogenWeightsNotFullyResident` is the critical one, and it is the
   fastest way to tell a loaded model from a starved one.
-- **The residency gates are blind windows, deliberately.** `HalogenWeightsNotFullyResident`
-  waits an hour of engine uptime and `HalogenTableStarved` four days of host
-  uptime, because after a reboot resident starts near zero and refilling pages is
-  not eviction. Four days sits above the ~2.5 days the table takes to reach the
-  20 % this calls starved, so the gate covers the warm-up rather than sitting next
-  to it, and the cost is real: for four days after every reboot the table alert
-  cannot fire. Gate inputs are also what disarm an alert when they go missing, so
+- **The residency gate is a blind window, deliberately.** `HalogenWeightsNotFullyResident`
+  waits an hour of engine uptime, because after a reboot or an engine restart
+  resident starts near zero and refilling pages is not eviction. `resident` is
+  the engine process's Rss, so it resets on every engine restart even though the
+  page cache survives it — the gate is therefore keyed on
+  `halogen_process_start_seconds`, not host boot time. Gate inputs are also what
+  disarm an alert when they go missing, so
   `ModelGateMetricMissing` pages when residency is exported without
   `halogen_process_start_seconds` and the critical rule is silently off.
 - **`halogen_mlocked_bytes` is the proof `HALOGEN_WEIGHTS_LOCK` is doing

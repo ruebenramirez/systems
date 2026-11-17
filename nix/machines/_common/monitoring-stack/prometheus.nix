@@ -428,30 +428,6 @@ let
             };
           }
           {
-            # The table is paged by design and its residency grows with uptime
-            # (observed 16.7/51.2 GiB after four days on fwai0, ~4 GiB/day), so a
-            # cold page cache after a reboot is not starvation. The boot gate has
-            # to sit above the warm time, not just the boot: 20% takes ~2.5 days
-            # to reach at that rate, and a page before that is the warm-up. An
-            # engine restart alone never trips this: the cache is per-inode and
-            # survives it.
-            alert = "HalogenTableStarved";
-            expr = ''
-              (halogen_table_resident_bytes / halogen_table_mapped_bytes < 0.20)
-                and on (host, instance)
-              (time() - node_boot_time_seconds > 4 * 24 * 3600)
-            '';
-            for = "30m";
-            labels = {
-              severity = "warning";
-              tier = "service";
-            };
-            annotations = {
-              summary = "Only {{ humanizePercentage $value }} of the lookup table on {{ $labels.host }} is cached";
-              description = "The lookup table is paged by design, but this little of it resident means long prompts are paying for the drive. Look at what else is holding RAM.";
-            };
-          }
-          {
             # The engine's own measurement of the cost, so this is the alert that
             # says the drive - not the engine - is the limit. The exported value is
             # the worst read in a 15-minute window refreshed every 30s, so `for:
