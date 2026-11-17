@@ -51,26 +51,8 @@
       # Helper function to create attribute sets for each system
       forAllSystems = nixpkgs.lib.genAttrs supportedSystems;
 
-      overlays = [
-        # streamlit pins pillow<13 (still <13 upstream as of 1.66) but
-        # nixpkgs moved to pillow 13.0.0, so pythonRuntimeDepsCheck fails
-        # and takes down aider-chat (dev-vm-xps, driver). Skip the check;
-        # pillow 13 works at runtime. Remove once nixpkgs relaxes the bound.
-        #
-        # Override `python313` (not `python3`): nixpkgs derives `python3`,
-        # `python3Packages` and `python313Packages` from `python313`, so
-        # overriding the alias alone does not reach real consumers such as
-        # ocrmypdf. `python3` follows `python313` automatically.
-        (final: prev: {
-          python313 = prev.python313.override {
-            packageOverrides = pfinal: pprev: {
-              streamlit = pprev.streamlit.overridePythonAttrs (old: {
-                dontCheckRuntimeDeps = true;
-              });
-            };
-          };
-        })
-      ];
+      # Drop-in place for nixpkgs backports; keep empty (stock nixpkgs goal).
+      overlays = [ ];
 
       # Create nixpkgs for each system
       nixpkgsFor = forAllSystems (
