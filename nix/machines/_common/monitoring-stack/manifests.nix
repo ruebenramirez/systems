@@ -625,6 +625,13 @@ let
           # Worst case is five 10s curls; the deadline is the backstop, and
           # `Forbid` means a slow run skips a tick rather than overlapping.
           activeDeadlineSeconds = 90;
+          # KubeJobFailed pages on the failed Job object still existing, and
+          # failedJobsHistoryLimit only evicts past 3, so a one-off blip during
+          # a control-plane restart latches the alert until someone deletes it.
+          # The TTL lets finished Jobs self-collect; an hour keeps
+          # `kubectl logs job/...` reachable while an ongoing failure still
+          # pages, since a fresh failed Job lands every minute.
+          ttlSecondsAfterFinished = 3600;
           template = {
             metadata.labels = labels // {
               "app.kubernetes.io/name" = "exit-node-status-push";

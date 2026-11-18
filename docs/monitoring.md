@@ -305,6 +305,8 @@ $ ssh download-vm-xps 'sudo systemctl start exit-node-metrics && cat /var/lib/no
 $ curl -s download-vm-xps.tailnet.rueb.dev:9100/metrics | grep exit_node
 # the pusher's own verdict, and why a tile is DOWN:
 $ sudo kubectl -n monitoring logs -l app.kubernetes.io/name=exit-node-status-push --tail=20
+# finished Jobs are TTL'd an hour after they end, so pull a failed run's logs
+# inside that window; the TTL is also what lets KubeJobFailed clear itself
 ```
 
 ## Access
