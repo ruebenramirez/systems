@@ -17,7 +17,12 @@ in
       image = "ghcr.io/peonist-ai/halogen-flash-server:0.18.14@sha256:e0c1d1b48e07c8acdd204fbdbafbb421a395a73cf704271845a1846ad1fd767f";
       pull = "missing";
       environment = {
-        HALOGEN_KV_POOL_POSITIONS = "262144";
+        # Twice HALOGEN_CTX so a full-context request plus ordinary turns fit
+        # without evicting each other: at 262144 the pool saturated and turns
+        # were silently capped below their requested 8192 tokens (86 in a day).
+        # The pool is GTT (~54 KiB/position), not the locked checkpoint, so this
+        # costs ~13 GiB of the 124 GiB aperture.
+        HALOGEN_KV_POOL_POSITIONS = "524288";
         HALOGEN_MAX_TOK = "8192";
         # Locks the checkpoint into the kernel's sense too, so `free` stops
         # counting the weights as reclaimable and memory pressure cannot page
