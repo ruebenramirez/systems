@@ -138,9 +138,16 @@ config_of() {
 # Fail before a switch instead of in the middle of one. Both the deploy and the
 # rollback path start by sshing to the target, so check that path while the
 # answer is still cheap, and say "ssh" in the message.
+# Three attempts: a transient tailnet blip must not redden a whole nightly
+# (nightly 261 lost ssdnodes-1 to one 10s connect timeout). ssh's own exit
+# codes still propagate, so a genuinely dead host fails all three ways.
 ssh_reachable() {
-    local host="$1"
-    ssh -o BatchMode=yes -o ConnectTimeout=10 "$(ssh_target "$host")" true 2>/dev/null
+    local host="$1" attempt
+    for attempt in 1 2 3; do
+        ssh -o BatchMode=yes -o ConnectTimeout=10 "$(ssh_target "$host")" true 2>/dev/null && return 0
+        (( attempt < 3 )) && sleep 5
+    done
+    return 1
 }
 
 ssh_unreachable_help() {
