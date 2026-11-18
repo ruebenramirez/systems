@@ -155,7 +155,10 @@ jobs:
               printf 'From: root@rueb.dev\nTo: %s\n' "$recipient"
               printf 'Subject: [CI FAIL] %s (%s) on %s\n' \
                   "${GITHUB_REPOSITORY:-systems}" "${TRIGGER:-unknown}" "$(hostname)"
-              printf 'Date: %s\nContent-Type: text/plain; charset=utf-8\n\n' "$(date -R)"
+              printf 'Date: %s\n' "$(date -R)"
+              printf 'MIME-Version: 1.0\n'
+              printf 'Content-Type: text/plain; charset=utf-8\n'
+              printf 'Content-Transfer-Encoding: 8bit\n\n'
               printf 'The job could not check out the flake; nothing else ran.\n'
               printf 'Workflow:  %s\n' "${WORKFLOW:-}"
               printf 'Branch:  %s @ %s\nRun:     %s\nHost:    %s\n' \

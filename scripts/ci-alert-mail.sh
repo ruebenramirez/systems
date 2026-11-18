@@ -26,7 +26,11 @@ fi
   printf 'Subject: [CI FAIL] %s (%s) on %s\n' \
     "${GITHUB_REPOSITORY:-systems}" "${TRIGGER:-unknown}" "$(hostname)"
   printf 'Date: %s\n' "$(date -R)"
-  printf 'Content-Type: text/plain; charset=utf-8\n\n'
+  # The log body carries 8-bit UTF-8 (✓/✗); without MIME-Version and an 8bit
+  # CTE the spam filter scores MISSING_MIME_VERSION + BAD_CTE_7BIT (5.5 pts).
+  printf 'MIME-Version: 1.0\n'
+  printf 'Content-Type: text/plain; charset=utf-8\n'
+  printf 'Content-Transfer-Encoding: 8bit\n\n'
   printf 'Workflow:  %s\n' "${WORKFLOW:-}"
   printf 'Trigger:   %s\n' "${TRIGGER:-}"
   printf 'Actor:     %s\n' "${ACTOR:-}"

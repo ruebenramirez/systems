@@ -75,7 +75,13 @@ in
                 printf 'From: %s\n' ${lib.escapeShellArg cfg.from}
                 printf 'To: %s\n' ${lib.escapeShellArg (lib.concatStringsSep ", " cfg.recipients)}
                 printf 'Subject: [ALERT] ${host}: %s entered failed state\n' "$unit"
-                printf 'Date: %s\n\n' "$(${pkgs.coreutils}/bin/date -R)"
+                # MIME-Version + 8bit CTE: unit/journal output carries 8-bit
+                # bytes, and without these the spam filter scores the alert
+                # MISSING_MIME_VERSION + BAD_CTE_7BIT.
+                printf 'Date: %s\n' "$(${pkgs.coreutils}/bin/date -R)"
+                printf 'MIME-Version: 1.0\n'
+                printf 'Content-Type: text/plain; charset=utf-8\n'
+                printf 'Content-Transfer-Encoding: 8bit\n\n'
                 printf 'Host: ${host}\nUnit: %s\n\n' "$unit"
                 printf -- '--- systemctl status ---\n'
                 ${pkgs.systemd}/bin/systemctl status --no-pager -l --lines=40 "$unit" 2>&1 || true
