@@ -31,6 +31,7 @@
     units = [
       "acme-order-renew-derp.rueb.dev.service"
       "acme-order-renew-hy.rueb.dev.service"
+      "acme-order-renew-inventory-demo.rueb.dev.service"
       "acme-order-renew-matrix.rueb.dev.service"
       "acme-order-renew-monicaandrueben.com.service"
       "acme-order-renew-monicarosephotography.com.service"

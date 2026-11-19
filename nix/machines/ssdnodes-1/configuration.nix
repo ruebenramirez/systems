@@ -26,6 +26,7 @@
     ./srv/cloudflare-dns-token.nix
     ./srv/monicaandrueben.com-reverse-proxy.nix
     ./srv/monicarosephotography.com-reverse-proxy.nix
+    ./srv/parts-stock.nix
     ./srv/postfix.nix
     ./srv/sing-box.nix
     ./srv/wordpress.nix

@@ -300,6 +300,15 @@ rec {
         target = "https://monicarosephotography.com/";
       };
     };
+    site-inventory-demo = {
+      host = "ssdnodes-1";
+      title = "inventory-demo.rueb.dev (parts-stock)";
+      group = "web";
+      probe = {
+        module = "http";
+        target = "https://inventory-demo.rueb.dev/";
+      };
+    };
     public-mx = {
       host = "ssdnodes-1";
       title = "Public MX relay";
