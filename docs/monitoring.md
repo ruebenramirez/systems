@@ -311,7 +311,7 @@ $ sudo kubectl -n monitoring logs -l app.kubernetes.io/name=exit-node-status-pus
 
 ## Access
 
-All three UIs are reached through Traefik on the k3s nodes over **HTTPS**, and
+All four UIs are reached through Traefik on the k3s nodes over **HTTPS**, and
 the DNS records point at tailnet addresses only — there is no public listener
 anywhere on these names.
 
@@ -319,11 +319,56 @@ anywhere on these names.
 |---|---|
 | `monitoring.rueb.dev` | Grafana |
 | `alerts.rueb.dev` | Alertmanager |
+| `prometheus.rueb.dev` | Prometheus |
 | `status.rueb.dev` | Gatus status page |
 
 TLS is not optional here: `.dev` is on the HSTS preload list, so a browser will
 not attempt cleartext for these names at all — an unencrypted endpoint would be
 an error page, not a fallback.
+
+### The same names are the links in alert mail
+
+Alert mail is generated from the URLs in `my.k3sMonitoring.hosts`, so the table
+above is not just a bookmark list — it is what the links in a page point at.
+Both producers take their base URL from that one option:
+
+| Link in the mail | Built from | Result |
+|---|---|---|
+| **View in Alertmanager** button, **Sent by Alertmanager** footer | `alertmanager.alertmanagerSpec.externalUrl`, which the operator passes to Alertmanager as `--web.external-url` and Alertmanager renders as `{{ .ExternalURL }}` | `https://alerts.rueb.dev/#/alerts?receiver=mail` |
+| **Source** under each alert's annotations | `prometheus.prometheusSpec.externalUrl`, which is `--web.external-url`, and Prometheus stamps it into every alert's `generatorURL` | `https://prometheus.rueb.dev/graph?g0.expr=…&g0.tab=1` |
+
+Left at their defaults, both render the **cluster-internal** service DNS —
+`http://kube-prometheus-stack-alertmanager.monitoring:9093` and
+`http://kube-prometheus-stack-prometheus.monitoring:9090` — which resolves to
+nothing from a laptop reading mail, so every link in every alert was dead
+(rueb/notes#1024). The chart builds those defaults from the release name and
+namespace and has no way to derive an external name on its own; the two values
+above are the only source.
+
+Note the Alertmanager one is an `alertmanagerSpec` field, not a key in
+`alertmanager.config`: `alertmanager.yaml` has no external-URL key at all and
+Alertmanager parses its config strictly, so putting one there fails the whole
+config load — a silent loss of every alert rather than a broken link.
+
+**The DNS records are created out of band**, as Cloudflare `A` records pointing
+at the k3s nodes' tailnet addresses — the same targets the other three names
+use, and nothing public. Adding a name to `my.k3sMonitoring.hosts` without
+creating its record produces a working certificate (DNS-01 never queries the
+name) and a link that still does not resolve, so the record is the deployable
+half of the change:
+
+```console
+# One record per k3s node, same as alerts/monitoring/status already have.
+# Verify from inside the tailnet, where these are supposed to answer:
+$ dig +short prometheus.rueb.dev A
+$ curl -sI https://prometheus.rueb.dev/-/ready | head -1
+```
+
+`prometheus.rueb.dev` is the one name here that is new exposure rather than a
+rename: serving Prometheus at all puts an unauthenticated query API on the
+tailnet. That is the same posture as the other three UIs, and the tailnet ACL is
+what bounds it — but it is worth knowing that the reason it exists is a link in
+an email, not a dashboard anyone opens.
 
 ### Certificates
 
@@ -341,11 +386,11 @@ cannot reach, so an HTTP-01 challenge would never validate.
 | `issueOn` | `k3s-1` | the only host that talks to ACME |
 | `secretName` | `monitoring-ui-tls` | Kubernetes TLS Secret the ingresses use |
 
-One SAN certificate covers all three UIs (`alerts`, `monitoring`, `status`), so
-one renewal refreshes all of them. Only `k3s-1` requests it — three servers
-renewing the same name would triple the requests against Let's Encrypt's
-duplicate-certificate allowance for nothing, since the resulting Secret is
-readable from every node.
+One SAN certificate covers all four UIs (`alerts`, `monitoring`, `prometheus`,
+`status`), so one renewal refreshes all of them. Only `k3s-1` requests it — three
+servers renewing the same name would triple the requests against Let's
+Encrypt's duplicate-certificate allowance for nothing, since the resulting Secret
+is readable from every node.
 
 Getting a host certificate into Kubernetes needs a bridge, the same one Grafana's
 admin password uses: `monitoring-ui-tls-sync.service` renders

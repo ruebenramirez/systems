@@ -86,6 +86,7 @@ in
       default = {
         grafana = "monitoring.rueb.dev";
         alertmanager = "alerts.rueb.dev";
+        prometheus = "prometheus.rueb.dev";
         status = "status.rueb.dev";
       };
       description = ''
@@ -95,6 +96,11 @@ in
         created out of band as Cloudflare A records pointing at the cluster's
         tailnet IPs, which are unreachable from outside the tailnet; see
         docs/monitoring.md.
+
+        Every name here is also the only source of truth for two other things:
+        the SAN list of the UI certificate, and the URLs Alertmanager puts in
+        alert mail. A name missing from DNS leaves those links dead -- adding an
+        entry here is a DNS change, not just a Helm value.
       '';
     };
 
@@ -152,7 +158,7 @@ in
             description = ''
               Name of the security.acme certificate on the issuing host. It is a
               SAN certificate covering every name in my.k3sMonitoring.hosts, so
-              one renewal covers all three UIs.
+              one renewal covers all four UIs.
             '';
           };
 
@@ -268,6 +274,11 @@ in
               inherit (cfg) retention retentionSize;
               scrapeInterval = "30s";
               evaluationInterval = "30s";
+              # --web.external-url is what Prometheus stamps into each alert's
+              # generatorURL, which is the "Source" link in an alert mail. Left
+              # at the default it renders the cluster-internal service name,
+              # which resolves for nothing outside the cluster.
+              externalUrl = urls.prometheus;
               additionalScrapeConfigs = stack.scrapeConfigs;
               # The node it runs on is a scrape target like every other host, and
               # a pod cannot fetch its own node's tailnet address -- the reply
@@ -305,6 +316,15 @@ in
               port = 9093;
             };
             alertmanagerSpec = {
+              # The chart defaults this to http://<svc>.<ns>:9093 and the operator
+              # passes it to Alertmanager as --web.external-url, which is what
+              # Alertmanager renders as {{ .ExternalURL }} in the "View in
+              # Alertmanager" button and the "Sent by Alertmanager" footer --
+              # both cluster-internal names a mail reader cannot resolve. It
+              # belongs here and not in `config`: alertmanager.yaml has no
+              # external-url key, and its parser is strict, so a stray one there
+              # fails the whole config load instead of fixing a link.
+              externalUrl = urls.alertmanager;
               replicas = 1;
               storage.volumeClaimTemplate.spec = {
                 accessModes = [ "ReadWriteOnce" ];

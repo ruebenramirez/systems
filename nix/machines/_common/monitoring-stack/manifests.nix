@@ -790,6 +790,15 @@ let
       service = "kube-prometheus-stack-alertmanager";
       port = 9093;
     })
+    # Not a UI anyone browses by habit: the "Source" link in an alert mail is a
+    # Prometheus /graph URL built from prometheusSpec.externalUrl, so the name
+    # Prometheus advertises has to have somewhere to land.
+    (mkIngress {
+      name = "prometheus";
+      host = hosts.prometheus;
+      service = "kube-prometheus-stack-prometheus";
+      port = 9090;
+    })
     (mkIngress {
       name = "gatus";
       host = hosts.status;
