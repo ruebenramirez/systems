@@ -39,6 +39,9 @@
       "matrix-backup-freshness.service"
       "matrix-backup.service"
       "sops-install-secrets.service"
+      # Fires once per outage, not once per poll: the rescue unit suppresses
+      # repeat failures until the pool comes back. See zpool-rescue.sh.
+      "zpool-rescue.service"
     ];
   };
 }

@@ -4,11 +4,13 @@
   imports = [
     ../_common/base/default.nix
     ../_common/monitoring.nix
+    ../_common/usb-storage-quirks.nix
     ../_common/nix-deploy-user.nix
     ../_common/gpu-amd.nix
     ../_common/home-vpn-client.nix
     ../_common/tailscale-client.nix
     ../_common/services/kubernetes.nix
+    ../_common/services/zpool-rescue/default.nix
     ./hardware-configuration.nix
 
     # virtualization services
@@ -91,6 +93,25 @@
     };
   };
   systemd.services.zfs-scrub.unitConfig.ConditionACPower = true;
+
+  # The 2026-11-19 outage: every tank vdev hangs off one daisy-chained USB hub,
+  # that hub dropped for ~3 seconds, and ZFS left the pool suspended for 19 hours
+  # because nothing re-tried. zpool clear alone recovers that failure mode, so
+  # usbResetDevices stays empty -- toggling hub authorization needs a sysfs name
+  # like "6-1" that is not stable across enumeration changes, so verify it on the
+  # host before opting in.
+  rueb.zpoolRescue = {
+    enable = true;
+    pools = [ "tank" ];
+    probeDir = "/tank";
+  };
+
+  # All six tank bridges are ASMedia 174c:235c and were running on UAS when the
+  # link dropped. Forcing BOT costs queue depth and buys link stability.
+  rueb.usbStorageQuirks = {
+    enable = true;
+    uasDisableIds = [ "174c:235c" ];
+  };
 
   services.sanoid = {
     enable = true;
