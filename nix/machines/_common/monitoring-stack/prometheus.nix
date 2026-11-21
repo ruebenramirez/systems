@@ -885,6 +885,40 @@ let
               description = "{{ $labels.device }} on {{ $labels.host }} reports {{ $value }} sectors it could not correct at all. Data already written there may be unreadable; verify the pool's own error counters.";
             };
           }
+          {
+            # Not a fault, and it never pages: severity info routes to the null
+            # receiver. It exists so HostDiskIOSaturated can be inhibited for the
+            # duration of a scrub instead of silenced by hand or ignored.
+            alert = "PoolScrubRunning";
+            expr = "zpool_scrub_state == 1";
+            labels = {
+              severity = "info";
+              tier = "storage";
+            };
+            annotations = {
+              summary = "Scrub or resilver running on {{ $labels.host }} pool {{ $labels.pool }}";
+              description = "{{ $labels.pool }} on {{ $labels.host }} is scrubbing. Disk saturation is expected for the duration, so HostDiskIOSaturated is inhibited on this host -- inhibited, not disabled, and it returns the moment the scrub ends.";
+            };
+          }
+          {
+            # Without this the inhibition fails open in the worst way: the
+            # collector dies, PoolScrubRunning stops firing, and every scrub from
+            # then on pages about saturated disks with no explanation.
+            alert = "ZfsScrubMetricsMissing";
+            expr = ''
+              (up{job="fleet-node-exporters", zfs="true"} == 1)
+                unless on (host, instance) (zpool_scrub_state)
+            '';
+            for = "15m";
+            labels = {
+              severity = "warning";
+              tier = "storage";
+            };
+            annotations = {
+              summary = "No ZFS scrub state from {{ $labels.instance }}";
+              description = "{{ $labels.host }} is scraping but reports no pool scan state, so scrub-induced disk saturation is no longer inhibited and zpool_scrub_percent_done is dark; zfs-scrub-state.timer is not refreshing the textfile or no pool answered.";
+            };
+          }
         ];
       }
 
@@ -978,6 +1012,15 @@ let
     };
 
     inhibit_rules = [
+      {
+        # A scrub reads every block on every disk on purpose, so io_time above
+        # 90% is literally true and completely unactionable for as long as it
+        # runs -- hours on a full pool. Inhibited rather than dropped, so the
+        # saturation alert still exists and returns the moment the scrub ends.
+        source_matchers = [ ''alertname = "PoolScrubRunning"'' ];
+        target_matchers = [ ''alertname = "HostDiskIOSaturated"'' ];
+        equal = [ "host" ];
+      }
       {
         # A dead host explains every failing probe on it.
         source_matchers = [ ''alertname = "HostDown"'' ];

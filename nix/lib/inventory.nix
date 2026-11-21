@@ -554,6 +554,7 @@ rec {
     // (if hosts.${h}.gpu or false then { gpu = "true"; } else { })
     // (if hosts.${h}.llm or false then { llm = "true"; } else { })
     // (if hosts.${h}.smart or false then { smart = "true"; } else { })
+    // (if hosts.${h}.zfs or false then { zfs = "true"; } else { })
     // (if hosts.${h}.exitNode or false then { exit_node = "true"; } else { });
   }) monitoredHosts;
 

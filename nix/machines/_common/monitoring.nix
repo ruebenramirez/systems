@@ -21,7 +21,8 @@ let
     cfg.exporters.textfile.enable
     || cfg.exporters.gpu.enable
     || cfg.exporters.model.enable
-    || cfg.exporters.smart.enable;
+    || cfg.exporters.smart.enable
+    || cfg.exporters.zfsScrub.enable;
 
   # amdgpu sysfs counters, written once per timer tick for the textfile
   # collector. Metric names are vendor-neutral on purpose: a host with another
@@ -573,6 +574,108 @@ let
     chmod 0644 "$tmp"
     mv "$tmp" "$out_dir/smart.prom"
   '';
+
+  # Per-pool scrub/resilver state. node_exporter's zfs collector exports ARC and
+  # vdev stats but nothing about whether a scrub is running, so "the pool is
+  # deliberately busy" is not a signal any alert can currently see -- which means
+  # a scrub trips HostDiskIOSaturated on every disk it touches, truthfully and
+  # uselessly, for as long as it runs.
+  #
+  # `zpool status -p` does not give machine-readable scan output on this OpenZFS
+  # (it prints the same human text), so the scan line is parsed. sed and grep
+  # only: a systemd unit's PATH has coreutils, findutils, gnugrep, gnused and
+  # systemd, and gawk is not in it.
+  scrubCollector = pkgs.writeShellScript "zfs-scrub-state" ''
+    set -u
+
+    out_dir=${textfileDir}
+    zpool=${pkgs.zfs}/sbin/zpool
+    configured="${lib.concatStringsSep " " cfg.exporters.zfsScrub.pools}"
+    tmp="$out_dir/.zfs_scrub.prom.tmp"
+    trap 'rm -f "$tmp"' EXIT
+
+    : > "$tmp"
+
+    for family in zpool_scrub_state zpool_scrub_percent_done \
+                  zpool_scrub_seconds_remaining zpool_scrub_timestamp_seconds; do
+      printf '# TYPE %s gauge\n' "$family" >> "$tmp"
+    done
+
+    emit() { printf '%s{%s} %s\n' "$1" "$2" "$3" >> "$tmp"; }
+
+    # "06:13:13" -> 22393. The 10# prefix matters: zero-padded fields like 08
+    # are otherwise read as octal and silently become 0.
+    to_seconds() {
+      local h m s
+      h=$(printf '%s' "$1" | cut -d: -f1)
+      m=$(printf '%s' "$1" | cut -d: -f2)
+      s=$(printf '%s' "$1" | cut -d: -f3)
+      printf '%s' "$(( 10#$h * 3600 + 10#$m * 60 + 10#$s ))"
+    }
+
+    # Pools come from `zpool list` rather than an option, for the same reason the
+    # SMART collector scans devices: a pool added later stays watched instead of
+    # silently missing the alert.
+    pools="$configured"
+    if [ -z "$pools" ]; then
+      pools=$(timeout 15 "$zpool" list -H -o name 2>/dev/null)
+    fi
+
+    pools_seen=0
+    for p in $pools; do
+      st=$(timeout 30 "$zpool" status "$p" 2>/dev/null)
+      [ -n "$st" ] || continue
+
+      scan=$(printf '%s\n' "$st" | grep -m1 'scan:')
+      [ -n "$scan" ] || continue
+      pools_seen=$((pools_seen + 1))
+
+      lbl="pool=\"$p\""
+      case "$scan" in
+        *"scrub in progress"* | *"resilver in progress"* | *"initialize in progress"*)
+          emit zpool_scrub_state "$lbl" 1
+
+          pct=$(printf '%s\n' "$st" | grep -m1 -oE '[0-9]+(\.[0-9]+)?% done' | cut -d'%' -f1)
+          if [ -n "$pct" ]; then
+            emit zpool_scrub_percent_done "$lbl" "$pct"
+          fi
+
+          eta=$(printf '%s\n' "$st" | grep -m1 -oE '[0-9]+:[0-9][0-9]:[0-9][0-9] to go' | cut -d' ' -f1)
+          if [ -n "$eta" ]; then
+            emit zpool_scrub_seconds_remaining "$lbl" "$(to_seconds "$eta")"
+          fi
+          ;;
+        # Anything else -- repaired, stopped, aborted, or no scan recorded -- is
+        # "not currently scrubbing", which is the only thing the inhibition needs.
+        *)
+          emit zpool_scrub_state "$lbl" 0
+          ;;
+      esac
+    done
+
+    emit zpool_scrub_timestamp_seconds 'scope="collector"' "$(date +%s)"
+
+    # Fail closed: no pool parsed means zpool is missing, the pool list came back
+    # empty, or every status call timed out. Publishing a file that says nothing
+    # would leave HostDiskIOSaturated unsuppressed with no explanation; this way
+    # ZfsScrubMetricsMissing names the cause.
+    if [ "$pools_seen" -eq 0 ]; then
+      printf 'zfs-scrub-state: no pool reported scan state; not publishing\n' >&2
+      exit 1
+    fi
+
+    while IFS= read -r line; do
+      case "$line" in
+        \#*) continue ;;
+      esac
+      if ! printf '%s' "$line" | grep -qE '^[a-z_]+\{[^}]*\} [0-9]+(\.[0-9]+)?$'; then
+        printf 'zfs-scrub-state: refusing to publish unparsable line: %s\n' "$line" >&2
+        exit 1
+      fi
+    done < "$tmp"
+    chmod 0644 "$tmp"
+    mv "$tmp" "$out_dir/zfs_scrub.prom"
+  '';
 in
 {
   options.my.monitoring = {
@@ -717,6 +820,37 @@ in
       '';
     };
 
+    exporters.zfsScrub.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = self.zfs or false;
+      description = ''
+        Export per-pool scrub and resilver state, so alerts can tell a
+        deliberately busy pool from a saturating one. Defaults to the host's
+        `zfs` flag in nix/lib/inventory.nix.
+      '';
+    };
+
+    exporters.zfsScrub.interval = lib.mkOption {
+      type = lib.types.str;
+      default = "60s";
+      description = ''
+        How often scrub state is refreshed. Far shorter than the SMART interval
+        on purpose: whether a scrub is running changes what HostDiskIOSaturated
+        means right now, and a stale file would keep suppressing a real
+        saturation for minutes after the scrub ended.
+      '';
+    };
+
+    exporters.zfsScrub.pools = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "tank" ];
+      description = ''
+        Pools to report. Empty means every pool from `zpool list`, so a pool
+        added later stays watched instead of silently missing the inhibition.
+      '';
+    };
+
     # Reachable-by list for the scrape firewall rule. The fleet's Prometheus
     # runs in the k3s cluster, whose pod egress is masqueraded to the node's
     # tailnet address, so the tailnet interface is the only thing that ever
@@ -798,6 +932,22 @@ in
           my.monitoring.exporters.smart is enabled on ${config.networking.hostName},
           which the inventory does not mark `smart = true`. That combination exports
           metrics no alert expects: set the inventory flag or drop the option.
+        '';
+      }
+      {
+        assertion = !cfg.exporters.zfsScrub.enable || cfg.exporters.node.enable;
+        message = ''
+          my.monitoring.exporters.zfsScrub on ${config.networking.hostName} writes into
+          the node_exporter textfile directory, so it needs
+          my.monitoring.exporters.node.enable as well.
+        '';
+      }
+      {
+        assertion = !cfg.exporters.zfsScrub.enable || (self.zfs or false);
+        message = ''
+          my.monitoring.exporters.zfsScrub is enabled on ${config.networking.hostName},
+          which the inventory does not mark `zfs = true`. There is no pool to read
+          scan state from: set the inventory flag or drop the option.
         '';
       }
     ];
@@ -886,6 +1036,28 @@ in
         # Start well inside SmartMetricsMissing's `for`, so a clean boot never pages.
         OnBootSec = "60s";
         OnUnitActiveSec = cfg.exporters.smart.interval;
+        AccuracySec = "1s";
+      };
+    };
+
+    systemd.services."zfs-scrub-state" = lib.mkIf cfg.exporters.zfsScrub.enable {
+      description = "Snapshot per-pool scrub and resilver state for the textfile collector";
+      serviceConfig = {
+        Type = "oneshot";
+        StateDirectory = "node_exporter/textfile";
+      };
+      script = "${scrubCollector}";
+    };
+
+    systemd.timers."zfs-scrub-state" = lib.mkIf cfg.exporters.zfsScrub.enable {
+      description = "Refresh the ZFS scrub state textfile metrics";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        # Same reasoning as the SMART timer: fire soon enough that a clean boot
+        # never pages, and often enough that a finished scrub stops suppressing
+        # saturation within a minute.
+        OnBootSec = "30s";
+        OnUnitActiveSec = cfg.exporters.zfsScrub.interval;
         AccuracySec = "1s";
       };
     };
