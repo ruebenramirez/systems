@@ -242,6 +242,55 @@ let
               description = "systemd gave up on this unit. `systemctl status {{ $labels.name }}` on {{ $labels.instance }}.";
             };
           }
+          # Disk health arrives through the textfile collector on the hosts the
+          # inventory marks `smart = true` (see
+          # nix/machines/_common/monitoring.nix). The collector fails closed: it
+          # publishes nothing when no device answers, so an absent series always
+          # means "telemetry gone" and never "all disks fine".
+          {
+            alert = "SmartMetricsMissing";
+            expr = ''
+              (up{job="fleet-node-exporters", smart="true"} == 1)
+                unless on (host, instance) (smart_status_passed)
+            '';
+            for = "30m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "No SMART metrics from {{ $labels.instance }}";
+              description = "{{ $labels.host }} is scraping but reports no disk health, so reallocated sectors, pending sectors and disk temperature are unmonitored there; smartmontools is missing, smartctl stopped answering, or no device passed a SMART status.";
+            };
+          }
+          {
+            alert = "SmartCollectionStale";
+            expr = "time() - smart_collection_timestamp_seconds > 1800";
+            for = "20m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "SMART metrics from {{ $labels.instance }} have not updated in 30 minutes";
+              description = "smart-metrics.timer is not refreshing the textfile, so the disk health numbers for {{ $labels.host }} are frozen rather than missing; a drive can degrade past a frozen snapshot without tripping any of the SMART alerts.";
+            };
+          }
+          {
+            # USB shelves in a chassis with everything else have no airflow of
+            # their own, which is the situation tank is in.
+            alert = "SmartDiskTemperatureHigh";
+            expr = "smart_temperature_celsius > 55";
+            for = "15m";
+            labels = {
+              severity = "warning";
+              tier = "host";
+            };
+            annotations = {
+              summary = "{{ $labels.host }} disk {{ $labels.device }} running hot at {{ $value }}C";
+              description = "{{ $labels.device }} on {{ $labels.host }} has been above 55C for 15 minutes. Spindle life falls quickly past this and the failure is usually permanent rather than intermittent.";
+            };
+          }
         ];
       }
 
@@ -768,6 +817,72 @@ let
             };
             annotations = {
               summary = "NFS CSI controller is not scraped -- no new PVCs can be provisioned";
+            };
+          }
+          # SMART leading indicators. Each of these fires while the pool is still
+          # ONLINE, which is the only moment they are worth anything: the pool's
+          # own checksum errors are the lagging version of the same event, and by
+          # then the disk has already cost you the redundancy.
+          {
+            # The only SMART signal that is unambiguous: the disk failed its own
+            # health query. Everything below needs judgement.
+            alert = "SmartDiskFailing";
+            expr = "smart_status_passed == 0";
+            for = "5m";
+            labels = {
+              severity = "critical";
+              tier = "storage";
+            };
+            annotations = {
+              summary = "{{ $labels.host }} disk {{ $labels.device }} reports SMART FAILURE";
+              description = "smartctl reports the disk as failing. Deal with it before it stops answering: whichever mirror pair it belongs to is about to lose its redundancy, and a second failure in that pair is data loss.";
+            };
+          }
+          {
+            # Any nonzero count is the signal on modern drives. Firmware remaps
+            # sparingly and only after a real read or write failure, so one
+            # reallocated sector means the surface has already given up a block;
+            # waiting for a threshold is waiting for a second opinion from a disk
+            # that already gave its first.
+            alert = "SmartReallocatedSectors";
+            expr = "smart_reallocated_sectors > 0";
+            for = "15m";
+            labels = {
+              severity = "warning";
+              tier = "storage";
+            };
+            annotations = {
+              summary = "{{ $labels.host }} disk {{ $labels.device }} has reallocated sectors";
+              description = "{{ $labels.device }} on {{ $labels.host }} has remapped {{ $value }} sectors. Back up before it grows, and check whether the pool has already logged errors against it.";
+            };
+          }
+          {
+            # Sectors the drive could not read and has queued for remap. These are
+            # the ones ZFS already failed to read, so this leads a pool checksum
+            # error rather than following it.
+            alert = "SmartPendingSectors";
+            expr = "smart_current_pending_sectors > 0";
+            for = "15m";
+            labels = {
+              severity = "warning";
+              tier = "storage";
+            };
+            annotations = {
+              summary = "{{ $labels.host }} disk {{ $labels.device }} has unreadable pending sectors";
+              description = "{{ $labels.device }} on {{ $labels.host }} could not read {{ $value }} sectors and has queued them for remap. A resilver reads every block on the disk, so these are exactly what fails a rebuild -- and until the mirror's other half is verified, the copy you are relying on may be the damaged one.";
+            };
+          }
+          {
+            alert = "SmartUncorrectableSectors";
+            expr = "smart_offline_uncorrectable > 0 or smart_reported_uncorrectable > 0 or smart_grown_defect_list > 0";
+            for = "15m";
+            labels = {
+              severity = "warning";
+              tier = "storage";
+            };
+            annotations = {
+              summary = "{{ $labels.host }} disk {{ $labels.device }} has uncorrectable sectors";
+              description = "{{ $labels.device }} on {{ $labels.host }} reports {{ $value }} sectors it could not correct at all. Data already written there may be unreadable; verify the pool's own error counters.";
             };
           }
         ];

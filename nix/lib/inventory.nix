@@ -35,6 +35,11 @@ rec {
       description = "Mail (Stalwart), media, headscale, Forgejo origin, tank NFS";
       zfs = true;
       gpu = true;
+      # Six spinning TDAS spindles and nothing reading their SMART data, which is
+      # why the 2026-11-19 outage had no drive-health signal at all. Not derived
+      # from `zfs`: ssdnodes-1 has a pool on a virtual disk, where SMART is
+      # meaningless.
+      smart = true;
     };
     fwai0 = {
       description = "Fleet build farm, LLM inference";
@@ -548,6 +553,7 @@ rec {
     }
     // (if hosts.${h}.gpu or false then { gpu = "true"; } else { })
     // (if hosts.${h}.llm or false then { llm = "true"; } else { })
+    // (if hosts.${h}.smart or false then { smart = "true"; } else { })
     // (if hosts.${h}.exitNode or false then { exit_node = "true"; } else { });
   }) monitoredHosts;
 

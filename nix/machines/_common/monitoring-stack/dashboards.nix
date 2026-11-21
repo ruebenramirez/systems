@@ -638,12 +638,92 @@ let
         legend = "{{gpu}}";
         expr = ''gpu_temperature_celsius{host="$host"}'';
       })
-      (row 21 "systemd" 65)
+      # Empty on a host whose inventory entry does not set `smart = true`: the
+      # collector writes no file there, so the panels stay blank instead of
+      # inventing a series, same as the GPU row above.
+      (row 30 "Drive health (SMART)" 65)
+      (ts {
+        id = 31;
+        title = "SMART self-reported health (1 = pass)";
+        min = 0;
+        max = 1;
+        x = 0;
+        y = 66;
+        w = 6;
+        h = 7;
+        legend = "{{device}}";
+        expr = ''smart_status_passed{host="$host"}'';
+      })
+      (ts {
+        id = 32;
+        title = "Disk temperature";
+        unit = "celsius";
+        min = 0;
+        x = 6;
+        y = 66;
+        w = 6;
+        h = 7;
+        legend = "{{device}}";
+        expr = ''smart_temperature_celsius{host="$host"}'';
+      })
+      (ts {
+        id = 33;
+        title = "Reallocated sectors";
+        min = 0;
+        x = 12;
+        y = 66;
+        w = 6;
+        h = 7;
+        legend = "{{device}}";
+        expr = ''smart_reallocated_sectors{host="$host"}'';
+      })
+      (ts {
+        id = 34;
+        title = "Current pending (unreadable) sectors";
+        min = 0;
+        x = 18;
+        y = 66;
+        w = 6;
+        h = 7;
+        legend = "{{device}}";
+        expr = ''smart_current_pending_sectors{host="$host"}'';
+      })
+      (ts {
+        id = 35;
+        title = "Uncorrectable sectors";
+        min = 0;
+        x = 0;
+        y = 73;
+        w = 8;
+        h = 7;
+        legend = "{{device}} {{__name__}}";
+        expr = ''(smart_offline_uncorrectable{host="$host"} or smart_reported_uncorrectable{host="$host"} or smart_grown_defect_list{host="$host"})'';
+      })
+      (ts {
+        id = 36;
+        title = "Power-on hours";
+        x = 8;
+        y = 73;
+        w = 8;
+        h = 7;
+        legend = "{{device}}";
+        expr = ''smart_power_on_hours{host="$host"}'';
+      })
+      (table {
+        id = 37;
+        title = "Disks seen by SMART";
+        x = 16;
+        y = 73;
+        w = 8;
+        h = 7;
+        expr = ''smart_device_info{host="$host"}'';
+      })
+      (row 21 "systemd" 81)
       (table {
         id = 22;
         title = "Failed units";
         x = 0;
-        y = 66;
+        y = 82;
         expr = ''node_systemd_unit_state{host="$host",state="failed"} == 1'';
       })
     ];

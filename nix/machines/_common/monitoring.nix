@@ -18,7 +18,10 @@ let
   # Several collectors write into that one directory, so the textfile collector is
   # enabled if any of them is.
   textfileEnabled =
-    cfg.exporters.textfile.enable || cfg.exporters.gpu.enable || cfg.exporters.model.enable;
+    cfg.exporters.textfile.enable
+    || cfg.exporters.gpu.enable
+    || cfg.exporters.model.enable
+    || cfg.exporters.smart.enable;
 
   # amdgpu sysfs counters, written once per timer tick for the textfile
   # collector. Metric names are vendor-neutral on purpose: a host with another
@@ -399,6 +402,165 @@ let
     chmod 0644 "$tmp"
     mv "$tmp" "$out_dir/model.prom"
   '';
+
+  # Per-disk SMART health, one .prom file per timer tick.
+  #
+  # Attribute lookup is by attribute *name*, not id: vendors spell the same
+  # attribute differently and ids move between vendors. The raw value path is
+  # `.raw.value`, the only spelling smartmontools has ever emitted. A pinned path
+  # fails quietly rather than loudly: it yields empty, the guard skips the metric,
+  # and the panel simply stops drawing a line.
+  #
+  # The fail-closed gate at the end is what makes a wrong path survivable. If no
+  # device yields a SMART status, nothing publishes at all, so SmartMetricsMissing
+  # fires instead of the fleet quietly going green.
+  smartCollector = pkgs.writeShellScript "smart-metrics" ''
+    set -u
+
+    out_dir=${textfileDir}
+    smartctl=${pkgs.smartmontools}/sbin/smartctl
+    jq_bin=${pkgs.jq}/bin/jq
+    configured="${lib.concatStringsSep " " cfg.exporters.smart.devices}"
+    tmp="$out_dir/.smart.prom.tmp"
+    trap 'rm -f "$tmp"' EXIT
+
+    # Truncate explicitly: a surviving tmp would be appended to, and the TYPE and
+    # parsability gates below would then reject every publish from then on.
+    : > "$tmp"
+
+    # All gauges, deliberately. Reallocated sectors only ever grow, but pending
+    # sectors *fall* when a disk remaps them, and alerting on the presence of a
+    # nonzero pending count is exactly what notices the recovery.
+    for family in smart_status_passed smart_device_info smart_temperature_celsius \
+                  smart_power_on_hours smart_power_cycle_count \
+                  smart_reallocated_sectors smart_reallocated_events \
+                  smart_current_pending_sectors smart_offline_uncorrectable \
+                  smart_reported_uncorrectable smart_command_timeouts \
+                  smart_read_errors_corrected_total smart_write_errors_corrected_total \
+                  smart_verify_errors_corrected_total smart_grown_defect_list \
+                  smart_collection_timestamp_seconds; do
+      printf '# TYPE %s gauge\n' "$family" >> "$tmp"
+    done
+
+    # Every sample carries a label set, because one unparsable line costs every
+    # metric in the file rather than its own.
+    emit() { printf '%s{%s} %s\n' "$1" "$2" "$3" >> "$tmp"; }
+
+    digits() { case "$1" in *[!0-9]*) return 1 ;; esac; [ -n "$1" ]; }
+
+    # Model and serial strings come straight off the device. One embedded quote
+    # would make every line in the file unparsable and cost the host all of its
+    # SMART metrics, so they are stripped rather than trusted.
+    # `}` too: an embedded brace breaks the parsability gate and fail-closes the
+    # whole host's SMART file, not just the disk that carried it.
+    sanitize() { printf '%s' "$1" | tr -d '"\\}' | tr -d '\n'; }
+
+    jget() { printf '%s' "$json" | "$jq_bin" -r "$1 // empty" 2>/dev/null; }
+
+    # Takes a `|`-separated list of names, because vendors spell the same
+    # attribute differently: Seagate reports Reported_Uncorrect where WD reports
+    # Reported_Uncorrectable, and pinning one silently drops the metric on the
+    # other's disks rather than failing.
+    attr() {
+      local v name IFS='|'
+      for name in $1; do
+        v=$(printf '%s' "$json" | "$jq_bin" -r "(.ata_smart_attributes.table[] | select(.name == \"$name\") | .raw.value) // empty" 2>/dev/null)
+        if [ -n "$v" ]; then printf '%s' "$v"; return 0; fi
+      done
+      return 0
+    }
+
+    # smartctl --scan rather than a hand-written list: sdX names move between
+    # boots on USB-attached disks, and a pinned list silently stops watching the
+    # disk that moved instead of complaining.
+    devices="$configured"
+    if [ -z "$devices" ]; then
+      devices=$(timeout 30 "$smartctl" --scan 2>/dev/null | awk '$1 ~ /^\/dev\// {print $1}' | sort -u)
+    fi
+
+    disks=0
+    for dev in $devices; do
+      json=$(timeout 60 "$smartctl" -j -a "$dev" 2>/dev/null)
+      [ -n "$json" ] || continue
+
+      # Three-way, not if/else: smartctl answers a device it cannot open with
+      # valid JSON that has no smart_status at all, and jq reads an absent field
+      # as null -- falsy -- so `if ... then 1 else 0 end` emits a passing 0 for
+      # "no answer" and pages on a healthy disk. Absent means empty here.
+      passed=$(jget 'if .smart_status.passed == true then 1 elif .smart_status.passed == false then 0 else empty end')
+      [ -n "$passed" ] || continue
+
+      disks=$((disks + 1))
+      lbl="device=\"$(basename "$dev")\""
+      emit smart_status_passed "$lbl" "$passed"
+
+      model=$(sanitize "$(jget '.model_name')")
+      serial=$(sanitize "$(jget '.serial_number')")
+      emit smart_device_info "$lbl,model=\"$model\",serial=\"$serial\"" 1
+
+      temp=$(jget '.temperature.current')
+      if digits "$temp"; then emit smart_temperature_celsius "$lbl" "$temp"; fi
+
+      poh=$(jget '.power_on_time.hours')
+      if digits "$poh"; then emit smart_power_on_hours "$lbl" "$poh"; fi
+
+      pcc=$(jget '.power_cycle_count')
+      if digits "$pcc"; then emit smart_power_cycle_count "$lbl" "$pcc"; fi
+
+      # ATA vendor attributes, by name.
+      for pair in "smart_reallocated_sectors Reallocated_Sector_Ct" \
+                  "smart_reallocated_events Reallocated_Event_Count" \
+                  "smart_current_pending_sectors Current_Pending_Sector" \
+                  "smart_offline_uncorrectable Offline_Uncorrectable" \
+                  "smart_reported_uncorrectable Reported_Uncorrectable|Reported_Uncorrect" \
+                  "smart_command_timeouts Command_Timeout|Command_Timeout_Extended"; do
+        name=$(printf '%s' "$pair" | cut -d' ' -f1)
+        val=$(attr "$(printf '%s' "$pair" | cut -d' ' -f2)")
+        if digits "$val"; then emit "$name" "$lbl" "$val"; fi
+      done
+
+      # SCSI/SAS exposes error counters instead of vendor attributes, so a SAS
+      # shelf feeds the same series names through the same guard. The error
+      # counter log has read/write/verify pages -- no seek page -- so the third
+      # series is verify, not seek.
+      for pair in "smart_grown_defect_list .scsi_grown_defect_list" \
+                  "smart_read_errors_corrected_total .scsi_error_counter_log.read.total_errors_corrected" \
+                  "smart_write_errors_corrected_total .scsi_error_counter_log.write.total_errors_corrected" \
+                  "smart_verify_errors_corrected_total .scsi_error_counter_log.verify.total_errors_corrected"; do
+        name=$(printf '%s' "$pair" | cut -d' ' -f1)
+        val=$(jget "$(printf '%s' "$pair" | cut -d' ' -f2)")
+        if digits "$val"; then emit "$name" "$lbl" "$val"; fi
+      done
+    done
+
+    # Freshness, not presence: the textfile collector serves a stale file forever.
+    emit smart_collection_timestamp_seconds 'scope="collector"' "$(date +%s)"
+
+    # Fail closed. Zero disks means smartmontools is absent, the scan found
+    # nothing, or every device refused to answer. All three must read as missing
+    # telemetry, never as a shelf full of healthy disks.
+    if [ "$disks" -eq 0 ]; then
+      printf 'smart-metrics: no device reported a SMART status; not publishing\n' >&2
+      exit 1
+    fi
+
+    dup_types=$(sed -n 's/^# TYPE \([a-z_]*\) .*$/\1/p' "$tmp" | sort | uniq -d)
+    if [ -n "$dup_types" ]; then
+      printf 'smart-metrics: duplicate TYPE for %s; not publishing\n' "$dup_types" >&2
+      exit 1
+    fi
+    while IFS= read -r line; do
+      case "$line" in
+        \#*) continue ;;
+      esac
+      if ! printf '%s' "$line" | grep -qE '^[a-z_]+\{[^}]*\} [0-9]+(\.[0-9]+)?$'; then
+        printf 'smart-metrics: refusing to publish unparsable line: %s\n' "$line" >&2
+        exit 1
+      fi
+    done < "$tmp"
+    chmod 0644 "$tmp"
+    mv "$tmp" "$out_dir/smart.prom"
+  '';
 in
 {
   options.my.monitoring = {
@@ -509,6 +671,40 @@ in
       '';
     };
 
+    exporters.smart.enable = lib.mkOption {
+      type = lib.types.bool;
+      default = self.smart or false;
+      description = ''
+        Export per-disk SMART health through the node_exporter textfile
+        collector. Defaults to the host's `smart` flag in
+        nix/lib/inventory.nix, which is also the label Prometheus uses to hold
+        the host to producing those metrics.
+      '';
+    };
+
+    exporters.smart.interval = lib.mkOption {
+      type = lib.types.str;
+      default = "10min";
+      example = "30min";
+      description = ''
+        How often the SMART snapshot is rewritten. Kept well above the other
+        collectors because a SMART read on a spinning disk is real work: it
+        wakes the drive, and on a large shelf it competes with the pool.
+      '';
+    };
+
+    exporters.smart.devices = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "/dev/disk/by-id/ata-ST16000NM000J-2TW103_ZW62R7V3" ];
+      description = ''
+        Devices to query. Empty means ask `smartctl --scan`, which is the default:
+        sdX names move between boots, especially on USB-attached disks, and a
+        pinned list silently stops watching whatever moved. Set this only to
+        narrow which disks are reported.
+      '';
+    };
+
     # Reachable-by list for the scrape firewall rule. The fleet's Prometheus
     # runs in the k3s cluster, whose pod egress is masqueraded to the node's
     # tailnet address, so the tailnet interface is the only thing that ever
@@ -576,6 +772,22 @@ in
           definition, from the same strings it uses for the model files.
         '';
       }
+      {
+        assertion = !cfg.exporters.smart.enable || cfg.exporters.node.enable;
+        message = ''
+          my.monitoring.exporters.smart on ${config.networking.hostName} writes into the
+          node_exporter textfile directory, so it needs
+          my.monitoring.exporters.node.enable as well.
+        '';
+      }
+      {
+        assertion = !cfg.exporters.smart.enable || (self.smart or false);
+        message = ''
+          my.monitoring.exporters.smart is enabled on ${config.networking.hostName},
+          which the inventory does not mark `smart = true`. That combination exports
+          metrics no alert expects: set the inventory flag or drop the option.
+        '';
+      }
     ];
 
     services.prometheus.exporters.node = lib.mkIf cfg.exporters.node.enable {
@@ -638,6 +850,39 @@ in
         AccuracySec = "1s";
       };
     };
+
+    # Runs as root: reading ATA vendor attributes needs the SG_IO ioctl, which an
+    # unprivileged user cannot issue, and smartctl silently downgrades to a
+    # partial report rather than failing when it lacks it.
+    systemd.services."smart-metrics" = lib.mkIf cfg.exporters.smart.enable {
+      description = "Snapshot per-disk SMART health for the textfile collector";
+      serviceConfig = {
+        Type = "oneshot";
+        StateDirectory = "node_exporter/textfile";
+        # smartctl --scan plus up to 60s per device across a full shelf can pass
+        # systemd's 90s default; a SIGKILL mid-run takes the trap with it and the
+        # host runs on a stale file until SmartCollectionStale fires.
+        TimeoutStartSec = "600s";
+      };
+      script = "${smartCollector}";
+    };
+
+    systemd.timers."smart-metrics" = lib.mkIf cfg.exporters.smart.enable {
+      description = "Refresh the SMART textfile metrics";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        # Start well inside SmartMetricsMissing's `for`, so a clean boot never pages.
+        OnBootSec = "60s";
+        OnUnitActiveSec = cfg.exporters.smart.interval;
+        AccuracySec = "1s";
+      };
+    };
+
+    # The collector names smartctl by absolute path and needs nothing installed,
+    # but an operator paged about a disk has to be able to run it interactively.
+    # That gap is exactly why the 2026-11-19 outage found nothing in the journal:
+    # there was no smartctl on the box to ask.
+    environment.systemPackages = lib.optionals cfg.exporters.smart.enable [ pkgs.smartmontools ];
 
     networking.firewall.interfaces = lib.listToAttrs (
       map (iface: {
