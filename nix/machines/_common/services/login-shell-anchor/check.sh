@@ -14,6 +14,11 @@
 #   ANCHOR_LINKS  space-separated paths, relative to ANCHOR_HOME, that the login
 #                 shell reads before it can hand over a prompt
 #   ANCHOR_POOL_ROOTS  space-separated mountpoints that must never appear in one
+#   ANCHOR_ALERT_ONCE + ANCHOR_STATE_FILE
+#                 set together by the timer-driven unit: fail loudly on the
+#                 transition into a bad state, then exit 0 until recovery, so a
+#                 10min timer cannot become a mail storm. Unset, every violation
+#                 exits 1 -- which is what migrate.sh relies on.
 
 set -uo pipefail
 
