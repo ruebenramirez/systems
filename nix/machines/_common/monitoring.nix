@@ -624,12 +624,13 @@ let
     pools_seen=0
     for p in $pools; do
       st=$(timeout 30 "$zpool" status "$p" 2>/dev/null)
+      # Empty means zpool did not answer for this pool at all -- a real failure.
+      # A pool that answered but printed no scan line is not a failure: it has
+      # simply never been scrubbed, which is "not scrubbing".
       [ -n "$st" ] || continue
-
-      scan=$(printf '%s\n' "$st" | grep -m1 'scan:')
-      [ -n "$scan" ] || continue
       pools_seen=$((pools_seen + 1))
 
+      scan=$(printf '%s\n' "$st" | grep -m1 'scan:')
       lbl="pool=\"$p\""
       case "$scan" in
         *"scrub in progress"* | *"resilver in progress"* | *"initialize in progress"*)
@@ -640,13 +641,24 @@ let
             emit zpool_scrub_percent_done "$lbl" "$pct"
           fi
 
-          eta=$(printf '%s\n' "$st" | grep -m1 -oE '[0-9]+:[0-9][0-9]:[0-9][0-9] to go' | cut -d' ' -f1)
+          # zpool prints "1 day 05:44:23 to go" past 24h; matching only the
+          # HH:MM:SS tail would silently under-report a cold multi-terabyte pool
+          # by a whole day.
+          eta=$(printf '%s\n' "$st" | grep -m1 -oE '([0-9]+ day )?[0-9]+:[0-9][0-9]:[0-9][0-9] to go' | sed 's/ to go$//')
           if [ -n "$eta" ]; then
-            emit zpool_scrub_seconds_remaining "$lbl" "$(to_seconds "$eta")"
+            days=$(printf '%s' "$eta" | grep -oE '^[0-9]+ day' | cut -d' ' -f1)
+            hms=$(printf '%s' "$eta" | grep -oE '[0-9]+:[0-9][0-9]:[0-9][0-9]$')
+            secs=$(to_seconds "$hms")
+            if [ -n "$days" ]; then
+              secs=$((secs + 10#$days * 86400))
+            fi
+            emit zpool_scrub_seconds_remaining "$lbl" "$secs"
           fi
           ;;
-        # Anything else -- repaired, stopped, aborted, or no scan recorded -- is
-        # "not currently scrubbing", which is the only thing the inhibition needs.
+        # Anything else -- repaired, stopped, aborted, or no scan line at all --
+        # is "not currently scrubbing", which is the only thing the inhibition
+        # needs. Emitting 0 rather than skipping also keeps a never-scrubbed pool
+        # from looking like a dead collector.
         *)
           emit zpool_scrub_state "$lbl" 0
           ;;
@@ -1045,6 +1057,12 @@ in
       serviceConfig = {
         Type = "oneshot";
         StateDirectory = "node_exporter/textfile";
+        # Worst case is the pool list plus one status call per pool, each with its
+        # own timeout: four pools at 30s plus a slow list already exceeds systemd's
+        # 90s default. A SIGKILL mid-run leaves the previous file being served,
+        # which is the failure ZfsScrubCollectionStale exists to catch -- but
+        # getting there via a timeout is needlessly the hard way.
+        TimeoutStartSec = "300";
       };
       script = "${scrubCollector}";
     };

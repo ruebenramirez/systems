@@ -919,6 +919,25 @@ let
               description = "{{ $labels.host }} is scraping but reports no pool scan state, so scrub-induced disk saturation is no longer inhibited and zpool_scrub_percent_done is dark; zfs-scrub-state.timer is not refreshing the textfile or no pool answered.";
             };
           }
+          {
+            # The gap Missing cannot see. The textfile collector serves the last
+            # zfs_scrub.prom forever, so a collector that dies mid-scrub leaves
+            # zpool_scrub_state frozen at 1: PoolScrubRunning keeps firing and
+            # HostDiskIOSaturated stays suppressed indefinitely, with the series
+            # present and therefore invisible to the absence check above. Every
+            # collector here pairs Missing with Stale for exactly this reason.
+            alert = "ZfsScrubCollectionStale";
+            expr = "time() - zpool_scrub_timestamp_seconds > 300";
+            for = "5m";
+            labels = {
+              severity = "warning";
+              tier = "storage";
+            };
+            annotations = {
+              summary = "ZFS scrub state from {{ $labels.instance }} has not updated in 5 minutes";
+              description = "zfs-scrub-state.timer is not refreshing the textfile, so a scrub that has already finished may still be inhibiting HostDiskIOSaturated on {{ $labels.host }}. The suppression is frozen rather than absent, which is why ZfsScrubMetricsMissing stays quiet about it.";
+            };
+          }
         ];
       }
 
@@ -1017,6 +1036,16 @@ let
         # 90% is literally true and completely unactionable for as long as it
         # runs -- hours on a full pool. Inhibited rather than dropped, so the
         # saturation alert still exists and returns the moment the scrub ends.
+        #
+        # Matching on host alone is deliberately broad: it also suppresses
+        # saturation on devices outside the scrubbing pool. Accepted because on
+        # every host that enables this the rotating disks all belong to a pool
+        # that can scrub -- homeserver's non-tank disk is the NVMe holding zroot
+        # -- so the masked case is a saturating boot SSD during a tank scrub, not
+        # a saturating data disk. Narrowing it needs a device-to-pool label on the
+        # saturation series, which nothing exports today; zpool status already
+        # names every vdev, so the mapping is a cheap addition to the collector
+        # if the mask ever proves real.
         source_matchers = [ ''alertname = "PoolScrubRunning"'' ];
         target_matchers = [ ''alertname = "HostDiskIOSaturated"'' ];
         equal = [ "host" ];
