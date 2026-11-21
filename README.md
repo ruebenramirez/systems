@@ -145,6 +145,7 @@ failure reporting is in [Alerting](docs/alerting.md#ci-notifications).
 - [System flake activity chart](docs/system-flake-activity.md)
 - [Secrets](docs/secrets.md)
 - [Alerting](docs/alerting.md)
+- [Login shell anchoring](docs/login-shell-anchor.md)
 - [Fleet monitoring](docs/monitoring.md)
 - [Harbor container registry](docs/harbor.md)
 - [CI](docs/ci.md)

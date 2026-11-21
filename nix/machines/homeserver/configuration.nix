@@ -9,6 +9,7 @@
     ../_common/home-vpn-client.nix
     ../_common/tailscale-client.nix
     ../_common/services/kubernetes.nix
+    ../_common/services/login-shell-anchor/default.nix
     ../_common/services/zpool-rescue/default.nix
     ./hardware-configuration.nix
 
@@ -103,6 +104,17 @@
     enable = true;
     pools = [ "tank" ];
     probeDir = "/tank";
+  };
+
+  # The other half of that outage: ~/.config/fish and ~/bin were symlinks into
+  # /tank/Shares/rueb/code, so fish blocked reading them and SSH hung after the
+  # last-login banner -- on a host that was up, with sshd running. The checkout
+  # moves to zroot; every other repo in the share keeps its current path.
+  rueb.loginShellAnchor = {
+    enable = true;
+    poolRoots = [ "/tank" ];
+    anchorDir = "/home/rramirez/code";
+    poolDir = "/tank/Shares/rueb/code";
   };
 
   services.sanoid = {

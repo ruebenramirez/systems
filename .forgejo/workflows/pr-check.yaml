@@ -91,6 +91,15 @@ jobs:
         if: ${{ steps.checkout.outcome == 'success' }}
         run: scripts/check-registry-mirrors.sh
 
+      # The login-shell anchor scripts have to keep working during the outage
+      # they detect: a checker that follows a symlink into a suspended pool hangs
+      # instead of reporting. Proven against a rebuilt copy of the broken layout
+      # rather than by reading it, because the failure mode is a hang and a hang
+      # is invisible in review.
+      - name: Check the login-shell anchor scripts
+        if: ${{ steps.checkout.outcome == 'success' }}
+        run: scripts/test-login-shell-anchor.sh
+
       # Parse locally, then ship the source and inputs to fwai0 and evaluate and
       # build there; the runner neither compiles nor evaluates the fleet.
       - name: Check the flake

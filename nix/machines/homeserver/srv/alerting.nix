@@ -42,6 +42,9 @@
       # Fires once per outage, not once per poll: the rescue unit suppresses
       # repeat failures until the pool comes back. See zpool-rescue.sh.
       "zpool-rescue.service"
+      # The login shell must never resolve onto tank. This pages long before an
+      # outage does, when something re-links a dotfile back into the share.
+      "login-shell-anchor-check.service"
     ];
   };
 }
