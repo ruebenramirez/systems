@@ -161,21 +161,22 @@ error: while running command with remote sudo, did you forget to use --ask-sudo-
 That message is a guess, and so far it has always been wrong: sudo was fine, the
 credential was fine, the machine switched. Run 226 reported
 `Failed machines (1): homeserver` for a host that had just made a new generation
-current and active underneath the dying connection. A red that needs no action is
-worse than no red, because it trains you to ignore the nightly.
+current and active underneath the dying connection.
 
-`nup-fleet` counts a failed switch as updated only when it can show both:
+**This fails the deploy, and that is intended.** An earlier version tried to
+rescue the case by checking whether the target came back on a different system
+profile, and counted that as updated. It was removed: "the generation symlink
+changed" is not evidence that activation finished, so the rescue could turn a
+half-applied config into a green deploy. A red you can act on beats a green that
+is a guess.
 
-- the failure text looks like a lost transport -- ssh 255, connection reset or
-  closed, broken pipe, that `--ask-sudo-password` line -- and
-- the target answers ssh again (retried for 30 seconds, since a tailnet link
-  usually takes a few) and is on a **different** system profile than the one it
-  held when the switch began.
+The remedy is to re-run the deploy for that host. The switch is idempotent, so
+the second run either completes cleanly -- which is the usual outcome, because
+the machine really did switch -- or fails again with an error that is real.
 
-It logs a `::warning::` naming the new system and the host counts as updated.
-Neither half alone is enough: a real activation error still fails, and a host
-that never comes back still fails. The profile is compared against the pre-switch
-value rather than the path just built, so confirming costs no evaluation.
+```bash
+nup-fleet homeserver
+```
 
 ### Post-switch exit-node checks
 
