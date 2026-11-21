@@ -386,6 +386,51 @@ let
           }
         ];
       })
+      # Scrub visibility. A scrub saturates every disk it touches, which is why
+      # HostDiskIOSaturated is inhibited while PoolScrubRunning fires -- so the
+      # thing that explains a quiet saturation alert has to be visible somewhere,
+      # or "no pages" and "monitoring is broken" look identical. The progress and
+      # countdown series only exist while a scan is running, so these panels are
+      # blank on an idle fleet by design.
+      (stat {
+        id = after + 4;
+        title = "Pools scrubbing";
+        x = 0;
+        y = 58;
+        w = 4;
+        h = 4;
+        threshold = [
+          { color = "green"; }
+          {
+            color = "orange";
+            value = 1;
+          }
+        ];
+        expr = "count(zpool_scrub_state == 1) or vector(0)";
+      })
+      (stat {
+        id = after + 5;
+        title = "Scrub time remaining";
+        unit = "s";
+        x = 4;
+        y = 58;
+        w = 4;
+        h = 4;
+        expr = "zpool_scrub_seconds_remaining";
+      })
+      (ts {
+        id = after + 6;
+        title = "Scrub progress";
+        unit = "percent";
+        min = 0;
+        max = 100;
+        x = 8;
+        y = 58;
+        w = 16;
+        h = 4;
+        legend = "{{host}} {{pool}}";
+        expr = "zpool_scrub_percent_done";
+      })
     ];
 
   hostHealth = dashboard {
