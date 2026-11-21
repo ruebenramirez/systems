@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # shellcheck shell=bash
 #
 # Report every login-critical path that resolves into a pool mountpoint.

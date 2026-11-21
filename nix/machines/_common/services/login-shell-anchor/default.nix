@@ -32,7 +32,9 @@ let
     ANCHOR_POOL_DIR = cfg.poolDir;
     ANCHOR_ENTRY = cfg.entry;
     ANCHOR_LINKS = lib.concatStringsSep " " (map (p: lib.removePrefix "/" p) cfg.paths);
-    ANCHOR_POOL_ROOTS = lib.concatStringsSep " " cfg.poolRoots;
+    # check.sh matches "$root"/* lexically; a trailing slash would silently
+    # disable that root.
+    ANCHOR_POOL_ROOTS = lib.concatStringsSep " " (map (lib.removeSuffix "/") cfg.poolRoots);
   };
 in
 {
@@ -133,7 +135,7 @@ in
     # should already be owned by the person who owns it.
     systemd.services.login-shell-anchor-migrate = lib.mkIf cfg.migrate {
       description = "Move the login shell's dotfile checkout off ${lib.concatStringsSep "/" cfg.poolRoots}";
-      documentation = [ "man:ln(1)" "man:mv(1)" ];
+      documentation = [ "https://code.rueb.dev/rueb/systems/src/branch/master/docs/login-shell-anchor.md" ];
 
       # Only while the flip is still pending. Once anchorDir is a real directory
       # the condition fails and the unit is skipped, which is what makes the
@@ -145,6 +147,11 @@ in
         DefaultDependencies = true;
       };
       after = [ "local-fs.target" ];
+
+      # Nothing else pulls this unit in, so it has to want itself into the
+      # transaction. ConditionPathIsSymlink makes every activation after the
+      # flip a clean skip, so it is safe to leave wanted permanently.
+      wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         Type = "oneshot";
@@ -159,7 +166,11 @@ in
 
     systemd.services.login-shell-anchor-check = {
       description = "Prove the login shell does not depend on a data pool";
+      # `after` alone only orders within one transaction; the timer fires the
+      # check in its own, so it must also want migrate or the first check can
+      # race a mid-copy migration and page spuriously.
       after = lib.optionals cfg.migrate [ "login-shell-anchor-migrate.service" ];
+      wants = lib.optionals cfg.migrate [ "login-shell-anchor-migrate.service" ];
 
       # Deliberately not ordered after local-fs.target: a pool wedged mid-mount
       # is one of the states this has to report on, and waiting for the mount

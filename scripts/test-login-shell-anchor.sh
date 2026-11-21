@@ -43,6 +43,7 @@ printf '%s\n' "$out" | sed 's/^/     | /'
 
 echo "== 2. a pool that cannot be traversed does not stop the check"
 # readlink inside the pool would fail here; the walk must never get that far.
+# NOTE: vacuous as root (root traverses 000 dirs) -- run unprivileged.
 chmod 000 "$root/tank/Shares/rueb/code/systems"
 out2="$(bash "$here/../nix/machines/_common/services/login-shell-anchor/check.sh" 2>&1)"; rc2=$?
 chmod u+rwx "$root/tank/Shares/rueb/code/systems"
