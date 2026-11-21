@@ -696,8 +696,23 @@ let
         y = 73;
         w = 8;
         h = 7;
-        legend = "{{device}} {{__name__}}";
-        expr = ''(smart_offline_uncorrectable{host="$host"} or smart_reported_uncorrectable{host="$host"} or smart_grown_defect_list{host="$host"})'';
+        legend = "{{device}} offline";
+        expr = ''smart_offline_uncorrectable{host="$host"}'';
+        # Three targets rather than an `or` chain: all three metrics carry the
+        # same label set, so `A or B or C` keeps only the first non-empty one per
+        # disk and a disk failing two ways at once drew a single line.
+        extraTargets = [
+          {
+            expr = ''smart_reported_uncorrectable{host="$host"}'';
+            legendFormat = "{{device}} reported";
+            refId = "B";
+          }
+          {
+            expr = ''smart_grown_defect_list{host="$host"}'';
+            legendFormat = "{{device}} grown defect";
+            refId = "C";
+          }
+        ];
       })
       (ts {
         id = 36;
