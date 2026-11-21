@@ -435,7 +435,7 @@ let
                   smart_power_on_hours smart_power_cycle_count \
                   smart_reallocated_sectors smart_reallocated_events \
                   smart_current_pending_sectors smart_offline_uncorrectable \
-                  smart_reported_uncorrectable smart_command_timeouts \
+                  smart_reported_uncorrectable \
                   smart_read_errors_corrected_total smart_write_errors_corrected_total \
                   smart_verify_errors_corrected_total smart_grown_defect_list \
                   smart_collection_timestamp_seconds; do
@@ -471,11 +471,17 @@ let
     }
 
     # smartctl --scan rather than a hand-written list: sdX names move between
-    # boots on USB-attached disks, and a pinned list silently stops watching the
-    # disk that moved instead of complaining.
+    # boots on USB-attached disks, and a pinned list silently stops watching
+    # whatever moved instead of complaining.
+    #
+    # sed, not awk: a systemd unit does not get a login shell's PATH and gawk is
+    # not in the one it does get (see the GPU collector above). With awk here the
+    # scan came back empty on the host and the fail-closed gate below reported
+    # "no device reported a SMART status" -- correct outcome, wrong reason, and
+    # invisible in a login shell where awk is on PATH.
     devices="$configured"
     if [ -z "$devices" ]; then
-      devices=$(timeout 30 "$smartctl" --scan 2>/dev/null | awk '$1 ~ /^\/dev\// {print $1}' | sort -u)
+      devices=$(timeout 30 "$smartctl" --scan 2>/dev/null | sed -n 's|^\(/dev/[^ ]*\).*|\1|p' | sort -u)
     fi
 
     disks=0
@@ -508,12 +514,18 @@ let
       if digits "$pcc"; then emit smart_power_cycle_count "$lbl" "$pcc"; fi
 
       # ATA vendor attributes, by name.
+      #
+      # Command_Timeout (188) is deliberately not exported: Seagate packs it as
+      # two counters in one raw field -- the spindles here report 0x2200220023,
+      # which is 35 timeouts and 2228258 aborted commands, not 146031116323 of
+      # anything. `.raw.value` is only a count for unpacked attributes, and a
+      # series whose number is a lie is worse than no series. Unpacking is
+      # vendor-specific, so it stays out rather than being guessed at.
       for pair in "smart_reallocated_sectors Reallocated_Sector_Ct" \
                   "smart_reallocated_events Reallocated_Event_Count" \
                   "smart_current_pending_sectors Current_Pending_Sector" \
                   "smart_offline_uncorrectable Offline_Uncorrectable" \
-                  "smart_reported_uncorrectable Reported_Uncorrectable|Reported_Uncorrect" \
-                  "smart_command_timeouts Command_Timeout|Command_Timeout_Extended"; do
+                  "smart_reported_uncorrectable Reported_Uncorrectable|Reported_Uncorrect"; do
         name=$(printf '%s' "$pair" | cut -d' ' -f1)
         val=$(attr "$(printf '%s' "$pair" | cut -d' ' -f2)")
         if digits "$val"; then emit "$name" "$lbl" "$val"; fi
