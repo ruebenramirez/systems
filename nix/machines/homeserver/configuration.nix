@@ -4,7 +4,6 @@
   imports = [
     ../_common/base/default.nix
     ../_common/monitoring.nix
-    ../_common/usb-storage-quirks.nix
     ../_common/nix-deploy-user.nix
     ../_common/gpu-amd.nix
     ../_common/home-vpn-client.nix
@@ -104,13 +103,6 @@
     enable = true;
     pools = [ "tank" ];
     probeDir = "/tank";
-  };
-
-  # All six tank bridges are ASMedia 174c:235c and were running on UAS when the
-  # link dropped. Forcing BOT costs queue depth and buys link stability.
-  rueb.usbStorageQuirks = {
-    enable = true;
-    uasDisableIds = [ "174c:235c" ];
   };
 
   services.sanoid = {
