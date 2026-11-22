@@ -5,8 +5,11 @@
 # is the source of truth and scripts/check-hermes-config-drift.py is meant to
 # keep this copy in sync via nightly PRs.
 #
-# Managed-scope keys (dashboard.basic_auth, model default/provider, halogen
-# provider) live in hermes-agent.nix and win on merge — do not add them here.
+# Managed-scope keys (dashboard.basic_auth, halogen provider) live in
+# hermes-agent.nix and win on merge — do not add them here. model.default is
+# NOT managed: a managed pin would override every profile's own default.
+# This file is the default profile's seed (halogen); Henry's pin lives in
+# ./profiles/henry/config.yaml.
 # No secret may appear in this file: platforms.webhook.extra.secret lives only
 # in the live config until the sops migration lands, and this checker strips
 # any secret: key.
@@ -19,11 +22,14 @@ attachments:
 plugins:
   clone_timeout_seconds: 300
 model:
+  default: halogen-qwen3.8-flash-next
+  provider: halogen
   api_mode: chat_completions
 kanban:
   review_dispatch: true
 cron:
   catch_up_missed: true
+  allow_agent_scheduling: true
 terminal:
   backend: "local"
   cwd: "."
@@ -142,6 +148,8 @@ platform_toolsets:
   yuanbao: [hermes-yuanbao]
   teams: [hermes-teams]
   google_chat: [hermes-google_chat]
+  webhook:
+    - hermes-matrix
 stt:
   enabled: true
   local:
@@ -200,8 +208,6 @@ platforms:
     enabled: true
     extra:
       port: 8644
-      # secret lives in the live config until it moves to sops (see PR body);
-      # the drift checker strips any secret: key.
 command_allowlist:
   - script execution via heredoc
   - stop/restart hermes gateway via shell-spliced verb (kills running agents)

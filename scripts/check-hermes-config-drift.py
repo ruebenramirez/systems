@@ -16,8 +16,20 @@ Volatile keys dropped from both sides:
 Usage:
   check-hermes-config-drift.py --live /opt/data/config.yaml --desired <file>
       exit 0 = no drift, 1 = drift (unified diff on stdout), 2 = bad input
-  check-hermes-config-drift.py --live <file> --emit
-      print the full desired-file content (header + normalized live config)
+  check-hermes-config-drift.py --live <file> --emit [--desired <file>]
+      print the full desired-file content (header + normalized live config);
+      with --desired the exit-3 guard below applies
+
+Also runs per-profile: --live /opt/data/profiles/<name>/config.yaml --desired
+the matching nix/machines/hermes-vm-xps/services/profiles/<name>/config.yaml
+(--header-file to regenerate a profile's own header).
+
+Deploy sequencing: after a rebuild drops/changes a managed model pin, seed the
+live default-profile config BEFORE the next drift run
+(`hermes config set model.default ... && hermes config set model.provider ...`),
+otherwise --emit regenerates the desired file from an unseeded live config and
+silently reverts per-profile pins. --emit refuses to emit when the desired file
+pins model.default but the live config has none (exit 3).
 
 Stdlib only; runs inside the Hermes container and on any host.
 """
@@ -45,8 +57,11 @@ HEADER = """\
 # is the source of truth and scripts/check-hermes-config-drift.py is meant to
 # keep this copy in sync via nightly PRs.
 #
-# Managed-scope keys (dashboard.basic_auth, model default/provider, halogen
-# provider) live in hermes-agent.nix and win on merge — do not add them here.
+# Managed-scope keys (dashboard.basic_auth, halogen provider) live in
+# hermes-agent.nix and win on merge — do not add them here. model.default is
+# NOT managed: a managed pin would override every profile's own default.
+# This file is the default profile's seed (halogen); Henry's pin lives in
+# ./profiles/henry/config.yaml.
 # No secret may appear in this file: platforms.webhook.extra.secret lives only
 # in the live config until the sops migration lands, and this checker strips
 # any secret: key."""
@@ -104,12 +119,26 @@ def normalize(path: str):
     return lines
 
 
+def has_model_default(lines):
+    """True if the normalized lines pin model.default at top level."""
+    in_model = False
+    for line in lines:
+        if TOP_KEY.match(line):
+            in_model = line.split(":", 1)[0] == "model"
+        elif in_model and line.strip().startswith("default:"):
+            return True
+    return False
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", required=True, help="path to live config.yaml")
     ap.add_argument("--desired", help="path to the declarative copy")
     ap.add_argument("--emit", action="store_true",
                     help="print the normalized live config instead of checking")
+    ap.add_argument("--header-file",
+                    help="with --emit: file whose contents replace the built-in "
+                         "header (use for profile configs)")
     args = ap.parse_args()
 
     try:
@@ -119,7 +148,30 @@ def main():
         return 2
 
     if args.emit:
-        print(HEADER)
+        if args.desired:
+            # Guard: regenerating from a live config that lost the model pin
+            # (e.g. managed pin dropped, live not yet seeded) would silently
+            # revert the per-profile default in the desired file.
+            try:
+                desired = normalize(args.desired)
+            except OSError as e:
+                print(f"error: cannot read desired config: {e}", file=sys.stderr)
+                return 2
+            if has_model_default(desired) and not has_model_default(live):
+                print("error: live config has no model.default but the desired "
+                      "file pins one; seed the live config with `hermes config "
+                      "set model.default ...` before regenerating",
+                      file=sys.stderr)
+                return 3
+        if args.header_file:
+            try:
+                with open(args.header_file, encoding="utf-8") as fh:
+                    print(fh.read().rstrip("\n"))
+            except OSError as e:
+                print(f"error: cannot read header file: {e}", file=sys.stderr)
+                return 2
+        else:
+            print(HEADER)
         print("\n".join(live))
         return 0
 

@@ -27,12 +27,11 @@ let
         username: ${config.sops.placeholder.hermes-dashboard-basic-auth-username}
         password: ${config.sops.placeholder.hermes-dashboard-basic-auth-password}
         secret: ${config.sops.placeholder.hermes-dashboard-basic-auth-secret}
-    # Custom endpoint (providers.<name> + base_url); both are set so they cannot
-    # disagree about where inference goes.
-    model:
-      default: halogen-qwen3.8-flash-next
-      provider: halogen
-      base_url: http://${tailnet.host "fwai0"}:8731/v1
+    # No model.default pin here: managed scope wins over EVERY profile's
+    # config.yaml, so a pin forces one model fleet-wide. Per-profile defaults
+    # live in user scope (default profile: halogen; Henry: deepseek).
+    # providers.halogen + base_url stay so the two cannot disagree about
+    # where inference goes.
     providers:
       halogen:
         base_url: http://${tailnet.host "fwai0"}:8731/v1
@@ -99,6 +98,11 @@ in
     # Hermes rewrites it from the dashboard -- and scripts/check-hermes-config-drift.py
     # is meant to PR changes back into ./hermes-config.yaml.
     "C /var/lib/hermes/config.yaml ${./hermes-config.yaml} 0600 10000 10000 -"
+    # Profile seeds (same C semantics): captures of the live profile state;
+    # the drift checker keeps ./profiles/<name>/ in sync via nightly PRs.
+    "d /var/lib/hermes/profiles/henry 0700 10000 10000 -"
+    "C /var/lib/hermes/profiles/henry/config.yaml ${./profiles/henry/config.yaml} 0600 10000 10000 -"
+    "C /var/lib/hermes/profiles/henry/profile.yaml ${./profiles/henry/profile.yaml} 0600 10000 10000 -"
   ];
 
   virtualisation.oci-containers.backend = "podman";
