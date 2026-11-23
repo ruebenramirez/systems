@@ -44,10 +44,10 @@ git commit -m "docs: refresh flake commit volume chart"
 
 # master is protected and the Actions task token cannot push; the push goes
 # out as the CI bot. `-c` outranks the blanked checkout extraheader.
-header="Authorization: token $CI_FLAKE...PUSH"
+header="Authorization: token ${CI_FLAKELOCK_PUSH}"
 git -c "http.https://code.rueb.dev/.extraheader=$header" push --force origin "HEAD:refs/heads/$BRANCH"
 
-auth=(-H "Authorization: token $CI_FLAKE...PUSH" -H "Content-Type: application/json")
+auth=(-H "Authorization: token ${CI_FLAKELOCK_PUSH}" -H "Content-Type: application/json")
 
 # The branch is fixed and force-pushed, so a still-open PR is updated by the
 # push above; only create one when there is none.
