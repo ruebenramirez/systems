@@ -30,6 +30,9 @@ let
     now="$(${pkgs.coreutils}/bin/date +%s)"
     if [ ${cooldownSecs} -gt 0 ] && [ -f "$marker" ]; then
       last="$(${pkgs.coreutils}/bin/cat "$marker" 2>/dev/null || echo 0)"
+      # A marker that is not a number fails open: the alert matters more than the
+      # cooldown, and nothing watches failure-mail@ itself.
+      case "$last" in ""|*[!0-9]*) last=0 ;; esac
       since=$(( now - last ))
       if [ "$since" -lt ${cooldownSecs} ]; then
         echo "alert suppressed: last alert ''${since}s ago, cooldown ${cooldownSecs}s"

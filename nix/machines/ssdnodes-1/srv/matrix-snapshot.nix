@@ -49,22 +49,24 @@ let
     # (meta/ private/ shared_checksum/), so mirror the whole thing.
     ${pkgs.rsync}/bin/rsync -a --delete "''${dbBackups}/" ${exportRoot}/db-backup/
 
-    # Proof-of-run marker, pulled along by the homeserver's rsync. This records
-    # that a snapshot actually completed, which a data mtime cannot: an idle
-    # Matrix server legitimately produces unchanged data, so "nothing changed"
-    # is not evidence of breakage and "something is new" is not evidence of
-    # health. Only a run marker distinguishes the two.
-    ${pkgs.coreutils}/bin/date -u +%Y-%m-%dT%H:%M:%SZ > ${exportRoot}/.snapshot-success
-
-    # Second marker: the mirror completed but carried no fresh checkpoint. It
-    # rides out with the same rsync, and the homeserver's freshness check fails on
-    # it; a healthy run removes it, so its absence means something.
+    # Degraded marker first, run marker last. The homeserver pulls this directory
+    # while it is being written, so `.snapshot-success` has to be the final change:
+    # a pull landing between the two would otherwise see a fresh success marker
+    # beside a stale -- or not yet written -- degraded file, and read either a false
+    # alarm on recovery or a false all-clear on a run that skipped its checkpoint.
     if [ -n "''${degraded}" ]; then
       printf '%s\n' "''${degraded}" > ${exportRoot}/.snapshot-degraded
       echo "WARN: mirrored without a new database checkpoint: ''${degraded}" >&2
     else
       ${pkgs.coreutils}/bin/rm -f ${exportRoot}/.snapshot-degraded
     fi
+
+    # Proof-of-run marker, pulled along by the homeserver's rsync. This records
+    # that a snapshot actually completed, which a data mtime cannot: an idle
+    # Matrix server legitimately produces unchanged data, so "nothing changed"
+    # is not evidence of breakage and "something is new" is not evidence of
+    # health. Only a run marker distinguishes the two.
+    ${pkgs.coreutils}/bin/date -u +%Y-%m-%dT%H:%M:%SZ > ${exportRoot}/.snapshot-success
   '';
 in
 {
