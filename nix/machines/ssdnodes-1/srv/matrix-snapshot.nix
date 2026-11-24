@@ -15,20 +15,29 @@ let
 
     token="$(cat ${config.sops.secrets.matrix-admin-access-token.path})"
 
-    # Trigger continuwuity's online RocksDB backup via the admin room. If the
-    # room id has not been recorded yet, fall back to mirroring what exists.
-    if [ -f ${adminRoomFile} ]; then
+    # Trigger continuwuity's online RocksDB backup via the admin room. A refused
+    # trigger costs the new checkpoint, not the publish: the media mirror and the
+    # last good checkpoint are still worth shipping, and aborting here is what
+    # turned a dead admin token into a full backup outage (issue #1088). The
+    # degradation is recorded beside the run marker so the homeserver's freshness
+    # check fails loudly instead of blessing a stale checkpoint.
+    degraded=""
+    if [ ! -f ${adminRoomFile} ]; then
+      degraded="admin room id missing at ${adminRoomFile}"
+    else
       room="$(cat ${adminRoomFile})"
       txn="backup-$(date +%s)"
-      ${pkgs.curl}/bin/curl -fsS -o /dev/null -X PUT \
+      if ${pkgs.curl}/bin/curl -fsS -o /dev/null -X PUT \
         "${apiBase}/_matrix/client/v3/rooms/''${room}/send/m.room.message/''${txn}" \
         -H "Authorization: Bearer ''${token}" \
         -H "Content-Type: application/json" \
         -d '{"msgtype":"m.text","body":"!admin server backup-database"}'
-      # Let the server finish writing the checkpoint before we copy it.
-      sleep 20
-    else
-      echo "WARN: ${adminRoomFile} missing; skipping online backup trigger" >&2
+      then
+        # Let the server finish writing the checkpoint before we copy it.
+        sleep 20
+      else
+        degraded="admin backup trigger rejected; the access token or the admin room is broken"
+      fi
     fi
 
     dbBackups=/var/lib/continuwuity/db-backups
@@ -46,6 +55,16 @@ let
     # is not evidence of breakage and "something is new" is not evidence of
     # health. Only a run marker distinguishes the two.
     ${pkgs.coreutils}/bin/date -u +%Y-%m-%dT%H:%M:%SZ > ${exportRoot}/.snapshot-success
+
+    # Second marker: the mirror completed but carried no fresh checkpoint. It
+    # rides out with the same rsync, and the homeserver's freshness check fails on
+    # it; a healthy run removes it, so its absence means something.
+    if [ -n "''${degraded}" ]; then
+      printf '%s\n' "''${degraded}" > ${exportRoot}/.snapshot-degraded
+      echo "WARN: mirrored without a new database checkpoint: ''${degraded}" >&2
+    else
+      ${pkgs.coreutils}/bin/rm -f ${exportRoot}/.snapshot-degraded
+    fi
   '';
 in
 {

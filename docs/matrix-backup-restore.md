@@ -12,6 +12,13 @@ media are backed up every six hours and pulled to the homeserver `tank`.
    - waits 20 s for the checkpoint to finish;
    - mirrors `/var/lib/continuwuity/media` → `/srv/matrix/media`;
    - mirrors `/var/lib/continuwuity/db-backups` → `/srv/matrix/db-backup`.
+
+A refused trigger -- dead access token, admin room gone -- does not abort the run:
+the media mirror and the last good checkpoint still ship, and
+`.snapshot-degraded` is written beside `.snapshot-success` so
+`matrix-backup-freshness` on the homeserver fails on it. Aborting instead is what a
+dead admin token did in November 2026: the media mirror was lost too and the marker
+froze for 21 hours (rueb/notes#1088).
 2. **ssdnodes-1 `matrix-backup-source.nix`** exposes `/srv/matrix` read-only over
    the tailnet via `rrsync` to the `homeserver-matrix-backup` key
    (`from="100.64.0.1/32"`).

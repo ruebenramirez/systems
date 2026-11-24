@@ -20,7 +20,9 @@ let
   # the backed-up data. An idle Matrix server legitimately produces unchanged
   # files, so mtime-based staleness would cry wolf; a missing or old marker means
   # the snapshot job itself stopped completing, which is the failure that
-  # silently cost 16 days of backups in October 2026.
+  # silently cost 16 days of backups in October 2026. A second marker says the
+  # run completed but skipped its database checkpoint, which is fresh data over a
+  # stale backup and fails for the same reason.
   freshness = pkgs.writeShellScript "matrix-backup-freshness" ''
     set -uo pipefail
     marker="${backupRoot}/.snapshot-success"
@@ -41,6 +43,16 @@ let
       echo "FAIL: newest source snapshot is ''${age}s old; matrix-snapshot on ssdnodes-1 is not completing"
       exit 1
     fi
+
+    # The source publishes this beside a fresh marker when it mirrored without a
+    # new RocksDB checkpoint -- a fresh marker over stale data, which an age check
+    # alone would wave through.
+    degraded="${backupRoot}/.snapshot-degraded"
+    if [ -f "$degraded" ]; then
+      echo "FAIL: the source mirrored without a database checkpoint: $(cat "$degraded")"
+      exit 1
+    fi
+
     echo "OK: source snapshot is recent"
   '';
 in
