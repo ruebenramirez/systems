@@ -14,6 +14,19 @@ It is **opt-in per machine and per unit**: systemd has no global `OnFailure`, so
 watched unit gains `OnFailure = [ "failure-mail@%n" ]`. That is deliberate — a
 laptop that briefly loses a mount should not send mail.
 
+A watched unit also gains `OnSuccess = [ "failure-mail-clear@%n" ]`, and the alert
+script records a marker under `/var/lib/failure-mail`. Together they make the
+contract **once per outage**: the first failure mails, further failures of the same
+unit are suppressed for `rueb.failureMail.cooldown` (24h by default), and a clean
+run clears the marker so the next outage mails immediately. Without the cap, a unit
+on a six-hour timer mails every single run of a week-long outage. A send that fails
+does not write the marker, so the next failure still gets out.
+
+One systemd trap before editing the template: `%i` is expanded in unit-file
+directives only, never inside the file `ExecStart` points at, and it strips the
+`.service` suffix on the way through the instance name. The failing unit is
+therefore passed as an argument and the suffix re-appended.
+
 Transports differ by host:
 
 - `ssdnodes-1` uses its postfix `sendmail` wrapper.
@@ -57,6 +70,13 @@ Two distinctions that matter, both earned the hard way:
   exits 0 says nothing about whether there was anything new to copy.
 - **Freshness checking is a separate unit from the backup itself**, so an alarm can
   fail loudly without ever being in a position to skip a real backup.
+- **A run can complete and still be worthless.** When the admin-room trigger that
+  asks Continuwuity for a checkpoint is refused, `matrix-snapshot` mirrors the
+  media and the last good checkpoint anyway and writes `.snapshot-degraded` beside
+  the run marker; the freshness unit fails on that file. Aborting the run instead
+  is what turned a dead admin token into a full backup outage in November 2026
+  (rueb/notes#1088): the token failure cost the media mirror too, and the marker
+  never advanced.
 
 ## Verify by negative test
 
