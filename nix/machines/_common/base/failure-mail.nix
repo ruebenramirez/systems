@@ -12,6 +12,32 @@
 let
   cfg = config.rueb.failureMail;
   host = config.networking.hostName;
+
+  # systemd expands %specifiers in unit-file directives only, never inside the
+  # file ExecStart points at, so the failing unit has to arrive as an argument;
+  # %i also drops the ".service" suffix, which is put back here.
+  failureMailScript = pkgs.writeShellScript "failure-mail" ''
+    set -uo pipefail
+    unit="''${1:?usage: failure-mail <failed-unit-name-without-suffix>}"
+    unit="$unit.service"
+    {
+      printf 'From: %s\n' ${lib.escapeShellArg cfg.from}
+      printf 'To: %s\n' ${lib.escapeShellArg (lib.concatStringsSep ", " cfg.recipients)}
+      printf 'Subject: [ALERT] ${host}: %s entered failed state\n' "$unit"
+      # MIME-Version + 8bit CTE: unit/journal output carries 8-bit
+      # bytes, and without these the spam filter scores the alert
+      # MISSING_MIME_VERSION + BAD_CTE_7BIT.
+      printf 'Date: %s\n' "$(${pkgs.coreutils}/bin/date -R)"
+      printf 'MIME-Version: 1.0\n'
+      printf 'Content-Type: text/plain; charset=utf-8\n'
+      printf 'Content-Transfer-Encoding: 8bit\n\n'
+      printf 'Host: ${host}\nUnit: %s\n\n' "$unit"
+      printf -- '--- systemctl status ---\n'
+      ${pkgs.systemd}/bin/systemctl status --no-pager -l --lines=40 "$unit" 2>&1 || true
+      printf -- '\n--- journal tail ---\n'
+      ${pkgs.systemd}/bin/journalctl -u "$unit" --no-pager -n 120 2>&1 || true
+    } | ${cfg.sendmailCmd} ${lib.escapeShellArgs cfg.recipients}
+  '';
 in
 {
   options.rueb.failureMail = {
@@ -41,7 +67,7 @@ in
       type = lib.types.listOf lib.types.str;
       default = [ ];
       example = [ "matrix-snapshot.service" "my-cronjob.service" ];
-      description = "Fully qualified unit names to send mail for when they fail.";
+      description = "Fully qualified .service unit names to send mail for when they fail.";
     };
   };
 
@@ -55,9 +81,16 @@ in
         assertion = cfg.recipients != [ ];
         message = "rueb.failureMail.recipients must not be empty.";
       }
+      {
+        # The instance name loses the unit suffix, so only services round-trip:
+        # a foo.timer resolves to the nonexistent failure-mail@.timer and would
+        # silently never send.
+        assertion = builtins.all (lib.hasSuffix ".service") cfg.units;
+        message = "every rueb.failureMail.units entry must end in .service.";
+      }
     ];
 
-    # One instance per failed unit, so %i carries the offending unit name.
+    # One instance per failed unit, so %i names the offender.
     # Attached to each watched unit below; systemd has no global OnFailure, so
     # the `units` option is the whole surface of what gets alerted on.
     systemd.services =
@@ -68,27 +101,7 @@ in
           wants = [ "network-online.target" ];
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = pkgs.writeShellScript "failure-mail" ''
-              set -uo pipefail
-              unit="%i"
-              {
-                printf 'From: %s\n' ${lib.escapeShellArg cfg.from}
-                printf 'To: %s\n' ${lib.escapeShellArg (lib.concatStringsSep ", " cfg.recipients)}
-                printf 'Subject: [ALERT] ${host}: %s entered failed state\n' "$unit"
-                # MIME-Version + 8bit CTE: unit/journal output carries 8-bit
-                # bytes, and without these the spam filter scores the alert
-                # MISSING_MIME_VERSION + BAD_CTE_7BIT.
-                printf 'Date: %s\n' "$(${pkgs.coreutils}/bin/date -R)"
-                printf 'MIME-Version: 1.0\n'
-                printf 'Content-Type: text/plain; charset=utf-8\n'
-                printf 'Content-Transfer-Encoding: 8bit\n\n'
-                printf 'Host: ${host}\nUnit: %s\n\n' "$unit"
-                printf -- '--- systemctl status ---\n'
-                ${pkgs.systemd}/bin/systemctl status --no-pager -l --lines=40 "$unit" 2>&1 || true
-                printf -- '\n--- journal tail ---\n'
-                ${pkgs.systemd}/bin/journalctl -u "$unit" --no-pager -n 120 2>&1 || true
-              } | ${cfg.sendmailCmd} ${lib.escapeShellArgs cfg.recipients}
-            '';
+            ExecStart = "${failureMailScript} %i";
           };
         };
       }
