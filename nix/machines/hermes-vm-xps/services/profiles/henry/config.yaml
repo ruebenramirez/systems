@@ -27,6 +27,7 @@ model:
   aliases:
     deep: openrouter/deepseek/deepseek-v4.1-flash
     deep1017: openrouter/deepseek/deepseek-v4.1-flash-1017
+    qfn: halogen/halogen-qwen3.8-flash-next
   default: deepseek/deepseek-v4.1-flash-1017
   provider: openrouter
 kanban:
