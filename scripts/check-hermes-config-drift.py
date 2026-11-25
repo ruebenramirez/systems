@@ -2,10 +2,12 @@
 """check-hermes-config-drift.py -- compare the live Hermes user config against
 the declarative copy in nix/machines/hermes-vm-xps/services/hermes-config.yaml.
 
-The live file (/opt/data/config.yaml) is the source of truth: Hermes rewrites
-it from the dashboard and on version bumps. This script normalizes both sides
+The declarative copy is the source of truth for the keys it declares: the model
+scope is applied to live at activation (scripts/hermes-apply-model-pin.py) and
+the rest is declared here, so a live-only change is meant to be declared
+deliberately rather than mirrored blindly. This script normalizes both sides
 (strip comments, blank lines, inline comments; drop volatile keys) and reports
-the diff, so a nightly job can open a PR when the live config drifts.
+the divergence for a nightly job.
 
 Volatile keys dropped from both sides:
   _config_version                       bumped by hermes itself
@@ -53,16 +55,18 @@ TOP_KEY = re.compile(r"^[A-Za-z_]")
 # nix/machines/hermes-vm-xps/services/hermes-config.yaml.
 HEADER = """\
 # Hermes user-scope config for hermes-vm-xps, captured from the live
-# /opt/data/config.yaml (comments and default-only noise stripped). Installed at
-# /var/lib/hermes/config.yaml on first boot by the tmpfiles C rule in
-# hermes-agent.nix (copy-if-absent, never overwrite); after that the live file
-# is the source of truth and scripts/check-hermes-config-drift.py is meant to
-# keep this copy in sync via nightly PRs.
+# /opt/data/config.yaml (comments and default-only noise stripped). This file is
+# the declarative source for the config: the tmpfiles C rule in hermes-agent.nix
+# recovers a state dir from scratch with it, and the model scope is enforced on a
+# live one. Declare changes here, never in the live file.
 #
-# The model pin runs the other way: the hermes-model-pin unit re-asserts
-# model.default/model.provider from this file into the live config at every
-# activation, so a model picked in the dashboard holds only until the next
-# rebuild. Change it here to make it stick.
+# The model scope is enforced from here: the hermes-model-pin unit writes this
+# file's whole `model:` block (default, provider, aliases, api_mode) over the
+# live config's at every activation, so a model or alias set anywhere else holds
+# only until the next rebuild.
+#
+# Keys outside the model scope are not enforced yet; the drift check reports the
+# divergence so the change gets declared here deliberately instead of mirrored.
 #
 # Managed-scope keys (dashboard.basic_auth, halogen provider) live in
 # hermes-agent.nix and win on merge — do not add them here. model.default is

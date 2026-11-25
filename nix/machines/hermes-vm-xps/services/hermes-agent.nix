@@ -41,17 +41,19 @@ let
           halogen-qwen3.8-flash-next: {}
   '';
 
-  # The `C` tmpfiles rules below seed a config only when it is absent, so a pin
-  # changed in the flake never reaches a live profile -- and a profile with no
+  # The flake is the source of truth for the `model:` scope below: the `C`
+  # tmpfiles rules seed a config only when it is absent, so a value changed in
+  # the flake never reaches a live profile -- and a profile with no
   # model.default does not fail, it quietly runs the provider's first catalog
   # model (rueb/systems#126: after #119 dropped the managed pin, Henry answered
-  # in z-ai/glm-5.3). Re-assert the pins the captures declare before the gateway
-  # starts; the value is read back out of the capture file, so the flake stays
-  # the only place a model is chosen.
+  # in z-ai/glm-5.3). Apply the capture's whole `model:` block (default,
+  # provider, aliases, api_mode) before the gateway starts; the values are read
+  # back out of the capture file, so the flake stays the only place the model
+  # scope is edited.
   #
-  # Consequence: the flake wins over the dashboard. A model picked in the
-  # dashboard holds until the next activation; change the capture to make it
-  # stick.
+  # Consequence: the flake wins over the dashboard and over live edits. A model
+  # or alias set anywhere else holds only until the next activation; declare it
+  # in the capture to make it stick.
   modelPins = [
     {
       label = "default profile";
@@ -118,12 +120,14 @@ in
     # generated once by hand (never committed, never in the Nix store).
     "d /var/lib/hermes/.ssh 0700 10000 10000 -"
     # Seed the user config on a fresh state dir only (C = never overwrite an
-    # existing file). After first boot the live file is the source of truth --
-    # Hermes rewrites it from the dashboard -- and scripts/check-hermes-config-drift.py
-    # is meant to PR changes back into ./hermes-config.yaml.
+    # existing file): a from-scratch rebuild is recovered from these captures.
+    # On an existing state dir the flake is applied instead -- the model scope
+    # by hermes-model-pin at every activation, the rest reported as drift by
+    # scripts/check-hermes-config-drift.py so a live-only key gets declared here
+    # deliberately. Do not edit live config to match the flake.
     "C /var/lib/hermes/config.yaml ${./hermes-config.yaml} 0600 10000 10000 -"
-    # Profile seeds (same C semantics): captures of the live profile state;
-    # the drift checker keeps ./profiles/<name>/ in sync via nightly PRs.
+    # Profile seeds (same C semantics): recovery source for a fresh state dir,
+    # plus the model scope applied at activation.
     "d /var/lib/hermes/profiles/henry 0700 10000 10000 -"
     "C /var/lib/hermes/profiles/henry/config.yaml ${./profiles/henry/config.yaml} 0600 10000 10000 -"
     "C /var/lib/hermes/profiles/henry/profile.yaml ${./profiles/henry/profile.yaml} 0600 10000 10000 -"
@@ -181,7 +185,7 @@ in
   # itself is uid 10000, so the writer restores owner and mode on every file it
   # touches. Ordered after tmpfiles so a first-boot state dir is already seeded.
   systemd.services.hermes-model-pin = {
-    description = "Re-assert the flake's Hermes model pins in existing profile scopes";
+    description = "Apply the flake's Hermes model scope to existing profile scopes";
     after = [ "systemd-tmpfiles-setup.service" "sops-install-secrets.service" ];
     serviceConfig = {
       Type = "oneshot";

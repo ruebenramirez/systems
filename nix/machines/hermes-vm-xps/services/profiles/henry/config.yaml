@@ -1,14 +1,18 @@
 # Hermes profile config for the `henry` profile on hermes-vm-xps, captured from
 # the live /opt/data/profiles/henry/config.yaml (comments stripped, secrets
-# stripped by the drift checker). Installed by the tmpfiles C rules in
-# hermes-agent.nix (copy-if-absent, never overwrite); after that the live file
-# is the source of truth and scripts/check-hermes-config-drift.py keeps this
-# copy in sync via nightly PRs (--header-file regenerates this header).
+# stripped by the drift checker). This file is the declarative source for the
+# profile: the tmpfiles C rules in hermes-agent.nix recover a state dir from
+# scratch with it, and the model scope is enforced on a live one. Declare changes
+# here, never in the live file.
 #
-# The model pin runs the other way: the hermes-model-pin unit re-asserts
-# model.default/model.provider from this file into the live profile at every
-# activation, so a model picked in the dashboard holds only until the next
-# rebuild. Change it here to make it stick.
+# The model scope is enforced from here: the hermes-model-pin unit writes this
+# file's whole `model:` block (default, provider, aliases, api_mode) over the
+# live profile's at every activation, so a model or alias set anywhere else holds
+# only until the next rebuild.
+#
+# Keys outside the model scope are not enforced yet; the drift check reports the
+# divergence so the change gets declared here deliberately instead of mirrored
+# (--header-file regenerates this header).
 #
 # Managed-scope keys (dashboard.basic_auth, halogen provider) live in
 # hermes-agent.nix and win on merge — do not add them here. Henry's model pin
