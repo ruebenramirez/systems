@@ -29,7 +29,7 @@ let
         secret: ${config.sops.placeholder.hermes-dashboard-basic-auth-secret}
     # No model.default pin here: managed scope wins over EVERY profile's
     # config.yaml, so a pin forces one model fleet-wide. Per-profile defaults
-    # live in user scope (default profile: halogen; Henry: deepseek).
+    # live in user scope (both profiles pin halogen).
     # providers.halogen + base_url stay so the two cannot disagree about
     # where inference goes.
     providers:

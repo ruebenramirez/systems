@@ -36,6 +36,7 @@ kanban:
 cron:
   catch_up_missed: true
   allow_agent_scheduling: true
+  max_parallel_jobs: 2
 terminal:
   backend: "local"
   cwd: "."
@@ -90,7 +91,7 @@ memory:
   memory_char_limit: 2200
   user_char_limit: 1375
   nudge_interval: 10
-max_concurrent_sessions:
+max_concurrent_sessions: 3
 group_sessions_per_user: true
 streaming:
   enabled: false
@@ -171,6 +172,7 @@ code_execution:
   max_tool_calls: 50
 delegation:
   max_iterations: 250
+  max_concurrent_children: 3
 display:
   compact: false
   cleanup_progress: false
@@ -219,3 +221,10 @@ command_allowlist:
   - stop/restart hermes gateway via shell-spliced verb (kills running agents)
 approvals:
   mode: "off"
+auxiliary:
+  title_generation:
+    max_concurrency: 2
+  compression:
+    max_concurrency: 1
+  session_search:
+    max_concurrency: 2

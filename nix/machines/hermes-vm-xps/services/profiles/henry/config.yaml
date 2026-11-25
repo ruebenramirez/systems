@@ -16,7 +16,7 @@
 #
 # Managed-scope keys (dashboard.basic_auth, halogen provider) live in
 # hermes-agent.nix and win on merge — do not add them here. Henry's model pin
-# (deepseek via openrouter) lives in user scope below.
+# (halogen) lives in user scope below.
 # No secret may appear in this file; the checker strips any secret: key.
 database:
   journal_mode: "wal"
@@ -27,20 +27,15 @@ attachments:
 plugins:
   clone_timeout_seconds: 300
 model:
-  api_mode: chat_completions
   aliases:
-    deep: openrouter/deepseek/deepseek-v4.1-flash
-    deep1017: openrouter/deepseek/deepseek-v4.1-flash-1017
     qfn: halogen/halogen-qwen3.8-flash-next
-  default: deepseek/deepseek-v4.1-flash-1017
-  provider: openrouter
+  default: halogen-qwen3.8-flash-next
+  provider: halogen
 kanban:
   review_dispatch: true
 cron:
   catch_up_missed: true
   allow_agent_scheduling: true
-  model: deepseek/deepseek-v4.1-flash
-  model_provider: openrouter
 terminal:
   backend: "local"
   cwd: "."
