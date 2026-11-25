@@ -26,14 +26,13 @@ Also runs per-profile: --live /opt/data/profiles/<name>/config.yaml --desired
 the matching nix/machines/hermes-vm-xps/services/profiles/<name>/config.yaml
 (--header-file to regenerate a profile's own header).
 
-Deploy sequencing: after a rebuild drops/changes a managed model pin, seed the
-live default-profile config BEFORE the next drift run
-(`hermes config set model.default ... && hermes config set model.provider ...`,
-or `scripts/hermes-apply-model-pin.py`), otherwise --emit regenerates the
-desired file from an unseeded live config and silently reverts per-profile
-pins. --emit refuses to emit whenever the live model pin is not the one the
-desired file declares -- missing or merely different (exit 3) -- because that is
-exactly the moment the flake must not be made to follow live.
+Deploy sequencing: the flake owns the live `model:` scope -- the hermes-model-pin
+unit writes the desired file's whole block over the live one at every activation
+(scripts/hermes-apply-model-pin.py) -- so --emit refuses to emit when live's
+block is not the one the desired file declares: a key missing, merely different,
+or carried live-only (exit 3). That is exactly the moment emit would rewrite a
+declaration to match live. Fix live by activating the declaration (the unit, or
+`scripts/hermes-apply-model-pin.py`), or change the desired file deliberately.
 
 Stdlib only; runs inside the Hermes container and on any host.
 """
@@ -49,6 +48,7 @@ DROP_TOP = {"_config_version", "onboarding"}
 # into --emit output and git history.
 SECRET_KEY = re.compile(r"^\s*secret:")
 TOP_KEY = re.compile(r"^[A-Za-z_]")
+BLOCK = "model"
 
 # Emitted by --emit ahead of the body so regeneration never drops the
 # guardrail notes from the desired file. Keep in sync with the header of
@@ -130,23 +130,29 @@ def normalize(path: str):
     return lines
 
 
-def model_pin(lines):
-    """The model.default / model.provider values pinned at top level.
-    `lines` is normalize() output, so indentation survives and comments do not;
-    four-space lines are nested keys (aliases), not the pin."""
-    pin = {"default": None, "provider": None}
-    in_model = False
+def model_scope(lines):
+    """The `model:` block flattened to {(key, ...): value} -- ("default",),
+    ("provider",), ("aliases", "qfn"). The whole block is flake-owned: activation
+    replaces it wholesale, so live carries no key this dict may not describe.
+    `lines` is normalize() output: indentation survives, comments do not, and a
+    nested key resolves against its parent's indent."""
+    out, stack, in_model = {}, [], False
     for line in lines:
         if TOP_KEY.match(line):
-            in_model = line.split(":", 1)[0] == "model"
+            in_model = line.split(":", 1)[0] == BLOCK
             continue
-        if not in_model or line.startswith("    "):
+        if not in_model:
             continue
+        indent = len(line) - len(line.lstrip())
         key, _, value = line.strip().partition(":")
-        if key in pin:
-            value = value.strip().strip('"').strip("'")
-            pin[key] = value or None
-    return pin
+        value = value.strip().strip('"').strip("'") or None
+        while stack and indent <= stack[-1][0]:
+            stack.pop()
+        path = tuple([k for _, k in stack] + [key])
+        out[path] = value
+        if value is None:
+            stack.append((indent, key))
+    return out
 
 
 def main():
@@ -168,26 +174,28 @@ def main():
 
     if args.emit:
         if args.desired:
-            # Guard: regenerating from a live config whose pin disagrees with
-            # the flake (unseeded after a managed pin was dropped, or changed
-            # from the dashboard) would silently rewrite the declared default to
-            # whatever live happens to run.
+            # Guard: the flake owns the whole `model:` block, so regenerating the
+            # desired file from a live block that disagrees with it (a rebuild the
+            # declaration has not yet reached, a dashboard change, a live-only
+            # key) would silently rewrite -- or drop -- a declaration.
             try:
                 desired = normalize(args.desired)
             except OSError as e:
                 print(f"error: cannot read desired config: {e}", file=sys.stderr)
                 return 2
-            want, have = model_pin(desired), model_pin(live)
-            if want["default"] and want != have:
-                print("error: live pins "
-                      f"{have['default'] or '(no model.default)'} on "
-                      f"{have['provider'] or '(no model.provider)'}, the desired "
-                      f"file pins {want['default']} on {want['provider']}; --emit "
-                      "would make the flake follow live. Seed the live config "
-                      "first (scripts/hermes-apply-model-pin.py, or `hermes "
-                      "config set model.default ...`), or change the desired "
-                      "file deliberately.",
-                      file=sys.stderr)
+            want, have = model_scope(desired), model_scope(live)
+            stale = [(p, have.get(p), want.get(p))
+                     for p in dict.fromkeys([*want, *have])
+                     if want.get(p) != have.get(p)]
+            if stale:
+                report = ", ".join(
+                    f"model.{'.'.join(p)}: {h or '(unset)'} -> {w or '(unset)'}"
+                    for p, h, w in stale)
+                print(f"error: live's model scope is not the declared one "
+                      f"({report}); --emit would make the flake follow live. "
+                      "Activation applies the declared block "
+                      "(scripts/hermes-apply-model-pin.py), or change the "
+                      "desired file deliberately.", file=sys.stderr)
                 return 3
         if args.header_file:
             try:
