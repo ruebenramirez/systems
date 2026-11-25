@@ -41,6 +41,30 @@ let
           halogen-qwen3.8-flash-next: {}
   '';
 
+  # The `C` tmpfiles rules below seed a config only when it is absent, so a pin
+  # changed in the flake never reaches a live profile -- and a profile with no
+  # model.default does not fail, it quietly runs the provider's first catalog
+  # model (rueb/systems#126: after #119 dropped the managed pin, Henry answered
+  # in z-ai/glm-5.3). Re-assert the pins the captures declare before the gateway
+  # starts; the value is read back out of the capture file, so the flake stays
+  # the only place a model is chosen.
+  #
+  # Consequence: the flake wins over the dashboard. A model picked in the
+  # dashboard holds until the next activation; change the capture to make it
+  # stick.
+  modelPins = [
+    {
+      label = "default profile";
+      seed = ./hermes-config.yaml;
+      live = "/var/lib/hermes/config.yaml";
+    }
+    {
+      label = "henry profile";
+      seed = ./profiles/henry/config.yaml;
+      live = "/var/lib/hermes/profiles/henry/config.yaml";
+    }
+  ];
+
   envFile = ''
     API_SERVER_KEY=${config.sops.placeholder.hermes-api-server-key}
     OPENROUTER_API_KEY=${config.sops.placeholder.openrouter-api-key}
@@ -135,14 +159,41 @@ in
   };
 
   systemd.services.podman-hermes = {
-    wants = [ "network-online.target" "hermes-profile-env-sync.service" ];
+    wants = [
+      "network-online.target"
+      "hermes-profile-env-sync.service"
+      "hermes-model-pin.service"
+    ];
     after = [
       "network-online.target"
       "sops-install-secrets.service"
       "hermes-profile-env-sync.service"
+      "hermes-model-pin.service"
     ];
-    requires = [ "hermes-profile-env-sync.service" ];
+    # A profile that starts un-pinned runs whatever the provider catalog
+    # happens to lead with, so a pin that cannot be written stops the gateway
+    # rather than silently spending on the wrong model.
+    requires = [ "hermes-profile-env-sync.service" "hermes-model-pin.service" ];
     serviceConfig.RestartSec = "10s";
+  };
+
+  # Runs as root: the live configs are 0600 under /var/lib/hermes and Hermes
+  # itself is uid 10000, so the writer restores owner and mode on every file it
+  # touches. Ordered after tmpfiles so a first-boot state dir is already seeded.
+  systemd.services.hermes-model-pin = {
+    description = "Re-assert the flake's Hermes model pins in existing profile scopes";
+    after = [ "systemd-tmpfiles-setup.service" "sops-install-secrets.service" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
+      set -euo pipefail
+      ${lib.concatMapStrings (pin: ''
+        ${pkgs.python3}/bin/python3 ${../../../../scripts/hermes-apply-model-pin.py} \
+          --seed ${pin.seed} --live ${pin.live} --label ${lib.escapeShellArg pin.label}
+      '') modelPins}
+    '';
   };
 
   # Hermes reads platform credentials from the profile scope (~/.hermes/.env)

@@ -26,10 +26,12 @@ the matching nix/machines/hermes-vm-xps/services/profiles/<name>/config.yaml
 
 Deploy sequencing: after a rebuild drops/changes a managed model pin, seed the
 live default-profile config BEFORE the next drift run
-(`hermes config set model.default ... && hermes config set model.provider ...`),
-otherwise --emit regenerates the desired file from an unseeded live config and
-silently reverts per-profile pins. --emit refuses to emit when the desired file
-pins model.default but the live config has none (exit 3).
+(`hermes config set model.default ... && hermes config set model.provider ...`,
+or `scripts/hermes-apply-model-pin.py`), otherwise --emit regenerates the
+desired file from an unseeded live config and silently reverts per-profile
+pins. --emit refuses to emit whenever the live model pin is not the one the
+desired file declares -- missing or merely different (exit 3) -- because that is
+exactly the moment the flake must not be made to follow live.
 
 Stdlib only; runs inside the Hermes container and on any host.
 """
@@ -56,6 +58,11 @@ HEADER = """\
 # hermes-agent.nix (copy-if-absent, never overwrite); after that the live file
 # is the source of truth and scripts/check-hermes-config-drift.py is meant to
 # keep this copy in sync via nightly PRs.
+#
+# The model pin runs the other way: the hermes-model-pin unit re-asserts
+# model.default/model.provider from this file into the live config at every
+# activation, so a model picked in the dashboard holds only until the next
+# rebuild. Change it here to make it stick.
 #
 # Managed-scope keys (dashboard.basic_auth, halogen provider) live in
 # hermes-agent.nix and win on merge — do not add them here. model.default is
@@ -119,15 +126,23 @@ def normalize(path: str):
     return lines
 
 
-def has_model_default(lines):
-    """True if the normalized lines pin model.default at top level."""
+def model_pin(lines):
+    """The model.default / model.provider values pinned at top level.
+    `lines` is normalize() output, so indentation survives and comments do not;
+    four-space lines are nested keys (aliases), not the pin."""
+    pin = {"default": None, "provider": None}
     in_model = False
     for line in lines:
         if TOP_KEY.match(line):
             in_model = line.split(":", 1)[0] == "model"
-        elif in_model and line.strip().startswith("default:"):
-            return True
-    return False
+            continue
+        if not in_model or line.startswith("    "):
+            continue
+        key, _, value = line.strip().partition(":")
+        if key in pin:
+            value = value.strip().strip('"').strip("'")
+            pin[key] = value or None
+    return pin
 
 
 def main():
@@ -149,18 +164,25 @@ def main():
 
     if args.emit:
         if args.desired:
-            # Guard: regenerating from a live config that lost the model pin
-            # (e.g. managed pin dropped, live not yet seeded) would silently
-            # revert the per-profile default in the desired file.
+            # Guard: regenerating from a live config whose pin disagrees with
+            # the flake (unseeded after a managed pin was dropped, or changed
+            # from the dashboard) would silently rewrite the declared default to
+            # whatever live happens to run.
             try:
                 desired = normalize(args.desired)
             except OSError as e:
                 print(f"error: cannot read desired config: {e}", file=sys.stderr)
                 return 2
-            if has_model_default(desired) and not has_model_default(live):
-                print("error: live config has no model.default but the desired "
-                      "file pins one; seed the live config with `hermes config "
-                      "set model.default ...` before regenerating",
+            want, have = model_pin(desired), model_pin(live)
+            if want["default"] and want != have:
+                print("error: live pins "
+                      f"{have['default'] or '(no model.default)'} on "
+                      f"{have['provider'] or '(no model.provider)'}, the desired "
+                      f"file pins {want['default']} on {want['provider']}; --emit "
+                      "would make the flake follow live. Seed the live config "
+                      "first (scripts/hermes-apply-model-pin.py, or `hermes "
+                      "config set model.default ...`), or change the desired "
+                      "file deliberately.",
                       file=sys.stderr)
                 return 3
         if args.header_file:

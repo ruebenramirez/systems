@@ -5,10 +5,14 @@
 # is the source of truth and scripts/check-hermes-config-drift.py keeps this
 # copy in sync via nightly PRs (--header-file regenerates this header).
 #
+# The model pin runs the other way: the hermes-model-pin unit re-asserts
+# model.default/model.provider from this file into the live profile at every
+# activation, so a model picked in the dashboard holds only until the next
+# rebuild. Change it here to make it stick.
+#
 # Managed-scope keys (dashboard.basic_auth, halogen provider) live in
 # hermes-agent.nix and win on merge — do not add them here. Henry's model pin
-# (deepseek via openrouter) lives in user scope below; the live profile config
-# cannot carry it until the managed pin is dropped (deploy note in the PR).
+# (deepseek via openrouter) lives in user scope below.
 # No secret may appear in this file; the checker strips any secret: key.
 database:
   journal_mode: "wal"

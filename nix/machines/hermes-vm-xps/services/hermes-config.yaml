@@ -5,6 +5,11 @@
 # is the source of truth and scripts/check-hermes-config-drift.py is meant to
 # keep this copy in sync via nightly PRs.
 #
+# The model pin runs the other way: the hermes-model-pin unit re-asserts
+# model.default/model.provider from this file into the live config at every
+# activation, so a model picked in the dashboard holds only until the next
+# rebuild. Change it here to make it stick.
+#
 # Managed-scope keys (dashboard.basic_auth, halogen provider) live in
 # hermes-agent.nix and win on merge — do not add them here. model.default is
 # NOT managed: a managed pin would override every profile's own default.
@@ -24,7 +29,6 @@ plugins:
 model:
   default: halogen-qwen3.8-flash-next
   provider: halogen
-  api_mode: chat_completions
 kanban:
   review_dispatch: true
 cron:
