@@ -16,7 +16,7 @@ let
 
   # Encrypted room id, captured at bootstrap; whitelist so Hermes only answers
   # in that room.
-  matrixRoom = "!G9nnRAWVcjY2V2pR0VDTOtUnwcToZy37SDFnRtktutg";
+  matrixRoom = "!i7gn4E-fEgrxo85VEe90EHbiZusAThDm6FSAfV2w-Ls";
 
   # Managed scope (`/etc/hermes`), deep-merged over the user config and wins.
   # The dashboard refuses to bind 0.0.0.0 unless `dashboard.basic_auth` is
